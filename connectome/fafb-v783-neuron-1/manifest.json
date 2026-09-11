@@ -1,0 +1,406 @@
+{
+  "artifactVersion": 1,
+  "id": "fafb-v783-neuron-1",
+  "level": "neuron",
+  "createdAt": "2026-09-11T21:00:48Z",
+  "source": {
+    "dataset": "FlyWire FAFB whole-brain connectome (adult female Drosophila melanogaster)",
+    "materialization": 783,
+    "zenodoRecord": "10676866",
+    "zenodoDoi": "10.5281/zenodo.10676866",
+    "zenodoTitle": "FlyWire Whole-brain Connectome Connectivity Data",
+    "files": [
+      {
+        "name": "proofread_connections_783.feather",
+        "url": "https://zenodo.org/api/records/10676866/files/proofread_connections_783.feather/content",
+        "bytes": 852022274,
+        "sha256": "24f960ae3e7d4f8cd30db3b62e99fb5179cc3d1e76d8c155bfb441e9737d3faf",
+        "md5": "f48f972d262323a102aed49af1396b8a",
+        "role": "connections"
+      },
+      {
+        "name": "per_neuron_neuropil_count_post_783.feather",
+        "url": "https://zenodo.org/api/records/10676866/files/per_neuron_neuropil_count_post_783.feather/content",
+        "bytes": 233843050,
+        "sha256": "e2418f4794fe47984bb4bc15ffc194003ea8e349a428551f30af94947d85d712",
+        "md5": "bb5999f10920ade803d9f37097a43a56",
+        "role": "post_counts"
+      },
+      {
+        "name": "per_neuron_neuropil_count_pre_783.feather",
+        "url": "https://zenodo.org/api/records/10676866/files/per_neuron_neuropil_count_pre_783.feather/content",
+        "bytes": 16853770,
+        "sha256": "35442a46f076892dff91bd6e55fa1489b3acc64fda1d35cee7dbbbbc509a3dff",
+        "md5": "90fcdb42c1ba05ed92820840fa1e6ba0",
+        "role": "pre_counts"
+      },
+      {
+        "name": "proofread_root_ids_783.npy",
+        "url": "https://zenodo.org/api/records/10676866/files/proofread_root_ids_783.npy/content",
+        "bytes": 1114168,
+        "sha256": "7c7b7e818e9232e5ab64793d52ba20574dbe9da3a6509fbc74193b0f259a01be",
+        "md5": "e0e6c19732fd8c7a4e39a2d170105421",
+        "role": "root_ids"
+      }
+    ],
+    "annotations": {
+      "repo": "flyconnectome/flywire_annotations",
+      "file": "supplemental_files/Supplemental_file1_neuron_annotations.tsv",
+      "commit_or_tag": "v3.1.0 (8587524c1748ce5ef2080822a2fc890fc03bf597)",
+      "url": "https://raw.githubusercontent.com/flyconnectome/flywire_annotations/8587524c1748ce5ef2080822a2fc890fc03bf597/supplemental_files/Supplemental_file1_neuron_annotations.tsv",
+      "bytes": 31718505,
+      "sha256": "9a4f8b2f843196074431ebd7cd883536afa1be86c8a4ce90970441e8be81d1be",
+      "gitBlobSha1": "afea3e15a5671f5da0b9f7dd2e932d328c3b57a0",
+      "license": "NOT STATED: the flyconnectome/flywire_annotations repository contains no LICENSE file and no license statement (checked at commit 8587524c / tag v3.1.0, GitHub API reports license=null). Its README asks users to cite Berg et al. 2025, Schlegel et al. 2024, Matsliah et al. 2024 and Dorkenwald et al. 2024 when using the annotations. The original Supplemental File 1 was published with Schlegel et al. 2024 (Nature, open access, CC-BY-4.0); the repository version used here has since been extended (v3.0.0/v3.1.0, Berg et al. 2025) and carries no explicit license of its own."
+    },
+    "license": "CC-BY-4.0 (Zenodo data release, license id cc-by-4.0); see annotations.license for the annotation table",
+    "citations": [
+      "Dorkenwald et al. 2024, Nature, doi:10.1038/s41586-024-07558-y (Neuronal wiring diagram of an adult brain)",
+      "Lin, Yang et al. 2024, Nature, doi:10.1038/s41586-024-07968-y (Network statistics of the whole-brain connectome of Drosophila)",
+      "Schlegel et al. 2024, Nature, doi:10.1038/s41586-024-07686-5 (Whole-brain annotation and multi-connectome cell typing of Drosophila; cell type annotations)",
+      "Eckstein et al. 2024, Cell, doi:10.1016/j.cell.2024.03.016 (Neurotransmitter classification from electron microscopy images at synaptic sites in Drosophila melanogaster; neurotransmitter predictions)",
+      "Berg et al. 2025, bioRxiv, doi:10.1101/2025.10.09.680999 (Sexual dimorphism in the complete connectome of the Drosophila male CNS; annotation table v3.x updates)",
+      "Matsliah et al. 2024, Nature, doi:10.1038/s41586-024-07981-1 (Neuronal parts list and wiring diagram for a visual system; optic-lobe annotations merged into the annotation table)"
+    ]
+  },
+  "preprocessing": {
+    "tool": "connectome-etl/build.py",
+    "steps": [
+      "Same downloads/verification and neuron universe as fafb-v783-projectome-1.",
+      "neurons.parquet: one row per neuron in the universe, sorted by root_id ascending; `index` = row position and is the node index used by graph.bin.",
+      "input_region / output_region: argmax of postsynaptic / presynaptic synapse counts per neuropil (UNASGD ignored unless it is the only label; null if the neuron has no counts).",
+      "Annotation columns left-joined from supplemental_files/Supplemental_file1_neuron_annotations.tsv (flyconnectome/flywire_annotations v3.1.0) on root_id; original labels kept verbatim (e.g. top_nt is spelled 'acetylcholine', not 'ACH'); `annotated` marks rows with a matching annotation.",
+      "graph.bin: rows of the connections table aggregated to (pre, post) pairs: weight = sum of syn_count over neuropils; nt = transmitter class with the largest synapse count in the pair (ties -> first in ntClasses order). Edges sorted by (src, dst). Autapses kept."
+    ],
+    "droppedNeurons": 280,
+    "regionAssignment": {
+      "inputFromPostArgmax": 138384,
+      "inputTiesPost": 299,
+      "inputFallbackToPreArgmax": 590,
+      "outputTiesPre": 213,
+      "inputAssignedUnassigned": 1,
+      "droppedNeurons": 280,
+      "inputUnassignedArgmaxOverridden": 8,
+      "outputAssignedUnassigned": 2,
+      "outputMissing": 604,
+      "unassignedNodeIndex": 74
+    },
+    "neuronUniverse": {
+      "nProofread": 139255,
+      "nInConnections": 138639,
+      "nInConnectionsNotProofread": 0,
+      "nProofreadWithoutConnections": 616
+    },
+    "annotations": {
+      "rowsWithoutRootId": 0,
+      "duplicateRootIdsDropped": 0,
+      "neuronsAnnotated": 139241,
+      "columnCoverage": {
+        "flow": 139241,
+        "super_class": 139241,
+        "cell_class": 107511,
+        "cell_sub_class": 25826,
+        "cell_type": 137714,
+        "hemibrain_type": 33268,
+        "hemilineage": 37542,
+        "hartenstein_hemilineage": 34803,
+        "side": 139241,
+        "nerve": 9644,
+        "top_nt": 138641,
+        "top_nt_conf": 138641,
+        "known_nt": 87831,
+        "known_nt_source": 87831
+      },
+      "columnMap": {
+        "flow": "flow",
+        "super_class": "super_class",
+        "cell_class": "cell_class",
+        "cell_sub_class": "cell_sub_class",
+        "cell_type": "cell_type",
+        "hemibrain_type": "hemibrain_type",
+        "ito_lee_hemilineage": "hemilineage",
+        "hartenstein_hemilineage": "hartenstein_hemilineage",
+        "side": "side",
+        "nerve": "nerve",
+        "top_nt": "top_nt",
+        "top_nt_conf": "top_nt_conf",
+        "known_nt": "known_nt",
+        "known_nt_source": "known_nt_source"
+      }
+    },
+    "ntDerivation": {
+      "source": "derived: argmax over per-connection mean probabilities",
+      "columns": [
+        "ach_avg",
+        "gaba_avg",
+        "glut_avg",
+        "da_avg",
+        "oct_avg",
+        "ser_avg"
+      ],
+      "classOrder": [
+        "ACH",
+        "GABA",
+        "GLUT",
+        "DA",
+        "OCT",
+        "SER",
+        "UNKNOWN"
+      ],
+      "tieRows": 2,
+      "allNanRows": 1732,
+      "meanTopProbability": 0.7847302556037903,
+      "topProbabilityQuantiles": {
+        "0.05": 0.4381486177444458,
+        "0.25": 0.6424802541732788,
+        "0.5": 0.8363505005836487,
+        "0.75": 0.949040412902832
+      }
+    },
+    "ntMajorityTies": 76411,
+    "inputSchemas": {
+      "connections": "pre_pt_root_id: int64\npost_pt_root_id: int64\nneuropil: string\nsyn_count: int64\ngaba_avg: double\nach_avg: double\nglut_avg: double\noct_avg: double\nser_avg: double\nda_avg: double",
+      "root_ids": "npy dtype=uint64 shape=(139255,)",
+      "post_counts": "post_pt_root_id: int64\nneuropil: string\ncount: int64",
+      "pre_counts": "pre_pt_root_id: int64\nneuropil: string\ncount: int64",
+      "annotations": "tsv columns=['supervoxel_id', 'root_id', 'pos_x', 'pos_y', 'pos_z', 'soma_x', 'soma_y', 'soma_z', 'nucleus_id', 'flow', 'super_class', 'cell_class', 'cell_sub_class', 'supertype', 'cell_type', 'hemibrain_type', 'ito_lee_hemilineage', 'hartenstein_hemilineage', 'top_nt', 'top_nt_conf', 'known_nt', 'known_nt_source', 'side', 'nerve', 'vfb_id', 'fbbt_id', 'status', 'dimorphism', 'matching_notes', 'fru_dsx', 'synonyms']"
+    },
+    "assumptions": [
+      {
+        "id": "syn_count_as_weight",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Edge weight = number of predicted chemical synapses (syn_count summed over the rows that map onto the edge). This is a STRUCTURAL proxy for connection strength, NOT a physiological weight: it ignores synapse size, receptor identity, short-term dynamics, electrical synapses (gap junctions are absent from the dataset) and neuromodulation."
+      },
+      {
+        "id": "nt_prediction_not_measurement",
+        "category": "INFERRED_FROM_LITERATURE",
+        "text": "Neurotransmitter labels are statistical predictions from electron-microscopy images (Eckstein et al. 2024, Cell), NOT measurements. Reported accuracy: 87% per synapse, 94% per neuron, 91% for known cell types, on the six classes ACH/GABA/GLUT/DA/OCT/SER. Co-transmission and non-classical transmitters (e.g. neuropeptides, histamine) are not represented."
+      },
+      {
+        "id": "nt_type_derivation",
+        "category": "ENGINEERING_CHOICE",
+        "text": "The v783 connections table has no categorical nt_type column; it carries per-connection mean probabilities (ach_avg, gaba_avg, glut_avg, da_avg, oct_avg, ser_avg) averaged over the synapses of each (pre, post, neuropil) row. nt_type here = argmax of those six means, in the fixed class order ACH, GABA, GLUT, DA, OCT, SER (ties -> first in that order; 2 tied rows, 1732 rows with no probabilities). This mirrors the Codex convention but is computed here."
+      },
+      {
+        "id": "nt_sign",
+        "category": "INFERRED_FROM_LITERATURE",
+        "text": "No sign (excitatory/inhibitory) is encoded in the artifact; only the transmitter class. Literature convention for adult Drosophila: ACH is the main excitatory fast transmitter, GABA is inhibitory (GABA-A/Rdl and GABA-B receptors), GLUT is predominantly inhibitory in the central brain (GluCl-alpha) but can be excitatory at some synapses (e.g. neuromuscular, some NMDA/AMPA-like receptors), and DA/OCT/SER are neuromodulatory with receptor-dependent sign. Any sign assignment is the runtime's choice and must be labelled as inferred."
+      },
+      {
+        "id": "unassigned_neuropil",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Synapses lying outside every neuropil mesh are labelled 'UNASGD' in the connections table but with the literal string 'None' in the per-neuron count tables (observed spellings per table: {\"connections\": [\"UNASGD\"], \"post_counts\": [\"None\"], \"pre_counts\": [\"None\"]}). Both are treated as the same pseudo-region with id 'UNASGD'. Those synapses are KEPT so that no measured synapse is silently dropped; treat that node as 'outside annotated neuropils' (tracts, nerves, cell-body rind), not as a brain region, and ignore it when a neuron's input/output region is chosen unless the neuron has no synapses anywhere else."
+      },
+      {
+        "id": "nt_unknown_class",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Connection rows whose six transmitter probabilities are all missing (NaN) are kept and labelled with an extra class 'UNKNOWN' (appended to ntClasses only if such rows exist), so that the per-class breakdown always sums to the edge weight."
+      },
+      {
+        "id": "neuron_universe",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Neuron universe = proofread root ids (proofread_root_ids_783.npy) ∪ all pre/post ids in proofread_connections_783.feather. Per-neuron synapse counts from the per-neuron neuropil count tables are restricted to this universe (those tables also contain non-proofread segments, which are ignored)."
+      },
+      {
+        "id": "pair_aggregation",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Neuropil is dropped when consolidating: a (pre, post) pair that synapses in several neuropils becomes one edge whose weight is the total synapse count and whose transmitter is the synapse-count-weighted majority across those rows."
+      }
+    ]
+  },
+  "graph": {
+    "nodeCount": 139255,
+    "edgeCount": 15091983,
+    "totalSynapses": 54492922,
+    "weightSemantics": "synapse_count",
+    "ntClasses": [
+      "ACH",
+      "GABA",
+      "GLUT",
+      "DA",
+      "OCT",
+      "SER",
+      "UNKNOWN"
+    ],
+    "aggregatedFromRows": 16847997,
+    "autapses": 0,
+    "files": {
+      "graph.bin": {
+        "bytes": 196195779
+      },
+      "neurons.parquet": {
+        "bytes": 2921468
+      },
+      "graph.header.json": {
+        "bytes": 1348
+      }
+    }
+  },
+  "stats": {
+    "ntEdgeTotals": {
+      "ACH": 8088627,
+      "GABA": 3235651,
+      "GLUT": 2953383,
+      "DA": 413010,
+      "OCT": 176854,
+      "SER": 222978,
+      "UNKNOWN": 1480
+    },
+    "ntSynapseTotals": {
+      "ACH": 30378547,
+      "GABA": 12692918,
+      "GLUT": 9682956,
+      "DA": 739697,
+      "OCT": 331146,
+      "SER": 636852,
+      "UNKNOWN": 30806
+    },
+    "topEdges": [
+      {
+        "pre": 720575940644702112,
+        "post": 720575940625952755,
+        "weight": 2405,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940623475324,
+        "post": 720575940627497244,
+        "weight": 2316,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940650935673,
+        "post": 720575940640736371,
+        "weight": 2058,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940628069501,
+        "post": 720575940633305681,
+        "weight": 2012,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940622132545,
+        "post": 720575940628908548,
+        "weight": 1897,
+        "nt": "ACH"
+      },
+      {
+        "pre": 720575940644702112,
+        "post": 720575940633305681,
+        "weight": 1659,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940623475324,
+        "post": 720575940640736371,
+        "weight": 1520,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940611563310,
+        "post": 720575940618554041,
+        "weight": 1482,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940625959667,
+        "post": 720575940626979621,
+        "weight": 1479,
+        "nt": "ACH"
+      },
+      {
+        "pre": 720575940627190556,
+        "post": 720575940628307026,
+        "weight": 1416,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940629382150,
+        "post": 720575940634612194,
+        "weight": 1335,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940634612194,
+        "post": 720575940627706398,
+        "weight": 1322,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940628307026,
+        "post": 720575940634612194,
+        "weight": 1297,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940632504874,
+        "post": 720575940628307026,
+        "weight": 1297,
+        "nt": "GABA"
+      },
+      {
+        "pre": 720575940621619627,
+        "post": 720575940606756030,
+        "weight": 1296,
+        "nt": "ACH"
+      }
+    ],
+    "annotationValueCounts": {
+      "super_class": {
+        "optic": 77537,
+        "central": 32383,
+        "sensory": 16904,
+        "visual_projection": 8038,
+        "ascending": 1750,
+        "descending": 1303,
+        "sensory_ascending": 612,
+        "visual_centrifugal": 524,
+        "motor": 110,
+        "endocrine": 80
+      },
+      "top_nt": {
+        "acetylcholine": 86191,
+        "glutamate": 24873,
+        "gaba": 19171,
+        "dopamine": 5909,
+        "serotonin": 2281,
+        "octopamine": 216
+      }
+    },
+    "weightQuantiles": {
+      "0.5": 2,
+      "0.9": 7,
+      "0.99": 32,
+      "0.999": 101
+    },
+    "maxWeight": 2405
+  },
+  "build": {
+    "python": "3.14.6",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "packages": {
+      "pandas": "3.0.5",
+      "pyarrow": "25.0.1",
+      "numpy": "2.5.3",
+      "requests": "2.34.2"
+    },
+    "timingsSec": {
+      "download": 32.26,
+      "load connections": 2.97,
+      "load post counts": 0.83,
+      "load pre counts": 0.07,
+      "assign input/output regions": 1.86,
+      "aggregate projectome edges": 0.79,
+      "write projectome": 0.07,
+      "aggregate neuron edges": 3.76,
+      "load annotations": 0.54
+    }
+  },
+  "checksums": {
+    "neurons.parquet": "sha256:88d5166ecfcdfea62295ac8145c82a29ed3379a81c9cea7afc4de8a789902429",
+    "graph.bin": "sha256:8c1ebb0f811a0137bfd62c74748f8532b3d5a2d712dfd454e684578454203336",
+    "graph.header.json": "sha256:077b6635c804c2977d67bf0fe7b2221d90a6aebd00942f3b933812d0cf18d4b2"
+  }
+}

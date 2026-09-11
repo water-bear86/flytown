@@ -10,9 +10,49 @@
 > (MIT licensed, copyright 0XBL33P — used here with the maintainer's explicit
 > permission). The crypto/trading, voice, peer-to-peer social/federation, and
 > Codex/ChatGPT-App/Vercel distribution bolt-ons have been removed; see
-> [NOTICE.md](./NOTICE.md) for exactly what and why. FLYTOWN's own
-> connectome-derived planner has not been implemented yet — this is only the
-> "fork and strip" step before that work begins.
+> [NOTICE.md](./NOTICE.md) for exactly what and why.
+>
+> **FLYTOWN status:** the connectome-derived planner is implemented as a
+> swappable `PlannerBackend` (see below) with a full evaluation harness. The
+> first falsification test — real FlyWire projectome vs. a label-shuffled
+> copy — did **not** show the region-level wiring mattering; results and the
+> reason are in [docs/flytown/experiments](./docs/flytown/experiments/README.md).
+
+## FLYTOWN: connectome-derived planning
+
+Goblintown's planner is one `PlannerBackend`; FLYTOWN adds others that
+consume the same task signals and emit the same `Plan`:
+
+| spec | what decides |
+| --- | --- |
+| `llm` | the conventional Goblintown planner (an LLM call) — always the fallback |
+| `rules` | hand-written rules over task/repo signals |
+| `random` | seeded random control |
+| `learned` | small logistic router, trainable in the harness |
+| `fly` | activation propagated through a real FlyWire connectome artifact, read out to actions |
+| `fly:shuffled`, `fly:random_degree`, `fly:norecurrence`, `fly:signless`, `fly:ablate=MB_CA,EB`, `fly:learning` | null models and ablations of the same |
+
+```bash
+npm run build
+node dist/cli.js fly planners                      # list backends
+node dist/cli.js fly connectome                    # list connectome artifacts (built by connectome-etl/)
+node dist/cli.js fly plan "<task>" --planner fly --dry-run   # decide + write a trace, run nothing
+node dist/cli.js plan "<task>" --planner fly       # decide and execute with the real workers
+node dist/cli.js fly trace <runId>                 # plain-text trace: signals → activity → action → plan
+node dist/cli.js fly replay <runId>                # deterministic replay, diffs against the stored plan
+node dist/cli.js fly eval --planners "rules,fly,fly:shuffled" --seeds 3 --epochs 8   # matched trials, mock worker world
+```
+
+Set `flytown.planner` in `.goblintown/warren.json` (or POST `{ planner }` to
+`/api/plan`) to pick a backend; the LLM planner remains the fallback unless
+`flytown.fallbackToLlm` is `false`. Traces are written to
+`.flytown/traces/`. Connectome artifacts live under `connectome/` and are
+produced by the Python sidecar in `connectome-etl/` (see its README); the
+runtime has no Python dependency.
+
+Every biologically-flavoured component is tagged `MEASURED`,
+`INFERRED_FROM_LITERATURE`, `ENGINEERING_CHOICE` or `METAPHOR` in code and in
+traces. Nothing here is, or claims to be, a mind.
 
 Goblintown is a local-first, model-augmentable multi-agent orchestration
 core. Start with a single fast answer, then summon the full **town** when the

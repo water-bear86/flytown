@@ -98,6 +98,10 @@ async function main(): Promise<void> {
       return cmdExportTrace(argv.slice(1));
     case "plan":
       return cmdPlan(argv.slice(1));
+    case "fly": {
+      const { runFlyCli } = await import("./flytown/cli.js");
+      return runFlyCli(argv.slice(1));
+    }
     case "context":
       return cmdContext(argv.slice(1));
     case "fold":
@@ -1124,14 +1128,31 @@ async function cmdPlan(args: string[]): Promise<void> {
     process.stdout.write(`(loaded ${parents.length} prior artifact(s))\n`);
   }
 
-  process.stdout.write(`Planning task...\n`);
-  const { planTask } = await import("./planner.js");
-  const { plan } = await planTask({
+  const plannerSpec = flags.planner ?? w.manifest.flytown?.planner ?? "llm";
+  process.stdout.write(`Planning task (planner=${plannerSpec})...\n`);
+  const { resolvePlannerBackend } = await import("./flytown/registry.js");
+  const planner = resolvePlannerBackend(plannerSpec, {
+    root: w.root, seed: w.manifest.flytown?.seed, connectome: w.manifest.flytown?.connectome, learning: w.manifest.flytown?.learning,
+    fallback: w.manifest.flytown?.fallbackToLlm !== false,
+    onFallback: (err) => process.stderr.write(`[fly] planner "${plannerSpec}" failed, falling back to llm: ${err instanceof Error ? err.message : String(err)}\n`),
+  });
+  const planned = await planner.plan({
     task,
+    cwd: w.root,
     parentArtifacts: parents,
     maxNodes,
     maxOutputTokens: maxOutputTokensPerCall,
+    budgetTokens,
   });
+  const { plan } = planned;
+  if (planned.trace) {
+    const { writeTrace } = await import("./flytown/trace.js");
+    await writeTrace(w.root, planned.trace);
+  }
+  if (plan.halt) {
+    process.stdout.write(`Plan ${plan.id}: halted (${plan.halt.kind}) — ${plan.halt.reason}\n`);
+    return;
+  }
   process.stdout.write(`Plan ${plan.id}: ${plan.nodes.length} node(s)\n`);
   for (const n of plan.nodes) {
     const inputs = n.inputs.length > 0 ? ` ← [${n.inputs.join(",")}]` : "";
@@ -1151,6 +1172,7 @@ async function cmdPlan(args: string[]): Promise<void> {
     outputFormat,
     parentArtifacts: parents,
     maxReplanDepth: maxReplan,
+    planner,
     onPlanEvent: (ev) => {
       if (ev.kind === "plan:node:start") process.stdout.write(`  ▸ node ${ev.nodeId} starting\n`);
       else if (ev.kind === "plan:node:done") process.stdout.write(`  ✓ node ${ev.nodeId} done — rite=${ev.riteId} outcome=${ev.outcome}${ev.artifactId ? ` artifact=${ev.artifactId}` : ""}\n`);

@@ -45,7 +45,8 @@ import {
   type ProviderConfig,
 } from "./types.js";
 import { executePlan, type PlanExecutionEvent } from "./plan-executor.js";
-import { planTask } from "./planner.js";
+import { resolvePlannerBackend } from "./flytown/registry.js";
+import { writeTrace } from "./flytown/trace.js";
 import { renderArtifactContext } from "./artifact.js";
 import { exportRunAsMasTrace } from "./trace-export.js";
 import { measureDrift } from "./drift.js";
@@ -1012,12 +1013,14 @@ async function startPlanRun(
     remember?: unknown;
     budgetTokens?: unknown;
     outputFormat?: unknown;
+    planner?: unknown;
   };
   if (typeof body.task !== "string" || body.task.trim().length === 0) {
     res.status(400).json({ error: "task is required" });
     return undefined;
   }
   const runId = randomUUID().slice(0, 12);
+  const plannerSpec = typeof body.planner === "string" && body.planner.trim() ? body.planner.trim() : (warren.manifest.flytown?.planner ?? "llm");
   const maxNodes = typeof body.maxNodes === "number" ? body.maxNodes : 6;
   const maxReplan = typeof body.maxReplan === "number" ? body.maxReplan : 2;
   const budgetTokens = typeof body.budgetTokens === "number" ? body.budgetTokens : undefined;
@@ -1097,12 +1100,25 @@ async function startPlanRun(
   // Plan + execute, surfacing both planner events and step events
   void (async () => {
     try {
-      emit("plan:planning", { task: body.task, parents: parents.length });
-      const { plan } = await planTask({
+      emit("plan:planning", { task: body.task, parents: parents.length, planner: plannerSpec });
+      const planner = resolvePlannerBackend(plannerSpec, {
+        root: warren.root, seed: warren.manifest.flytown?.seed, connectome: warren.manifest.flytown?.connectome,
+        learning: warren.manifest.flytown?.learning, fallback: warren.manifest.flytown?.fallbackToLlm !== false,
+        onFallback: (err) => emit("plan:fallback", { from: plannerSpec, to: "llm", error: err instanceof Error ? err.message : String(err) }),
+      });
+      const planned = await planner.plan({
         task: body.task as string,
+        cwd: warren.root,
         parentArtifacts: parents,
         maxNodes,
+        budgetTokens,
+        runId,
       });
+      const { plan } = planned;
+      if (planned.trace) {
+        await writeTrace(warren.root, planned.trace);
+        emit("plan:trace", { runId: planned.trace.runId, plannerId: planned.trace.plannerId, primary: planned.trace.decision.primary, included: planned.trace.decision.included, brain: planned.trace.brain ? { connectomeId: planned.trace.brain.connectomeId, variant: planned.trace.brain.variant, stats: planned.trace.brain.stats } : undefined });
+      }
       emit("plan:built", { plan });
       const result = await executePlan({
         plan,
@@ -1113,6 +1129,7 @@ async function startPlanRun(
         outputFormat,
         parentArtifacts: parents,
         maxReplanDepth: maxReplan,
+        planner,
         onPlanEvent: (ev: PlanExecutionEvent) => emit(ev.kind, ev),
         onStep: (nodeId, step) => emit("step", { nodeId, step }),
       });

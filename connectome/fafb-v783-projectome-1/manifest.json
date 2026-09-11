@@ -1,0 +1,686 @@
+{
+  "artifactVersion": 1,
+  "id": "fafb-v783-projectome-1",
+  "level": "projectome",
+  "createdAt": "2026-09-11T21:00:41Z",
+  "source": {
+    "dataset": "FlyWire FAFB whole-brain connectome (adult female Drosophila melanogaster)",
+    "materialization": 783,
+    "zenodoRecord": "10676866",
+    "zenodoDoi": "10.5281/zenodo.10676866",
+    "zenodoTitle": "FlyWire Whole-brain Connectome Connectivity Data",
+    "files": [
+      {
+        "name": "proofread_connections_783.feather",
+        "url": "https://zenodo.org/api/records/10676866/files/proofread_connections_783.feather/content",
+        "bytes": 852022274,
+        "sha256": "24f960ae3e7d4f8cd30db3b62e99fb5179cc3d1e76d8c155bfb441e9737d3faf",
+        "md5": "f48f972d262323a102aed49af1396b8a",
+        "role": "connections"
+      },
+      {
+        "name": "per_neuron_neuropil_count_post_783.feather",
+        "url": "https://zenodo.org/api/records/10676866/files/per_neuron_neuropil_count_post_783.feather/content",
+        "bytes": 233843050,
+        "sha256": "e2418f4794fe47984bb4bc15ffc194003ea8e349a428551f30af94947d85d712",
+        "md5": "bb5999f10920ade803d9f37097a43a56",
+        "role": "post_counts"
+      },
+      {
+        "name": "per_neuron_neuropil_count_pre_783.feather",
+        "url": "https://zenodo.org/api/records/10676866/files/per_neuron_neuropil_count_pre_783.feather/content",
+        "bytes": 16853770,
+        "sha256": "35442a46f076892dff91bd6e55fa1489b3acc64fda1d35cee7dbbbbc509a3dff",
+        "md5": "90fcdb42c1ba05ed92820840fa1e6ba0",
+        "role": "pre_counts"
+      },
+      {
+        "name": "proofread_root_ids_783.npy",
+        "url": "https://zenodo.org/api/records/10676866/files/proofread_root_ids_783.npy/content",
+        "bytes": 1114168,
+        "sha256": "7c7b7e818e9232e5ab64793d52ba20574dbe9da3a6509fbc74193b0f259a01be",
+        "md5": "e0e6c19732fd8c7a4e39a2d170105421",
+        "role": "root_ids"
+      }
+    ],
+    "annotations": {
+      "repo": "flyconnectome/flywire_annotations",
+      "file": "supplemental_files/Supplemental_file1_neuron_annotations.tsv",
+      "commit_or_tag": "v3.1.0 (8587524c1748ce5ef2080822a2fc890fc03bf597)",
+      "url": "https://raw.githubusercontent.com/flyconnectome/flywire_annotations/8587524c1748ce5ef2080822a2fc890fc03bf597/supplemental_files/Supplemental_file1_neuron_annotations.tsv",
+      "bytes": 31718505,
+      "sha256": "9a4f8b2f843196074431ebd7cd883536afa1be86c8a4ce90970441e8be81d1be",
+      "gitBlobSha1": "afea3e15a5671f5da0b9f7dd2e932d328c3b57a0",
+      "license": "NOT STATED: the flyconnectome/flywire_annotations repository contains no LICENSE file and no license statement (checked at commit 8587524c / tag v3.1.0, GitHub API reports license=null). Its README asks users to cite Berg et al. 2025, Schlegel et al. 2024, Matsliah et al. 2024 and Dorkenwald et al. 2024 when using the annotations. The original Supplemental File 1 was published with Schlegel et al. 2024 (Nature, open access, CC-BY-4.0); the repository version used here has since been extended (v3.0.0/v3.1.0, Berg et al. 2025) and carries no explicit license of its own."
+    },
+    "license": "CC-BY-4.0 (Zenodo data release, license id cc-by-4.0); see annotations.license for the annotation table",
+    "citations": [
+      "Dorkenwald et al. 2024, Nature, doi:10.1038/s41586-024-07558-y (Neuronal wiring diagram of an adult brain)",
+      "Lin, Yang et al. 2024, Nature, doi:10.1038/s41586-024-07968-y (Network statistics of the whole-brain connectome of Drosophila)",
+      "Schlegel et al. 2024, Nature, doi:10.1038/s41586-024-07686-5 (Whole-brain annotation and multi-connectome cell typing of Drosophila; cell type annotations)",
+      "Eckstein et al. 2024, Cell, doi:10.1016/j.cell.2024.03.016 (Neurotransmitter classification from electron microscopy images at synaptic sites in Drosophila melanogaster; neurotransmitter predictions)",
+      "Berg et al. 2025, bioRxiv, doi:10.1101/2025.10.09.680999 (Sexual dimorphism in the complete connectome of the Drosophila male CNS; annotation table v3.x updates)",
+      "Matsliah et al. 2024, Nature, doi:10.1038/s41586-024-07981-1 (Neuronal parts list and wiring diagram for a visual system; optic-lobe annotations merged into the annotation table)"
+    ]
+  },
+  "preprocessing": {
+    "tool": "connectome-etl/build.py",
+    "steps": [
+      "Download proofread_connections_783.feather, per_neuron_neuropil_count_post_783.feather, per_neuron_neuropil_count_pre_783.feather, proofread_root_ids_783.npy from Zenodo record 10676866 and verify MD5 against the record; download supplemental_files/Supplemental_file1_neuron_annotations.tsv from flyconnectome/flywire_annotations@8587524c1748ce5ef2080822a2fc890fc03bf597 and verify its git blob SHA-1.",
+      "Read proofread_connections_783.feather (one row per (pre_pt_root_id, post_pt_root_id, neuropil) with syn_count and six mean transmitter probabilities).",
+      "Nodes = sorted distinct values of the connections table's `neuropil` column ('UNASGD' = synapses outside every neuropil mesh; the count tables spell the same thing 'None').",
+      "Neuron universe = proofread_root_ids_783.npy ∪ {pre, post ids in the connections table}.",
+      "input_region(neuron) = neuropil with the maximum postsynaptic (input) synapse count in per_neuron_neuropil_count_post_783.feather, ignoring UNASGD; ties -> alphabetically first neuropil id; if the neuron has no post counts in any neuropil, fall back to its max presynaptic-count neuropil (per_neuron_neuropil_count_pre_783.feather); if it only has synapses outside every neuropil, assign UNASGD; if it has no counts at all, drop it and count it in droppedNeurons.",
+      "For each connection row (pre, post, neuropil N, syn_count, nt): edge input_region(pre) -> N, weight += syn_count, nt[nt_type] += syn_count.",
+      "nt_type per row = argmax of (ach_avg, gaba_avg, glut_avg, da_avg, oct_avg, ser_avg).",
+      "Per node: neuronCount = neurons whose input_region is the node; inSynapses = sum of incoming edge weights (= all synapses located in the node); outSynapses = sum of outgoing edge weights; outNt = transmitter composition of outgoing synapses.",
+      "Edges sorted by (src, dst); self-edges kept (intra-region connectivity)."
+    ],
+    "droppedNeurons": 280,
+    "droppedConnectionRows": 0,
+    "droppedSynapses": 0,
+    "regionAssignment": {
+      "inputFromPostArgmax": 138384,
+      "inputTiesPost": 299,
+      "inputFallbackToPreArgmax": 590,
+      "outputTiesPre": 213,
+      "inputAssignedUnassigned": 1,
+      "droppedNeurons": 280,
+      "inputUnassignedArgmaxOverridden": 8,
+      "outputAssignedUnassigned": 2,
+      "outputMissing": 604,
+      "unassignedNodeIndex": 74
+    },
+    "neuronUniverse": {
+      "nProofread": 139255,
+      "nInConnections": 138639,
+      "nInConnectionsNotProofread": 0,
+      "nProofreadWithoutConnections": 616
+    },
+    "connectionsRows": 16847997,
+    "ntDerivation": {
+      "source": "derived: argmax over per-connection mean probabilities",
+      "columns": [
+        "ach_avg",
+        "gaba_avg",
+        "glut_avg",
+        "da_avg",
+        "oct_avg",
+        "ser_avg"
+      ],
+      "classOrder": [
+        "ACH",
+        "GABA",
+        "GLUT",
+        "DA",
+        "OCT",
+        "SER",
+        "UNKNOWN"
+      ],
+      "tieRows": 2,
+      "allNanRows": 1732,
+      "meanTopProbability": 0.7847302556037903,
+      "topProbabilityQuantiles": {
+        "0.05": 0.4381486177444458,
+        "0.25": 0.6424802541732788,
+        "0.5": 0.8363505005836487,
+        "0.75": 0.949040412902832
+      }
+    },
+    "inputSchemas": {
+      "connections": "pre_pt_root_id: int64\npost_pt_root_id: int64\nneuropil: string\nsyn_count: int64\ngaba_avg: double\nach_avg: double\nglut_avg: double\noct_avg: double\nser_avg: double\nda_avg: double",
+      "root_ids": "npy dtype=uint64 shape=(139255,)",
+      "post_counts": "post_pt_root_id: int64\nneuropil: string\ncount: int64",
+      "pre_counts": "pre_pt_root_id: int64\nneuropil: string\ncount: int64"
+    },
+    "assumptions": [
+      {
+        "id": "syn_count_as_weight",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Edge weight = number of predicted chemical synapses (syn_count summed over the rows that map onto the edge). This is a STRUCTURAL proxy for connection strength, NOT a physiological weight: it ignores synapse size, receptor identity, short-term dynamics, electrical synapses (gap junctions are absent from the dataset) and neuromodulation."
+      },
+      {
+        "id": "nt_prediction_not_measurement",
+        "category": "INFERRED_FROM_LITERATURE",
+        "text": "Neurotransmitter labels are statistical predictions from electron-microscopy images (Eckstein et al. 2024, Cell), NOT measurements. Reported accuracy: 87% per synapse, 94% per neuron, 91% for known cell types, on the six classes ACH/GABA/GLUT/DA/OCT/SER. Co-transmission and non-classical transmitters (e.g. neuropeptides, histamine) are not represented."
+      },
+      {
+        "id": "nt_type_derivation",
+        "category": "ENGINEERING_CHOICE",
+        "text": "The v783 connections table has no categorical nt_type column; it carries per-connection mean probabilities (ach_avg, gaba_avg, glut_avg, da_avg, oct_avg, ser_avg) averaged over the synapses of each (pre, post, neuropil) row. nt_type here = argmax of those six means, in the fixed class order ACH, GABA, GLUT, DA, OCT, SER (ties -> first in that order; 2 tied rows, 1732 rows with no probabilities). This mirrors the Codex convention but is computed here."
+      },
+      {
+        "id": "nt_sign",
+        "category": "INFERRED_FROM_LITERATURE",
+        "text": "No sign (excitatory/inhibitory) is encoded in the artifact; only the transmitter class. Literature convention for adult Drosophila: ACH is the main excitatory fast transmitter, GABA is inhibitory (GABA-A/Rdl and GABA-B receptors), GLUT is predominantly inhibitory in the central brain (GluCl-alpha) but can be excitatory at some synapses (e.g. neuromuscular, some NMDA/AMPA-like receptors), and DA/OCT/SER are neuromodulatory with receptor-dependent sign. Any sign assignment is the runtime's choice and must be labelled as inferred."
+      },
+      {
+        "id": "unassigned_neuropil",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Synapses lying outside every neuropil mesh are labelled 'UNASGD' in the connections table but with the literal string 'None' in the per-neuron count tables (observed spellings per table: {\"connections\": [\"UNASGD\"], \"post_counts\": [\"None\"], \"pre_counts\": [\"None\"]}). Both are treated as the same pseudo-region with id 'UNASGD'. Those synapses are KEPT so that no measured synapse is silently dropped; treat that node as 'outside annotated neuropils' (tracts, nerves, cell-body rind), not as a brain region, and ignore it when a neuron's input/output region is chosen unless the neuron has no synapses anywhere else."
+      },
+      {
+        "id": "nt_unknown_class",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Connection rows whose six transmitter probabilities are all missing (NaN) are kept and labelled with an extra class 'UNKNOWN' (appended to ntClasses only if such rows exist), so that the per-class breakdown always sums to the edge weight."
+      },
+      {
+        "id": "neuron_universe",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Neuron universe = proofread root ids (proofread_root_ids_783.npy) ∪ all pre/post ids in proofread_connections_783.feather. Per-neuron synapse counts from the per-neuron neuropil count tables are restricted to this universe (those tables also contain non-proofread segments, which are ignored)."
+      },
+      {
+        "id": "input_region_argmax",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Each neuron is collapsed to ONE input region: the neuropil holding the largest number of its postsynaptic sites. A region-level edge A -> B therefore means 'neurons that mostly LISTEN in A make synapses located in B' — information flows from where a neuron listens to where it talks. Neurons with inputs spread over several neuropils are attributed entirely to their top one (no fractional splitting). Alternative not built here (future variant): output_region(pre) -> input_region(post), i.e. attribute the synapse to the postsynaptic neuron's listening region instead of the synapse's own location."
+      },
+      {
+        "id": "edge_dst_is_synapse_location",
+        "category": "ENGINEERING_CHOICE",
+        "text": "The edge destination is the neuropil in which the synapse itself lies (the connections table's `neuropil` column), not the postsynaptic neuron's input region. Consequently inSynapses(node) equals the total number of proofread synapses located inside that neuropil."
+      }
+    ]
+  },
+  "graph": {
+    "nodeCount": 79,
+    "edgeCount": 3509,
+    "totalSynapses": 54492922,
+    "weightSemantics": "synapse_count",
+    "ntClasses": [
+      "ACH",
+      "GABA",
+      "GLUT",
+      "DA",
+      "OCT",
+      "SER",
+      "UNKNOWN"
+    ],
+    "unassignedNodeId": "UNASGD",
+    "selfEdges": 75
+  },
+  "stats": {
+    "selfEdgeSynapses": 31124806,
+    "selfEdgeFraction": 0.5712,
+    "ntSynapseTotals": {
+      "ACH": 30378547,
+      "GABA": 12692918,
+      "GLUT": 9682956,
+      "DA": 739697,
+      "OCT": 331146,
+      "SER": 636852,
+      "UNKNOWN": 30806
+    },
+    "ntConnectionRowTotals": {
+      "ACH": 9078530,
+      "GABA": 3565868,
+      "GLUT": 3287461,
+      "DA": 465114,
+      "OCT": 194237,
+      "SER": 255055,
+      "UNKNOWN": 1732
+    },
+    "topEdges": [
+      {
+        "src": "ME_R",
+        "dst": "ME_R",
+        "weight": 8103721,
+        "self": true
+      },
+      {
+        "src": "ME_L",
+        "dst": "ME_L",
+        "weight": 7186414,
+        "self": true
+      },
+      {
+        "src": "GNG",
+        "dst": "GNG",
+        "weight": 2179696,
+        "self": true
+      },
+      {
+        "src": "ME_R",
+        "dst": "LO_R",
+        "weight": 2043888,
+        "self": false
+      },
+      {
+        "src": "ME_L",
+        "dst": "LO_L",
+        "weight": 2033091,
+        "self": false
+      },
+      {
+        "src": "LO_R",
+        "dst": "LO_R",
+        "weight": 1490626,
+        "self": true
+      },
+      {
+        "src": "LO_L",
+        "dst": "LO_L",
+        "weight": 1460723,
+        "self": true
+      },
+      {
+        "src": "AVLP_R",
+        "dst": "AVLP_R",
+        "weight": 1310254,
+        "self": true
+      },
+      {
+        "src": "AVLP_L",
+        "dst": "AVLP_L",
+        "weight": 1006864,
+        "self": true
+      },
+      {
+        "src": "FB",
+        "dst": "FB",
+        "weight": 764876,
+        "self": true
+      },
+      {
+        "src": "LOP_R",
+        "dst": "LOP_R",
+        "weight": 751667,
+        "self": true
+      },
+      {
+        "src": "AL_L",
+        "dst": "AL_L",
+        "weight": 630057,
+        "self": true
+      },
+      {
+        "src": "AL_R",
+        "dst": "AL_R",
+        "weight": 571469,
+        "self": true
+      },
+      {
+        "src": "ME_R",
+        "dst": "LOP_R",
+        "weight": 568834,
+        "self": false
+      },
+      {
+        "src": "LO_R",
+        "dst": "LOP_R",
+        "weight": 485620,
+        "self": false
+      },
+      {
+        "src": "LOP_L",
+        "dst": "LOP_L",
+        "weight": 435247,
+        "self": true
+      },
+      {
+        "src": "SMP_R",
+        "dst": "SMP_R",
+        "weight": 419265,
+        "self": true
+      },
+      {
+        "src": "LO_L",
+        "dst": "PVLP_L",
+        "weight": 393769,
+        "self": false
+      },
+      {
+        "src": "SMP_L",
+        "dst": "SMP_L",
+        "weight": 391762,
+        "self": true
+      },
+      {
+        "src": "ME_L",
+        "dst": "LOP_L",
+        "weight": 374673,
+        "self": false
+      },
+      {
+        "src": "LO_L",
+        "dst": "LOP_L",
+        "weight": 324259,
+        "self": false
+      },
+      {
+        "src": "LO_R",
+        "dst": "PVLP_R",
+        "weight": 323852,
+        "self": false
+      },
+      {
+        "src": "SLP_R",
+        "dst": "SLP_R",
+        "weight": 301587,
+        "self": true
+      },
+      {
+        "src": "LH_R",
+        "dst": "LH_R",
+        "weight": 290346,
+        "self": true
+      },
+      {
+        "src": "EB",
+        "dst": "EB",
+        "weight": 266264,
+        "self": true
+      }
+    ],
+    "topEdgesExcludingSelf": [
+      {
+        "src": "ME_R",
+        "dst": "LO_R",
+        "weight": 2043888
+      },
+      {
+        "src": "ME_L",
+        "dst": "LO_L",
+        "weight": 2033091
+      },
+      {
+        "src": "ME_R",
+        "dst": "LOP_R",
+        "weight": 568834
+      },
+      {
+        "src": "LO_R",
+        "dst": "LOP_R",
+        "weight": 485620
+      },
+      {
+        "src": "LO_L",
+        "dst": "PVLP_L",
+        "weight": 393769
+      },
+      {
+        "src": "ME_L",
+        "dst": "LOP_L",
+        "weight": 374673
+      },
+      {
+        "src": "LO_L",
+        "dst": "LOP_L",
+        "weight": 324259
+      },
+      {
+        "src": "LO_R",
+        "dst": "PVLP_R",
+        "weight": 323852
+      },
+      {
+        "src": "AL_R",
+        "dst": "LH_R",
+        "weight": 250503
+      },
+      {
+        "src": "AL_L",
+        "dst": "LH_L",
+        "weight": 232497
+      },
+      {
+        "src": "LO_R",
+        "dst": "ME_R",
+        "weight": 211764
+      },
+      {
+        "src": "LO_L",
+        "dst": "ME_L",
+        "weight": 183680
+      },
+      {
+        "src": "AL_L",
+        "dst": "MB_CA_L",
+        "weight": 182608
+      },
+      {
+        "src": "PVLP_R",
+        "dst": "AVLP_R",
+        "weight": 174277
+      },
+      {
+        "src": "LA_R",
+        "dst": "ME_R",
+        "weight": 174006
+      },
+      {
+        "src": "LH_R",
+        "dst": "SLP_R",
+        "weight": 172274
+      },
+      {
+        "src": "MB_CA_L",
+        "dst": "MB_ML_L",
+        "weight": 155925
+      },
+      {
+        "src": "LO_R",
+        "dst": "AVLP_R",
+        "weight": 155779
+      },
+      {
+        "src": "PVLP_L",
+        "dst": "AVLP_L",
+        "weight": 155293
+      },
+      {
+        "src": "AL_R",
+        "dst": "MB_CA_R",
+        "weight": 154340
+      },
+      {
+        "src": "LO_L",
+        "dst": "PLP_L",
+        "weight": 138140
+      },
+      {
+        "src": "AVLP_L",
+        "dst": "PVLP_L",
+        "weight": 136091
+      },
+      {
+        "src": "ME_R",
+        "dst": "LA_R",
+        "weight": 135352
+      },
+      {
+        "src": "LH_L",
+        "dst": "SLP_L",
+        "weight": 130474
+      },
+      {
+        "src": "LOP_R",
+        "dst": "LO_R",
+        "weight": 129659
+      }
+    ],
+    "sanityChecks": [
+      {
+        "src": "AL_L",
+        "dst": "MB_CA_L",
+        "weight": 182608,
+        "rankAllEdges": 34,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.2971
+      },
+      {
+        "src": "AL_L",
+        "dst": "LH_L",
+        "weight": 232497,
+        "rankAllEdges": 28,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.3783
+      },
+      {
+        "src": "AL_R",
+        "dst": "MB_CA_R",
+        "weight": 154340,
+        "rankAllEdges": 45,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.2511
+      },
+      {
+        "src": "AL_R",
+        "dst": "LH_R",
+        "weight": 250503,
+        "rankAllEdges": 27,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.4076
+      },
+      {
+        "src": "MB_CA_L",
+        "dst": "MB_PED_L",
+        "weight": 72355,
+        "rankAllEdges": 82,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.2167
+      },
+      {
+        "src": "MB_CA_L",
+        "dst": "MB_VL_L",
+        "weight": 37315,
+        "rankAllEdges": 149,
+        "rankAmongSrcOutEdgesExclSelf": 4,
+        "fractionOfSrcOutExclSelf": 0.1117
+      },
+      {
+        "src": "MB_CA_L",
+        "dst": "MB_ML_L",
+        "weight": 155925,
+        "rankAllEdges": 42,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.467
+      },
+      {
+        "src": "MB_CA_R",
+        "dst": "MB_PED_R",
+        "weight": 64522,
+        "rankAllEdges": 93,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.2149
+      },
+      {
+        "src": "MB_CA_R",
+        "dst": "MB_VL_R",
+        "weight": 55707,
+        "rankAllEdges": 105,
+        "rankAmongSrcOutEdgesExclSelf": 3,
+        "fractionOfSrcOutExclSelf": 0.1855
+      },
+      {
+        "src": "MB_CA_R",
+        "dst": "MB_ML_R",
+        "weight": 120999,
+        "rankAllEdges": 55,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.403
+      },
+      {
+        "src": "ME_L",
+        "dst": "LO_L",
+        "weight": 2033091,
+        "rankAllEdges": 5,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.7366
+      },
+      {
+        "src": "LO_L",
+        "dst": "LOP_L",
+        "weight": 324259,
+        "rankAllEdges": 21,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.2214
+      },
+      {
+        "src": "ME_R",
+        "dst": "LO_R",
+        "weight": 2043888,
+        "rankAllEdges": 4,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.6712
+      },
+      {
+        "src": "LO_R",
+        "dst": "LOP_R",
+        "weight": 485620,
+        "rankAllEdges": 15,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.2935
+      },
+      {
+        "src": "LA_L",
+        "dst": "ME_L",
+        "weight": 59178,
+        "rankAllEdges": 99,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.9995
+      },
+      {
+        "src": "LA_R",
+        "dst": "ME_R",
+        "weight": 174006,
+        "rankAllEdges": 37,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.9999
+      },
+      {
+        "src": "PB",
+        "dst": "EB",
+        "weight": 3988,
+        "rankAllEdges": 760,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.3033
+      },
+      {
+        "src": "EB",
+        "dst": "PB",
+        "weight": 11300,
+        "rankAllEdges": 411,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.2201
+      },
+      {
+        "src": "FB",
+        "dst": "EB",
+        "weight": 1599,
+        "rankAllEdges": 1133,
+        "rankAmongSrcOutEdgesExclSelf": 10,
+        "fractionOfSrcOutExclSelf": 0.014
+      },
+      {
+        "src": "GNG",
+        "dst": "SAD",
+        "weight": 99498,
+        "rankAllEdges": 68,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.0943
+      }
+    ]
+  },
+  "build": {
+    "python": "3.14.6",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "packages": {
+      "pandas": "3.0.5",
+      "pyarrow": "25.0.1",
+      "numpy": "2.5.3",
+      "requests": "2.34.2"
+    },
+    "timingsSec": {
+      "download": 32.26,
+      "load connections": 2.97,
+      "load post counts": 0.83,
+      "load pre counts": 0.07,
+      "assign input/output regions": 1.86,
+      "aggregate projectome edges": 0.79
+    }
+  },
+  "checksums": {
+    "nodes.json": "sha256:37150d10fcfaeb9457180352e41808f53e44a8e0ec7290ee194df979f45a303c",
+    "graph.json": "sha256:c875426f00a0c80c50bc021a06ae5b38accaf7d6ef48a0d4b8e1bf0414822081"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "format": "flytown-typed-arrays",
+  "formatVersion": 1,
+  "file": "graph.bin",
+  "byteOrder": "little",
+  "totalBytes": 196195779,
+  "sha256": "sha256:8c1ebb0f811a0137bfd62c74748f8532b3d5a2d712dfd454e684578454203336",
+  "edgeCount": 15091983,
+  "nodeCount": 139255,
+  "arrays": [
+    {
+      "name": "src",
+      "dtype": "uint32",
+      "offset": 0,
+      "length": 15091983,
+      "byteLength": 60367932
+    },
+    {
+      "name": "dst",
+      "dtype": "uint32",
+      "offset": 60367932,
+      "length": 15091983,
+      "byteLength": 60367932
+    },
+    {
+      "name": "weight",
+      "dtype": "uint32",
+      "offset": 120735864,
+      "length": 15091983,
+      "byteLength": 60367932
+    },
+    {
+      "name": "nt",
+      "dtype": "uint8",
+      "offset": 181103796,
+      "length": 15091983,
+      "byteLength": 15091983
+    }
+  ],
+  "sortedBy": [
+    "src",
+    "dst"
+  ],
+  "nodeIndexRef": "neurons.parquet column `index` (== row position; root_id sorted ascending)",
+  "weightSemantics": "synapse_count (sum over neuropils of the (pre, post) pair)",
+  "ntClasses": [
+    "ACH",
+    "GABA",
+    "GLUT",
+    "DA",
+    "OCT",
+    "SER",
+    "UNKNOWN"
+  ],
+  "ntSemantics": "uint8 index into ntClasses; majority transmitter of the (pre, post) pair by synapse count (ties -> first in ntClasses order)",
+  "aggregatedFromRows": 16847997
+}

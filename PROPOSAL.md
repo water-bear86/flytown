@@ -375,6 +375,8 @@ Revised from your draft based on what the audit found — Milestone numbers pres
 
 **Milestone 0 — Audit & research (this document + its two source reports).** Done pending your approval. Deliverable: this proposal + the falsifiable hypothesis (Section 25) + the ADR this document effectively is.
 
+**✅ Status (2026-09-11 evening): Milestones 1 and 2 are implemented and the Section-25 falsification test has been run — and, at projectome level, it falsified.** `PlannerBackend` seam extracted (`src/plan-executor.ts`, `src/flytown/`); rules / random / learned baselines, deterministic mock-worker evaluation harness with paired permutation tests, decision-trace format with replay, `fly` CLI; Python ETL sidecar producing checksummed `fafb-v783-projectome-1` (79 nodes, 3,509 edges) and `fafb-v783-neuron-1` (139,255 neurons, 15.1M edges) artifacts from the Zenodo v783 release; fly planner with shuffled / degree-preserving-random / region-ablated / no-recurrence / signless / no-learning variants. 353/353 tests. **Result:** fly vs fly:shuffled not distinguishable (p = 0.06 without learning, p = 1.0 with 8 training epochs); the real region-level graph collapses task information ~8× harder than a shuffled copy (0.03 vs 0.12 bits). Full log: `docs/flytown/experiments/README.md`. Milestone 3 is therefore redirected at neuron-level sparse coding (Kenyon cells), which is the biological substrate the region-level test could not reach.
+
 **Milestone 1 — Orchestration interface & baselines.**
 - Extract `PlannerBackend` interface in `plan-executor.ts` (Section 5); wrap existing `planTask` as the default implementation. No behavior change for existing users.
 - Build the fixed task suite (Section 18) as deterministic fixtures.
@@ -407,6 +409,13 @@ Revised from your draft based on what the audit found — Milestone numbers pres
 - Accessible CLI/API parity, packaged reproducible demo.
 
 ## 21. Every file expected to be created, modified, or removed
+
+**✅ Status (2026-09-11): the fork-and-strip baseline is done.** `~/flytown/` was built from a fresh `git clone --filter=blob:none` sparse checkout of `0xbl33p/goblintown@main` (not the stale local worktree, which predated the Codex/ChatGPT/Vercel commits and was missing 7 files this section's removal list covers). Result: 48 kept `src/*.ts` files + 38 test files, `npm run build` clean, `npm test` 299/299 passing, single initial commit `fe5dd12` on a fresh `git init` (no remote, nothing pushed). Package provisionally renamed `flytown-core` pending final naming (Section 27). Open follow-ups from that pass, not yet resolved:
+- `site/index.html`'s marketing copy still describes Solana/Thesis/Sentiment/ChatGPT/Codex features that no longer exist in this fork (cosmetic only, not code/tested — left as-is, needs a copy pass).
+- The Firebase Cloud Mode schema (`countries`/`countryJoinRequests` Firestore collections, `profile.countryId`) and its user-facing copy still describe the removed country/federation feature server-side, because `nukeCloudAccountData` (kept, Asteroid Mode) depends on that exact schema to scrub cloud data correctly. Not broken, but describes a feature with no local UI anymore — needs a decision once Cloud Mode itself is revisited.
+- 4 orphaned static pages (`site/admin.html`, `dashboard.html`, `privacy.html`, `terms.html`) were dropped as an inferred extension of the ChatGPT-App removal (their only referrer was `chatgpt-app.ts`) — not explicitly on the original removal list, flagging for awareness.
+
+
 
 **Source-of-truth decision needed before this section can be finalized.** The local checkout at `~/goblintown/backrooms-0.7-telemetry` and the real upstream repo at `github.com/0xbl33p/goblintown` (public, MIT, 40 stars, 6 forks — confirmed consented) have **diverged**:
 

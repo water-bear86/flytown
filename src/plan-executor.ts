@@ -3,9 +3,16 @@
  * defaults to false so each sub-rite produces its own artifact, which is then
  * fed forward to dependent nodes). On a node failure we may invoke the planner
  * again with the failure context (recursive replan, max depth 2 by default).
+ *
+ * The executor is planner-agnostic: it consumes a Plan and, on replan, asks
+ * an injected PlannerBackend for a new one. The default backend wraps the
+ * conventional LLM planner (planTask). Sub-rite execution is likewise injected
+ * (riteRunner) so the routing loop can be exercised deterministically without
+ * model calls.
  */
-import { planTask, topologicalOrder, validatePlan } from "./planner.js";
-import { performRite, type RiteOptions, type RiteStep } from "./rite.js";
+import { topologicalOrder, validatePlan } from "./planner.js";
+import { performRite, type RiteOptions, type RiteResult, type RiteStep } from "./rite.js";
+import { llmPlannerBackend, type PlannerBackend } from "./flytown/planner-backend.js";
 import type {
   Artifact,
   OutputFormat,
@@ -15,6 +22,8 @@ import type {
   WarrenManifest,
 } from "./types.js";
 import type { Hoard } from "./hoard.js";
+
+export type RiteRunner = (opts: RiteOptions) => Promise<RiteResult>;
 
 export interface PlanExecOptions {
   plan: Plan;
@@ -27,6 +36,10 @@ export interface PlanExecOptions {
   parentArtifacts?: Artifact[];
   /** Max times to recursively replan on node failure. Default 2. */
   maxReplanDepth?: number;
+  /** Planner backend used for replanning. Default: the conventional LLM planner. */
+  planner?: PlannerBackend;
+  /** Sub-rite runner. Default: performRite. Injectable for deterministic evaluation. */
+  riteRunner?: RiteRunner;
   /** Forwarded to each sub-rite; lets the UI/console see progress. */
   onStep?: (nodeId: string, step: RiteStep) => void;
   /** Lifecycle hooks for the plan itself. */
@@ -35,11 +48,14 @@ export interface PlanExecOptions {
 
 export type PlanExecutionEvent =
   | { kind: "plan:start"; plan: Plan }
+  | { kind: "plan:halt"; halt: NonNullable<Plan["halt"]> }
   | { kind: "plan:node:start"; nodeId: string }
   | { kind: "plan:node:done"; nodeId: string; riteId: string; artifactId?: string; outcome: Rite["outcome"] }
   | { kind: "plan:node:failed"; nodeId: string; reason: string }
   | { kind: "plan:replan"; depth: number; reason: string }
-  | { kind: "plan:done"; outcome: "success" | "failed"; finalRiteId?: string; finalArtifactId?: string; finalLootId?: string };
+  | { kind: "plan:done"; outcome: PlanOutcome; finalRiteId?: string; finalArtifactId?: string; finalLootId?: string };
+
+export type PlanOutcome = "success" | "failed" | "halted";
 
 export interface PlanExecResult {
   plan: Plan;
@@ -47,11 +63,17 @@ export interface PlanExecResult {
   finalRiteId?: string;
   /** Loot id of the last node's winning loot — survives even when scribe failed. */
   finalLootId?: string;
-  outcome: "success" | "failed";
+  outcome: PlanOutcome;
+  /** Number of replans that actually happened. */
+  replans: number;
+  /** Set when outcome is "halted". */
+  halt?: NonNullable<Plan["halt"]>;
 }
 
 export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult> {
   const maxDepth = opts.maxReplanDepth ?? 2;
+  const planner = opts.planner ?? llmPlannerBackend();
+  const runRite = opts.riteRunner ?? performRite;
   let plan = opts.plan;
   opts.onPlanEvent?.({ kind: "plan:start", plan });
 
@@ -60,8 +82,15 @@ export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult
   // Map nodeId -> winnerLootId (independent of whether scribe succeeded).
   const lootByNode = new Map<string, string>();
   const parentArtifacts = opts.parentArtifacts ?? [];
+  let replans = 0;
 
   for (let attempt = 0; attempt <= maxDepth; attempt++) {
+    if (plan.halt) {
+      opts.onPlanEvent?.({ kind: "plan:halt", halt: plan.halt });
+      opts.onPlanEvent?.({ kind: "plan:done", outcome: "halted" });
+      return { plan, outcome: "halted", replans, halt: plan.halt };
+    }
+
     const v = validatePlan(plan);
     if (!v.ok) {
       opts.onPlanEvent?.({ kind: "plan:done", outcome: "failed" });
@@ -87,7 +116,7 @@ export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult
       opts.onPlanEvent?.({ kind: "plan:node:start", nodeId: node.id });
 
       try {
-        const result = await performRite({
+        const result = await runRite({
           task: node.task,
           packSize: node.packSize ?? 3,
           scanGlobs: [],
@@ -99,6 +128,9 @@ export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult
           maxOutputTokensPerCall: opts.maxOutputTokensPerCall,
           outputFormat: opts.outputFormat,
           parentArtifacts: inputArtifacts,
+          trollTools: node.hints?.trollTools,
+          debate: node.hints?.debate,
+          nodeHints: node.hints,
           // sub-rites still produce their own artifacts (cheap scribe call)
           skipScribe: false,
           onStep: (step) => opts.onStep?.(node.id, step),
@@ -159,22 +191,27 @@ export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult
         finalRiteId: lastNode?.riteId,
         finalLootId,
         outcome: "success",
+        replans,
       };
     }
 
     // Failure path: try replan if budget allows.
     if (attempt >= maxDepth) {
       opts.onPlanEvent?.({ kind: "plan:done", outcome: "failed" });
-      return { plan, outcome: "failed" };
+      return { plan, outcome: "failed", replans };
     }
 
     opts.onPlanEvent?.({ kind: "plan:replan", depth: attempt + 1, reason: failureReason });
+    replans++;
 
-    const replanned = await planTask({
+    const replanned = await planner.plan({
       task: plan.rootTask,
+      cwd: opts.cwd,
       parentArtifacts: [...parentArtifacts, ...produced.values()],
       failureContext: { failedNodeId: failedNode.id, reason: failureReason, partialPlan: plan },
       maxOutputTokens: opts.maxOutputTokensPerCall,
+      budgetTokens: opts.budgetTokens,
+      replanDepth: attempt + 1,
     });
     plan = { ...replanned.plan, replanDepth: attempt + 1 };
     // Carry forward artifacts produced so far so subsequent nodes can reuse them
@@ -182,7 +219,7 @@ export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult
   }
 
   opts.onPlanEvent?.({ kind: "plan:done", outcome: "failed" });
-  return { plan, outcome: "failed" };
+  return { plan, outcome: "failed", replans };
 }
 
 // Re-export for convenient imports.

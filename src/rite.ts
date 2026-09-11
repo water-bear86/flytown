@@ -19,6 +19,7 @@ import type {
   Loot,
   OutputFormat,
   Personality,
+  PlanNodeHints,
   Rite,
   TrollVerdict,
 } from "./types.js";
@@ -53,6 +54,8 @@ export interface RiteOptions {
   tools?: ToolDefinition[];
   /** Optional formatting constraint for answer-producing calls. */
   outputFormat?: OutputFormat;
+  /** Planner hints attached to the plan node this rite executes (informational). */
+  nodeHints?: PlanNodeHints;
 }
 
 export type RiteStep =

@@ -1,0 +1,6 @@
+# Pinned to the versions used for the first artifact build (Python 3.14.6, macOS arm64).
+# Any recent pandas>=2.2 / pyarrow>=15 / numpy>=1.26 should also work.
+pandas==3.0.5
+pyarrow==25.0.1
+numpy==2.5.3
+requests==2.34.2

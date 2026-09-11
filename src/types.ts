@@ -223,6 +223,20 @@ export interface Plan {
   /** How many times the planner has been re-invoked on this plan (max 2). */
   replanDepth: number;
   createdAt: number;
+  /**
+   * Optional: the planner decided not to run any nodes. The executor honours
+   * this before validation and returns a "halted" result. Lets a planner
+   * backend express "stop", "blocked" or "needs approval" without inventing
+   * a fake sub-rite.
+   */
+  halt?: PlanHalt;
+  /** Which planner backend produced this plan (e.g. "llm", "rules", "fly"). */
+  plannerId?: string;
+}
+
+export interface PlanHalt {
+  kind: "success" | "blocked" | "approval";
+  reason: string;
 }
 
 export interface PlanNode {
@@ -239,6 +253,17 @@ export interface PlanNode {
   riteId?: string;
   artifactId?: string;
   failureReason?: string;
+  /** Optional planner hints (orchestration action that produced this node, etc). */
+  hints?: PlanNodeHints;
+}
+
+export interface PlanNodeHints {
+  /** Orchestration action this node was compiled from. */
+  action?: string;
+  /** Ask the troll to use verifier tools while reviewing this node. */
+  trollTools?: boolean;
+  /** Run an inter-goblin debate round on this node. */
+  debate?: boolean;
 }
 
 export interface PlanEdge {
@@ -310,4 +335,19 @@ export interface WarrenManifest {
   defaultModelTroll: string;
   provider?: ProviderConfig;
   onboarding?: OnboardingConfig;
+  /** FLYTOWN planner configuration. Absent = conventional LLM planner. */
+  flytown?: FlytownConfig;
+}
+
+export interface FlytownConfig {
+  /** Planner backend id: "llm" (default) | "rules" | "random" | "fly" | "fly:shuffled" | ... */
+  planner?: string;
+  /** Connectome artifact id (directory under connectome/). */
+  connectome?: string;
+  /** Fall back to the LLM planner if the fly planner errors. Default true. */
+  fallbackToLlm?: boolean;
+  /** Enable reward-modulated adapter learning. Default false. */
+  learning?: boolean;
+  /** Deterministic seed for planner randomness. */
+  seed?: number;
 }

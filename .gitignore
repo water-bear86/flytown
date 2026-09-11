@@ -9,3 +9,11 @@ release/
 # per-project Warren state
 .goblintown/
 .vercel
+
+# connectome ETL: raw FlyWire downloads (~1.1 GB), Python venv, bytecode
+connectome-etl/raw/
+connectome-etl/.venv/
+connectome-etl/__pycache__/
+# neuron-level connectome artifact: large binary payloads (manifest + header stay tracked)
+connectome/fafb-v783-neuron-1/graph.bin
+connectome/fafb-v783-neuron-1/neurons.parquet
