@@ -83,9 +83,10 @@ describe("null-model transforms", () => {
     const g = makeGraph({ id: "lr", nodes: ["AL_L", "AL_R", "LH_L"], edges: [[0, 2, 5], [1, 2, 5], [2, 0, 1]] });
     const a = ablate(g, ["AL"]);
     assert.equal(a.src.length, 0);
-    assert.deepEqual(a.ablatedRegions, ["AL_L", "AL_R"]);
+    assert.deepEqual(a.ablatedRegions, ["AL"]);
     const b = ablate(g, ["AL_L"]);
     assert.equal(b.src.length, 1);
+    assert.deepEqual(b.ablatedRegions, ["AL_L"]);
     assert.throws(() => ablate(g, ["NOPE"]), ConnectomeArtifactError);
   });
 });
@@ -100,22 +101,22 @@ describe("adapters", () => {
     assert.ok(enc.input[0] > 0 && enc.input[1] > 0, "AL_L and AL_R both driven");
     assert.equal(enc.input[0], enc.input[1]);
     assert.ok(enc.input[2] > 0, "ME_L driven by repo_size");
-    assert.ok(enc.missingRegions.includes("LA"));
+    assert.ok(enc.missingGroups.includes("LA"));
   });
   it("readout maps regional activity to action scores with contributions", () => {
     const g = makeGraph({ id: "mini", nodes: ["LAL_L", "EB", "PRW"], edges: [] });
     const ro = readout(Float64Array.from([0, 1, 0]), defaultAdapters(), g);
     const top = Object.entries(ro.scores).sort((a, b) => b[1] - a[1])[0][0];
     assert.equal(top, "surface_uncertainty");
-    assert.deepEqual(ro.contributions.surface_uncertainty[0][0], "EB");
+    assert.deepEqual(ro.contributions.surface_uncertainty[0][0], "region:EB");
   });
   it("applyReward only touches adapter weights and never the graph", () => {
     const w0 = defaultAdapters();
-    const before = w0.readout.spawn_subrite.find((e) => e.region === "LAL")!.weight;
+    const before = w0.readout.spawn_subrite.find((e) => e.group === "LAL")!.weight;
     const scores = Object.fromEntries(ORCH_ACTIONS.map((a) => [a, 1 / ORCH_ACTIONS.length])) as Record<OrchAction, number>;
-    const w1 = applyReward({ ...w0, learning: { updates: 0, baseline: 0 } }, { action: "spawn_subrite", scores, activityByBase: { LAL: 1 }, reward: 1 });
-    assert.ok(w1.readout.spawn_subrite.find((e) => e.region === "LAL")!.weight > before);
-    assert.equal(w0.readout.spawn_subrite.find((e) => e.region === "LAL")!.weight, before, "input untouched");
+    const w1 = applyReward({ ...w0, learning: { updates: 0, baseline: 0 } }, { action: "spawn_subrite", scores, activityByGroup: { "region:LAL": 1 }, reward: 1 });
+    assert.ok(w1.readout.spawn_subrite.find((e) => e.group === "LAL")!.weight > before);
+    assert.equal(w0.readout.spawn_subrite.find((e) => e.group === "LAL")!.weight, before, "input untouched");
     assert.equal(w1.learning?.updates, 1);
   });
 });

@@ -76,3 +76,117 @@ What it does *not* say: it does not test neuron-level sparse coding (Kenyon cell
 3. Keep every null model and the task-sensitivity statistic in the loop; a fly planner that is not task-sensitive is not a router, whatever its accuracy.
 
 Reproduce: `flytown fly eval --planners "rules,random,fly,fly:shuffled" --seeds 3` and `--epochs 8 --planners "learned,fly:learning,fly:shuffled+learning" --compare "fly:learning,fly:shuffled+learning"`.
+
+## Milestone 3 protocol — larval brain, pre-registered (written before the artifact existed)
+
+Substrate: `l1-larva-winding2023-1` — the complete first-instar larval brain (Winding et al. 2023; 3,016 neurons, ~548k synapses, four synapse-type channels), simulated whole at single-neuron resolution. No region collapse anywhere.
+
+What is biology here, and what is not:
+
+| component | tag |
+|---|---|
+| neuron identities, all edges, synapse-type split (a-d, a-a, d-d, d-a) | MEASURED |
+| which edges are KC→MBON (the plastic site), which neurons are DANs, which MBON compartments each DAN innervates | MEASURED (from the graph + annotation tables) |
+| DAN valence (appetitive pPAM vs aversive DL1 clusters) | INFERRED_FROM_LITERATURE (Saumweber 2018, Eschbach 2020 — optogenetic substitution, not connectomics) |
+| the plasticity rule: co-active KC + dopaminergic drive to a compartment → depression of that KC→MBON synapse, Δw = −a·e_KC·R_DAN | INFERRED_FROM_LITERATURE (Eschbach 2020; Jürgensen 2024) |
+| signs: KCs cholinergic (+), APL GABAergic (−), DANs modulatory (0), a few MBONs; everyone else +1 magnitude-only | INFERRED_FROM_LITERATURE for the listed classes; ENGINEERING_CHOICE default — **no neurotransmitter dataset exists for the larva** |
+| reward delivery: reward ≥ 0.5 → appetitive DAN set with strength 2(r−0.5), else aversive; one-hop DAN→MBON drive; eligibility = KC activity at decision time; slow recovery toward 1; floor 0.05 | ENGINEERING_CHOICE |
+| encoder (task → olfactory / gustatory / nociceptive / visual / mechanosensory neurons) and readout (descending, SEZ, ring-gland, MBON, LHN, CN classes → actions) | METAPHOR (literal for "odour" and "sugar/bitter", still a mapping we chose) |
+| propagation dynamics | ENGINEERING_CHOICE (same contractive engine as the projectome) |
+
+Planners to compare, all with identical fixtures/seeds/compiler:
+
+- `rules`, `random`, `learned` (trained) — non-biological baselines
+- `fly:connectome=l1-larva-winding2023-1` — untrained, no plasticity
+- `…+plastic` — synaptic plasticity only (adapters fixed): **the key condition** — does DAN-gated depression at the real KC→MBON synapses make routing reward-sensitive and task-dependent?
+- `…+learning` — adapter learning only (our REINFORCE readout)
+- `…+learning+plastic` — both
+- `…:shuffled+plastic`, `…:random_degree+plastic` — null models with the *same* plasticity machinery operating on scrambled labels / rewired edges
+- `…:ablate=flag:KC+plastic`, `…:ablate=flag:MBIN+plastic` — lesion the plastic site / the dopaminergic neurons
+- `…:signless+plastic`, `…:norecurrence+plastic`
+
+Primary pre-registered comparisons (paired permutation, n = fixtures × seeds):
+
+1. `plastic` vs `shuffled+plastic` on termination accuracy — the falsification test for the larval wiring.
+2. `plastic` vs untrained — does plasticity help at all?
+3. `plastic` vs `ablate=flag:MBIN+plastic` — does the effect run through the dopaminergic neurons (it must, or the "biology" is decorative)?
+4. Task sensitivity (distinct primaries / mean pairwise JS bits) for every fly variant — a constant policy is disqualifying regardless of accuracy.
+
+Decision rule stated in advance: if (1) is not significant at p < 0.05 with the mock world and 3+ seeds, the larval wiring is reported as *not shown to matter* under this harness, exactly as the projectome was. If (1) is significant but (3) is not, the effect is not dopaminergic and the biological framing is withdrawn.
+
+### Larva run 1 — pre-registered result: **null** (`2026-09-11-larva-run1-preregistered.md`)
+
+Artifact `l1-larva-winding2023-1`: 2,952 neurons, 110,677 edges, 2,746 KC→MBON synapses designated plastic, 2 appetitive / 6 aversive DANs. 8 training epochs, 3 evaluation seeds, 20 fixtures.
+
+| comparison | termination acc | p |
+|---|---|---|
+| (1) `plastic` vs `shuffled+plastic` | 68% vs 68% | **1.000** |
+| (2) `plastic` vs untrained | 68% vs 68%, 80% identical decisions | 1.000 |
+| (3) `plastic` vs `ablate=flag:MBIN+plastic` (no dopaminergic neurons) | 68% vs 68% | 1.000 |
+| `learning+plastic` vs `shuffled+learning+plastic` | 68% vs 67% | 1.000 |
+| `learning+plastic` vs `rules` | 68% vs 82% | 0.177 |
+
+(4) Task sensitivity: every larval variant except `norecurrence` and `shuffled+learning+plastic` was a **constant policy** (1 distinct primary action). The plastic-only training curves are flat across all 8 epochs for every variant.
+
+**By the pre-registered rule this is a null result, and the biological framing is withdrawn for this configuration.** The one "significant" number — `learning+plastic` beating `learning` alone (68% vs 57%, p = 0.018) — is a comparison between two constant policies that happened to pick different single actions, and is disqualified by rule (4).
+
+Diagnostics run afterwards (`scratchpad/larva-diag.mjs`), to separate "biology has no effect" from "our pipeline cannot transmit it":
+
+- Plasticity *did* fire: direct DAN→MBON wiring exists (1,089 a-d synapses; appetitive DANs drive 9 MBON compartments, aversive drive 27) and each reward depressed ~821 of the 2,746 plastic synapses, several to the floor. Not a dead pathway.
+- **Every Kenyon cell was active on every task (144/144 above 5% of max).** The rectified-tanh rate model has no firing threshold, so the KC code is dense, and dense eligibility means the same synapses are depressed whatever the task — association-specific learning is impossible by construction. Real KC coding is ~5–10% sparse, enforced by high thresholds and APL feedback inhibition (Turner, Bazhenov & Laurent 2008; Lin et al. 2014; the fly-hashing model of Dasgupta, Stevens & Navlakha 2017). Our engine lacked this.
+- Even forcing *all* plastic synapses to the floor moved mean MBON activity 0.122 → 0.033 but the top action score only 0.166 → 0.177: the readout normalises against the sensory neurons (which carry the maximum activity), so internal populations sit in a compressed range where MBON changes barely register.
+
+So run 1 falsifies "this pipeline, as pre-registered". It does not yet test the sparse-code hypothesis, because the pipeline never produced a sparse code. Run 2 below adds exactly that ingredient and is labelled post-hoc.
+
+### Larva run 2 — post-hoc (changes made *after* seeing run 1's diagnostics)
+
+Every change is an engineering choice about our adapters/engine, not a change to the connectome, the plastic site, the DAN valences or the rule. Listed so the reader can judge how much the pipeline was tuned:
+
+1. **KC sparse coding** — k-winners-take-all keeps the 10% most active Kenyon cells per step (`engine.ts` `sparseGroups`, default `flag:KC@0.1`), with n/k gain compensation on their outgoing weights so the winners carry the population's drive under L1 normalisation. Literature: KC sparseness ~5–10% (Turner et al. 2008; Lin et al. 2014; Dasgupta et al. 2017). Ablation available as `+nosparse`.
+2. **Odour identity encoding** — task keywords *and* the deliverable kind each activate a hashed 15% subset of olfactory receptor neurons (`keywordOdor`); the uniform "intensity" drive to all ORNs was cut from 0.4–0.9 to 0.15. Diagnostic effect: mean pairwise KC-set overlap across fixtures 0.86 → 0.23.
+3. **Readout normalisation** — by the maximum over the readout populations, not the whole brain (the sensory neurons carried the maximum and compressed every internal population).
+4. **Per-neuron readout weights** (learned, empty at init) inside the readout populations, so learning can address *which* output neurons are active.
+5. **MBON valence in the readout** — the artifact ships Eschbach et al. 2020's approach/avoidance MBON annotations (`class2:app` 16, `class2:av` 12, `class2:neith` 8). Avoidance-driving MBONs feed `retry_new_approach` / `surface_uncertainty` / `terminate_blocked`; approach-driving MBONs feed `spawn_subrite` / `increase_pack_size` (tagged INFERRED_FROM_LITERATURE for the valence, METAPHOR for the action mapping). Checked against the measured wiring first: appetitive DANs drive avoidance-MBON compartments almost exclusively (drive-weighted 1.89 av vs 0.01 app) and aversive DANs drive approach-MBON compartments (5.28 app vs 0.05 av) — the connectome reproduces the textbook valence-inversion circuit, so reward depresses avoidance and punishment depresses approach for the rewarded task's KC code.
+6. Spec-parser fix (`ablate=flag:KC` was truncated at the second colon).
+
+Untrained sanity after these changes (`fly sensitivity`): real larva 2 distinct primaries, final-activity JS 0.070 bits; shuffled larva 1 primary, 0.055 bits. Same planners, seeds, fixtures, epochs and comparisons as run 1.
+
+#### Run 2 results (`2026-09-11-larva-run2-posthoc.md`)
+
+| planner | termination acc | task-sensitivity |
+|---|---|---|
+| rules | **82%** | 8 / 0.570 |
+| learned (trained) | 63% | 4 / 0.192 |
+| larva, untrained | 67% | 2 / 0.013 |
+| larva `+plastic` | 72% | 2 / 0.014 |
+| larva `+learning` | 57% | 1 / 0.059 (constant) |
+| larva `+learning+plastic` | 68% | 2 / 0.101 |
+| larva `+shuffled+plastic` | 72% | 1 / 0.002 (constant) |
+| larva `+shuffled+learning+plastic` | 60% | 2 / 0.055 |
+| larva `+random_degree+learning+plastic` | 68% | 1 / 0.000 (constant) |
+| larva `+ablate=flag:MBIN+learning+plastic` (no dopaminergic neurons) | 57% | 1 / 0.000 (constant) |
+| larva `+ablate=flag:KC+learning+plastic` | 62% | 2 / 0.119 |
+| larva `+nosparse+learning+plastic` | 78% | 2 / 0.325 |
+
+Paired permutation tests (n = 60 each; nine comparisons, so treat p ≈ 0.01–0.06 as suggestive — a Bonferroni threshold would be ≈ 0.006 and **nothing below clears it**):
+
+| comparison | acc | p |
+|---|---|---|
+| (1) pre-registered primary: `plastic` vs `shuffled+plastic` | 72% vs 72% | **1.000 — null again** |
+| (2) `plastic` vs untrained | 72% vs 67% | 0.248 |
+| `learning+plastic` vs `shuffled+learning+plastic` | 68% vs 60% | 0.061 |
+| (3) `learning+plastic` vs DAN-lesioned `ablate=flag:MBIN+learning+plastic` | 68% vs 57% | 0.017 |
+| `learning+plastic` vs `learning` (plasticity removed) | 68% vs 57% | 0.014 |
+| `learning+plastic` vs `nosparse+learning+plastic` | 68% vs **78%** | 0.030 (sparsening *hurts*) |
+| `learning+plastic` vs `random_degree+learning+plastic` | 68% vs 68% | 1.000 |
+| `learning+plastic` vs `learned` baseline | 68% vs 63% | 0.254 |
+| `learning+plastic` vs `rules` | 68% vs 82% | 0.177 |
+
+**Reading, in order of confidence:**
+
+1. The pre-registered primary test is null for the second time: with plasticity alone, the real larval wiring is not distinguishable from a label-shuffled copy (p = 1.0). Plastic-only training curves are flat — the KC→MBON rule learns stimulus valence, not action selection, and nothing in this pipeline turns valence into a better plan without the learned readout.
+2. Two comparisons point the way the biology predicts — adding the plasticity channel to adapter learning helps (p = 0.014) and lesioning the dopaminergic neurons hurts (p = 0.017) — but neither survives correction for the nine tests run, both involve a constant-policy comparator, and the shuffled-wiring control with the same learning is only borderline worse (p = 0.061). **Suggestive, not evidence.**
+3. Contrary to the sparse-coding hypothesis, *removing* KC sparsening gave the best larval variant (78%, and the highest task sensitivity of any fly planner). A plausible reason is specific to this harness: mock-world reward depends on the fixture's *category* (its traps), so a code that generalises across tasks of a kind beats one that treats every keyword set as a distinct odour. That is a statement about the evaluation world as much as about the brain.
+4. Every biological variant remains below the hand-written rules baseline (82%), and every fly planner is far less task-sensitive (≤ 0.33 bits, 1–2 distinct primary actions) than rules (0.57 bits, 8).
+
+**Verdict for Milestone 3 as of 2026-09-11:** the larval substrate does not yet show a robust advantage over its own shuffled null model, in either the pre-registered or the post-hoc configuration. What it did show: (a) the pipeline now transmits biology end to end — sparse task-specific KC codes, DAN-gated depression at measured synapses, a valence circuit reproduced from the data — and each piece is ablatable; (b) two ablations behave as the biology predicts, at uncorrected p < 0.02; (c) the mock world is now the limiting factor. Next step is not more adapter tuning (each post-hoc round erodes evidential value) but a **live-model evaluation** on a fixed task suite with the same null models — the only way to learn whether any of this matters for real work.

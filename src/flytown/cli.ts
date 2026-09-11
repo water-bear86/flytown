@@ -16,7 +16,7 @@ import { executePlan } from "../plan-executor.js";
 import type { Artifact } from "../types.js";
 import { KNOWN_PLANNER_SPECS, resolvePlannerBackend } from "./registry.js";
 import { listTraces, readTrace, renderTraceText, writeTrace, type DecisionTrace } from "./trace.js";
-import { defaultConnectomeRoot, listConnectomes, loadConnectome, degreeStats } from "./connectome/artifact.js";
+import { defaultConnectomeRoot, listConnectomes, loadConnectome, degreeStats, groupIndex } from "./connectome/artifact.js";
 import { runHarness } from "./eval/harness.js";
 import { FIXTURES } from "./eval/fixtures.js";
 
@@ -31,13 +31,66 @@ export async function runFlyCli(argv: string[]): Promise<void> {
     case "replay": return cmdReplay(args);
     case "connectome": return cmdConnectome(args);
     case "regions": return cmdRegions(args);
+    case "groups": return cmdGroups(args);
+    case "sensitivity": return cmdSensitivity(args);
     case "planners": {
       process.stdout.write(KNOWN_PLANNER_SPECS.join("\n") + "\n  (flags combine with '+', e.g. fly:shuffled+norecurrence, fly:ablate=MB_CA,MB_ML)\n");
       return;
     }
     default:
-      process.stderr.write(`usage: fly <plan|eval|trace|traces|replay|connectome|regions|planners> ...\n`);
+      process.stderr.write(`usage: fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|planners> ...\n`);
       process.exitCode = 1;
+  }
+}
+
+async function cmdGroups(args: string[]): Promise<void> {
+  const id = positional(args)[0] ?? (await listConnectomes())[0];
+  if (!id) { process.stderr.write(`no connectome artifacts available\n`); process.exitCode = 1; return; }
+  const g = await loadConnectome(id);
+  const groups = groupIndex(g);
+  const prefix = flags(args).prefix;
+  const rows = [...groups.entries()].filter(([k]) => !k.startsWith("node:") && (!prefix || k.startsWith(prefix))).sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  process.stdout.write(`${g.id}: ${rows.length} groups over ${g.n} nodes${prefix ? ` (prefix ${prefix})` : ""}\n`);
+  for (const [k, idx] of rows) process.stdout.write(`  ${k.padEnd(40)} ${String(idx.length).padStart(6)}\n`);
+  if (g.plasticity?.plasticEdges) {
+    const spec = g.plasticity.plasticEdges;
+    process.stdout.write(`plastic site: ${spec.preGroup} → ${spec.postGroup}${spec.channel ? ` (channel ${spec.channel})` : ""} [${spec.tag}]\n  rule: ${spec.rule}\n`);
+    const d = g.plasticity.dopaminergic;
+    if (d) process.stdout.write(`dopaminergic: appetitive=${d.appetitive.length} aversive=${d.aversive.length} unknown=${d.unknown?.length ?? 0} [${d.tag}] ${d.source ?? ""}\n`);
+  }
+}
+
+/**
+ * Where does task information go? Mean pairwise Jensen–Shannon divergence
+ * (bits) across the fixture suite at each stage of a fly planner:
+ * raw features → encoder input → final activity → action scores.
+ */
+async function cmdSensitivity(args: string[]): Promise<void> {
+  const f = flags(args);
+  const specs = (f.planners ?? f.planner ?? "fly,fly:shuffled").split(",").map((s) => s.trim()).filter(Boolean);
+  const root = await rootOrCwd();
+  const { jsDivergence } = await import("./eval/harness.js");
+  const { scanRepo } = await import("./signals.js");
+  const repoCache = new Map<string, import("./signals.js").RepoSignals>();
+  for (const fx of FIXTURES) if (!repoCache.has(fx.repo)) repoCache.set(fx.repo, await scanRepo(fx.repo));
+  const norm = (rec: Record<string, number>) => { const s = Object.values(rec).reduce((a, b) => a + b, 0); return s > 0 ? Object.fromEntries(Object.entries(rec).map(([k, v]) => [k, v / s])) : rec; };
+  const pair = (rows: Record<string, number>[]) => { let s = 0, n = 0; for (let i = 0; i < rows.length; i++) for (let j = i + 1; j < rows.length; j++) { s += jsDivergence(rows[i], rows[j]); n++; } return n ? s / n : 0; };
+  process.stdout.write(`stage-wise task sensitivity over ${FIXTURES.length} fixtures (mean pairwise JS divergence, bits; 0 = every task identical)\n`);
+  process.stdout.write(`planner`.padEnd(44) + `features   input   final   scores  distinct-primary\n`);
+  for (const spec of specs) {
+    const backend = resolvePlannerBackend(spec, { root, seed: f.seed ? Number(f.seed) : 1, fallback: false });
+    const feats: Record<string, number>[] = [], inputs: Record<string, number>[] = [], finals: Record<string, number>[] = [], scores: Record<string, number>[] = [];
+    const primaries = new Set<string>();
+    for (const fx of FIXTURES) {
+      const res = await backend.plan({ task: fx.task, cwd: fx.repo, repo: repoCache.get(fx.repo), extraSignals: fx.extra, runId: `sens-${fx.id}`, parentArtifacts: Array.from({ length: fx.priorArtifacts ?? 0 }, (_, i) => ({ id: `p${i}`, riteId: "r", task: fx.task, outcome: "winner" as const, claims: [], evidence: [], openQuestions: [], nextSteps: [], parentArtifactIds: [], keywords: [], timestamp: 0 })) });
+      const t = res.trace!;
+      feats.push(norm(t.features ?? {}));
+      scores.push(t.actionScores);
+      primaries.add(t.decision.primary);
+      if (t.brain) { inputs.push(norm(t.brain.input)); finals.push(norm(t.brain.steps.at(-1)?.activity ?? {})); }
+    }
+    const fmt = (v: number) => v.toFixed(3).padStart(7);
+    process.stdout.write(`${spec.padEnd(44)}${fmt(pair(feats))} ${fmt(pair(inputs))} ${fmt(pair(finals))} ${fmt(pair(scores))}   ${primaries.size}\n`);
   }
 }
 
@@ -189,8 +242,11 @@ async function cmdRegions(args: string[]): Promise<void> {
   if (!id) { process.stderr.write(`no connectome artifacts available\n`); process.exitCode = 1; return; }
   const g = await loadConnectome(id);
   const d = degreeStats(g);
-  process.stdout.write(`region  neurons  in_syn  out_syn  in_deg  out_deg  provenance\n`);
-  for (const n of g.nodes) process.stdout.write(`${n.id.padEnd(9)} ${String(n.neuronCount ?? "").padStart(7)} ${String(Math.round(d.inStrength[n.index])).padStart(8)} ${String(Math.round(d.outStrength[n.index])).padStart(8)} ${String(d.inDegree[n.index]).padStart(6)} ${String(d.outDegree[n.index]).padStart(7)}  ${n.provenance}\n`);
+  const limit = flags(args).limit ? Number(flags(args).limit) : (g.n > 200 ? 60 : g.n);
+  process.stdout.write(`node       neurons  in_syn  out_syn  in_deg  out_deg  provenance  groups\n`);
+  const rows = g.n > 200 ? [...g.nodes].sort((a, b) => (d.inStrength[b.index] + d.outStrength[b.index]) - (d.inStrength[a.index] + d.outStrength[a.index])).slice(0, limit) : g.nodes.slice(0, limit);
+  for (const n of rows) process.stdout.write(`${n.id.padEnd(10)} ${String(n.neuronCount ?? "").padStart(7)} ${String(Math.round(d.inStrength[n.index])).padStart(8)} ${String(Math.round(d.outStrength[n.index])).padStart(8)} ${String(d.inDegree[n.index]).padStart(6)} ${String(d.outDegree[n.index]).padStart(7)}  ${n.provenance.padEnd(10)}  ${(n.groups ?? []).filter((x) => !x.startsWith("node:")).join(" ")}\n`);
+  if (rows.length < g.n) process.stdout.write(`(${rows.length} of ${g.n} nodes shown, by total synapses; use --limit N or \`fly groups\`)\n`);
 }
 
 async function rootOrCwd(): Promise<string> {

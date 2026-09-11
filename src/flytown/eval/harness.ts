@@ -133,7 +133,7 @@ export interface HarnessReport {
 
 function isLearnable(spec: string): boolean {
   const { kind, flags } = parsePlannerSpec(spec);
-  return kind === "learned" || (kind === "fly" && !!flags.learning);
+  return kind === "learned" || (kind === "fly" && (!!flags.learning || !!flags.plastic));
 }
 
 export function rewardFor(correct: boolean, tokens: number): number {
@@ -208,10 +208,13 @@ async function trainBackend(a: { spec: string; resolveOpts: ResolveOptions; fixt
     return results;
   };
   if (kind === "fly") {
-    const trainer = new FlyPlannerBackend({ ...resolveFlyOptions(a.spec, a.resolveOpts), learning: true, explore: true, weightsDir: undefined });
+    const flyOpts = resolveFlyOptions(a.spec, a.resolveOpts);
+    const trainer = new FlyPlannerBackend({ ...flyOpts, explore: true, weightsDir: undefined });
     for (let e = 1; e <= a.epochs; e++) await pass(trainer, e);
     const adapters = await trainer.snapshotAdapters();
-    return new FlyPlannerBackend({ ...trainer.options, adapters, learning: false, explore: false, weightsDir: undefined, id: a.spec });
+    const plasticState = trainer.snapshotPlastic();
+    // Frozen evaluation backend: trained adapters and multipliers, no further updates, greedy.
+    return new FlyPlannerBackend({ ...trainer.options, adapters, plasticState, learning: false, plastic: !!flyOpts.plastic, explore: false, weightsDir: undefined, id: a.spec });
   }
   let weights: LinearRouterWeights = uniformWeights();
   for (let e = 1; e <= a.epochs; e++) {

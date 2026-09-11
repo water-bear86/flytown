@@ -154,7 +154,7 @@ describe("fly planner", () => {
     const ablated = await new FlyPlannerBackend({ connectomeId: "m", graph, ablateRegions: ["MB_CA", "EB"] }).plan(req);
     const norec = await new FlyPlannerBackend({ connectomeId: "m", graph, engine: { recurrence: false } }).plan(req);
     assert.equal(shuffled.trace!.brain!.variant, "shuffled");
-    assert.deepEqual(ablated.trace!.brain!.ablatedRegions, ["EB", "MB_CA_L", "MB_CA_R"]);
+    assert.deepEqual(ablated.trace!.brain!.ablatedRegions, ["EB", "MB_CA"]);
     assert.equal(norec.trace!.brain!.recurrence, false);
     assert.equal(norec.plan.plannerId, "fly:norecurrence");
     assert.equal(shuffled.plan.plannerId, "fly:shuffled");
@@ -170,7 +170,7 @@ describe("fly planner", () => {
     const on = new FlyPlannerBackend({ connectomeId: "m", graph: miniBrain(), learning: true, weightsDir: dir });
     const r2 = await on.plan({ task: "Fix the bug", cwd: "/nope", runId: "y" });
     const w = await on.learn(r2.trace!, 1);
-    assert.ok(w && w.learning?.updates === 1);
+    assert.ok(w && w.adapters?.learning?.updates === 1);
     assert.deepEqual(r2.trace!.learning?.applied, [`readout.${r2.trace!.decision.primary}`]);
   });
   it("withFallback delegates to the LLM planner id when the primary throws", async () => {

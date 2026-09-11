@@ -50,18 +50,29 @@ export type ProvenanceTag = "MEASURED" | "INFERRED_FROM_LITERATURE" | "ENGINEERI
 
 export interface BrainActivityTrace {
   connectomeId: string;
+  level?: "projectome" | "curated" | "neuron";
   variant: "real" | "shuffled" | "random_degree" | "ablated" | "signless";
   ablatedRegions: string[];
   recurrence: boolean;
   weightsVersion: string;
+  plasticVersion?: string;
   engine: Record<string, number | string | boolean>;
-  /** region id -> injected input */
+  /** node id (small graphs) or group key (large graphs) -> injected input */
   input: Record<string, number>;
-  /** per timestep region activity (full vector; ~78 regions at projectome level) */
+  /**
+   * Per timestep activity. Graphs with ≤200 nodes store the full node vector
+   * each step; larger graphs store per-group means for the first and last
+   * step only (per-node state is reproducible via `fly replay`).
+   */
   steps: { t: number; activity: Record<string, number> }[];
-  /** per action: top contributing regions (region, contribution) */
+  /** per action: top contributing groups (group, contribution) */
   readoutContributions: Record<string, [string, number][]>;
   stats: { maxActivity: number; meanFinalActivity: number; activeRegions: number; steps: number };
+  /** activity of the plastic pre-population (e.g. Kenyon cells) at decision time */
+  eligibility?: Record<string, number>;
+  /** max-normalised activity of every node in the readout populations at decision time */
+  readoutActivity?: Record<string, number>;
+  plastic?: { edges: number; meanMultiplier: number; minMultiplier: number; depressedEdges: number; rule: string };
 }
 
 /** Snapshot of the planning request so a trace can be replayed deterministically. */
@@ -146,7 +157,8 @@ export function renderTraceText(t: DecisionTrace): string {
   lines.push(`decision: primary=${t.decision.primary} included=[${t.decision.included.join(",")}] pack=${t.decision.packSize} personality=${t.decision.personality}`);
   if (t.brain) {
     const b = t.brain;
-    lines.push(`brain: ${b.connectomeId} variant=${b.variant}${b.ablatedRegions.length ? ` ablated=[${b.ablatedRegions.join(",")}]` : ""} recurrence=${b.recurrence} steps=${b.stats.steps} active=${b.stats.activeRegions} max=${b.stats.maxActivity.toFixed(3)}`);
+    lines.push(`brain: ${b.connectomeId}${b.level ? ` (${b.level})` : ""} variant=${b.variant}${b.ablatedRegions.length ? ` ablated=[${b.ablatedRegions.join(",")}]` : ""} recurrence=${b.recurrence} steps=${b.stats.steps} active=${b.stats.activeRegions}/${b.engine.nodes ?? "?"} max=${b.stats.maxActivity.toFixed(3)}`);
+    if (b.plastic) lines.push(`  plastic: ${b.plastic.edges} edges, ${b.plastic.depressedEdges} depressed, mean×${b.plastic.meanMultiplier.toFixed(3)} min×${b.plastic.minMultiplier.toFixed(3)}${b.plasticVersion ? ` (${b.plasticVersion})` : ""}`);
     const input = Object.entries(b.input).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([r, v]) => `${r}:${v.toFixed(2)}`).join(" ");
     lines.push(`  input → ${input}`);
     const last = b.steps[b.steps.length - 1];

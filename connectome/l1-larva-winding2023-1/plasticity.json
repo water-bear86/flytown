@@ -1,0 +1,576 @@
+{
+  "version": 1,
+  "artifact": "l1-larva-winding2023-1",
+  "plasticEdges": {
+    "channel": "ad",
+    "preGroup": "flag:KC",
+    "postGroup": "flag:MBON",
+    "modulatorGroup": "class2:DAN",
+    "rule": "DAN-paired depression: co-activation of a KC and the dopaminergic input to an MBON compartment depresses that KC->MBON synapse (Eschbach et al. 2020 model: KC-to-MBON weights are modified by a DAN-dependent, timing-dependent plasticity rule consistent with experimental findings; formal two-factor rule of Jürgensen et al. 2024, doi:10.1016/j.isci.2023.108640: Δw_i = −a · e_i(t) · R(t) ≤ 0, where e_i(t) is an exponentially decaying eligibility trace set to 1 by each spike of presynaptic KC i and R(t) is the reward-triggered DAN spike train; a homeostatic term Δw_i^h = (w_init − w_i)·M(t)·h ≥ 0 counteracts it on MBON spikes).",
+    "compartmentNote": "The connectome gives KC->MBON edges but no compartment labels per synapse; which DAN gates which KC->MBON synapse must be resolved by the runtime from DAN->MBON / DAN->KC co-innervation (each MBIN innervates one compartment, Eichler et al. 2017), or approximated per MBON.",
+    "tag": "INFERRED_FROM_LITERATURE"
+  },
+  "dopaminergic": {
+    "appetitive": [
+      "6611894",
+      "7057894"
+    ],
+    "aversive": [
+      "2506050",
+      "3886356",
+      "4381377",
+      "5966099",
+      "7901791",
+      "10673895"
+    ],
+    "unknown": [
+      "4414163",
+      "4414184",
+      "4884579",
+      "12871993",
+      "15592096",
+      "16240569"
+    ],
+    "byName": {
+      "DAN-c1": {
+        "ids": {
+          "L": "15592096",
+          "R": "16240569"
+        },
+        "valence": "unknown",
+        "compartment": "lower peduncle",
+        "evidence": "Eschbach et al. 2020: pairing an odour with activation of DAN-c1 induced neither appetitive nor aversive memory; no valence assigned."
+      },
+      "DAN-d1": {
+        "ids": {
+          "L": "3886356",
+          "R": "5966099"
+        },
+        "valence": "aversive",
+        "compartment": "lateral appendix",
+        "evidence": "Eschbach et al. 2020: pairing an odour with activation of DAN-d1 established aversive memory."
+      },
+      "DAN-f1": {
+        "ids": {
+          "L": "7901791",
+          "R": "2506050"
+        },
+        "valence": "aversive",
+        "compartment": "intermediate vertical lobe",
+        "evidence": "Eschbach et al. 2020: pairing an odour with activation of DAN-f1 established aversive memory ('the aversive DAN-f1 and DAN-g1')."
+      },
+      "DAN-g1": {
+        "ids": {
+          "L": "4381377",
+          "R": "10673895"
+        },
+        "valence": "aversive",
+        "compartment": "lower vertical lobe",
+        "evidence": "Eschbach et al. 2020: pairing an odour with activation of DAN-g1 established aversive memory."
+      },
+      "DAN-i1": {
+        "ids": {
+          "L": "7057894",
+          "R": "6611894"
+        },
+        "valence": "appetitive",
+        "compartment": "medial lobe, upper toe (pPAM cluster)",
+        "evidence": "Saumweber et al. 2018: optogenetic activation of DAN-i1 is sufficient as an internal reward signal (odour-then-DAN-i1 pairing -> appetitive memory; DAN-i1-then-odour -> aversive memory, i.e. onset rewarding, offset punishing). Eschbach et al. 2020: co-activated with DAN-h1/-k1 as the optogenetic reward in their paradigm."
+      },
+      "DAN-j1": {
+        "ids": {
+          "L": "4414163",
+          "R": "4414184"
+        },
+        "valence": "unknown",
+        "compartment": "medial lobe (pPAM cluster)",
+        "evidence": "Saumweber et al. 2018: no suitable driver line ('attempts to generate a suitable driver strain for DAN-j1 have failed'), untested; Eschbach et al. 2020 only 'sometimes' hit it with the medial-lobe co-activation line. Cluster membership suggests reward but this is not tested."
+      },
+      "DAN-k1": {
+        "ids": {
+          "L": "12871993",
+          "R": "4884579"
+        },
+        "valence": "unknown",
+        "compartment": "medial lobe (pPAM cluster)",
+        "evidence": "Saumweber et al. 2018: activation of DAN-k1 alone was without any rewarding effect; Eschbach et al. 2020 co-activated it with DAN-h1/-i1 as a reward. Not assigned individually."
+      }
+    },
+    "identification": {
+      "method": "names from Data S1 annotations.csv `additional_annotations` (the paper's MBIN naming after Eichler et al. 2017); cross-checked against the neurodata `class2 == DAN` flag",
+      "namesFound": [
+        "DAN-c1",
+        "DAN-d1",
+        "DAN-f1",
+        "DAN-g1",
+        "DAN-i1",
+        "DAN-j1",
+        "DAN-k1"
+      ],
+      "idsByName": 14,
+      "idsByClass2": 14,
+      "identical": true,
+      "absentFromL1": "DAN-h1 (Saumweber et al. 2018, third-instar) is not among the seven L1 DANs listed by Eichler et al. 2017 (DAN-c1, -d1, -f1, -g1, -i1, -j1, -k1) and has no node here.",
+      "tag": "MEASURED"
+    },
+    "source": "Saumweber et al. 2018 (doi:10.1038/s41467-018-03130-1); Eschbach et al. 2020 (doi:10.1038/s41593-020-0607-9); dopaminergic identity: Eichler et al. 2017 (doi:10.1038/nature23455)",
+    "tag": "INFERRED_FROM_LITERATURE",
+    "note": "valence assignments are from optogenetic substitution experiments (activation paired with odour), not from the connectome; 'unknown' means not established for that cell in the cited papers"
+  },
+  "octopaminergic": {
+    "ids": [
+      "7616956",
+      "7983899",
+      "11525714",
+      "12805363"
+    ],
+    "byName": {
+      "OAN-e1": {
+        "ids": {
+          "L": "7983899",
+          "R": "7616956"
+        },
+        "note": "Eichler et al. 2017: octopaminergic (antibody labelling); Saumweber et al. 2018: OANs as a population are sufficient as an internal reward signal (citing earlier work), individual OAN-e1 not tested here."
+      },
+      "OAN-g1": {
+        "ids": {
+          "L": "11525714",
+          "R": "12805363"
+        },
+        "note": "Eichler et al. 2017: octopaminergic (antibody labelling); individual valence not tested in the cited papers."
+      }
+    },
+    "absentFromMatrices": "OAN-a1 and OAN-a2 (unpaired midline neurons, Eichler et al. 2017 / Saumweber et al. 2018) are not annotated among the 2,952 matrix neurons",
+    "tag": "INFERRED_FROM_LITERATURE"
+  },
+  "otherModulatory": {
+    "byName": {
+      "MBIN-b1": {
+        "ids": {
+          "L": "8689674",
+          "R": "8319311"
+        },
+        "nt": "unknown",
+        "note": "Eichler et al. 2017: 'not technically accessible' for antibody labelling; transmitter unknown"
+      },
+      "MBIN-b2": {
+        "ids": {
+          "L": "17295912",
+          "R": "16353832"
+        },
+        "nt": "unknown",
+        "note": "Eichler et al. 2017: 'not technically accessible' for antibody labelling; transmitter unknown"
+      },
+      "MBIN-e1": {
+        "ids": {
+          "L": "14541927",
+          "R": "4235139"
+        },
+        "nt": "unknown",
+        "note": "Eichler et al. 2017: neither dopaminergic nor octopaminergic; transmitter unknown"
+      },
+      "MBIN-e2": {
+        "ids": {
+          "L": "12475432",
+          "R": "3890028"
+        },
+        "nt": "unknown",
+        "note": "Eichler et al. 2017: neither dopaminergic nor octopaminergic; transmitter unknown"
+      },
+      "MBIN-l1": {
+        "ids": {
+          "L": "4381129",
+          "R": "15404207"
+        },
+        "nt": "unknown",
+        "note": "Eichler et al. 2017: neither dopaminergic nor octopaminergic; transmitter unknown"
+      }
+    },
+    "tag": "INFERRED_FROM_LITERATURE"
+  },
+  "mushroomBodyOutputNeurons": {
+    "namesFound": [
+      "MBON-a1",
+      "MBON-a2",
+      "MBON-b1",
+      "MBON-b2",
+      "MBON-b3",
+      "MBON-c1",
+      "MBON-d1",
+      "MBON-d2",
+      "MBON-d3",
+      "MBON-e1",
+      "MBON-e2",
+      "MBON-f1",
+      "MBON-g1",
+      "MBON-g2",
+      "MBON-h1",
+      "MBON-h2",
+      "MBON-i1",
+      "MBON-j1",
+      "MBON-k1",
+      "MBON-m1",
+      "MBON-n1",
+      "MBON-o1",
+      "MBON-p1",
+      "MBON-q1"
+    ],
+    "ids": [
+      "3299214",
+      "4022539",
+      "4195012",
+      "4230749",
+      "4234009",
+      "4241237",
+      "4401350",
+      "4598109",
+      "4598363",
+      "5395823",
+      "6699205",
+      "6703240",
+      "7055857",
+      "7802210",
+      "7840791",
+      "7897469",
+      "7910624",
+      "8094859",
+      "8297018",
+      "8338584",
+      "8798010",
+      "8877158",
+      "8922644",
+      "8980589",
+      "9074101",
+      "9109799",
+      "9469519",
+      "10163418",
+      "11017761",
+      "11524047",
+      "14082322",
+      "15253921",
+      "15398730",
+      "15421363",
+      "15617305",
+      "15810983",
+      "16178283",
+      "16223537",
+      "16782830",
+      "16797672",
+      "16846805",
+      "16868923",
+      "16883909",
+      "17013073",
+      "17016974",
+      "17147698",
+      "17355757",
+      "18028397"
+    ],
+    "tag": "MEASURED"
+  },
+  "signs": {
+    "byGroup": {
+      "flag:KC": {
+        "sign": 1,
+        "nt": "acetylcholine",
+        "confidence": "inferred from adult",
+        "source": "Eichler et al. 2017: 'KCs have been shown to be cholinergic in the adult, so it is likely that KC-to-KC connections are depolarizing' (not measured in the larva)",
+        "caveat": "Winding et al. 2023 note that in the adult, a-a connections between otherwise excitatory (cholinergic) KCs were found to be inhibitory (mAChR-B in axon terminals); the `aa` channel of KC->KC edges may therefore carry the opposite sign"
+      },
+      "class:APL": {
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "source": "Eichler et al. 2017: 'An additional pair of GABAergic neurons, homologous to the anterior paired lateral (APL) neurons in the adult fly, synapses reciprocally with all mature ipsilateral KCs'"
+      },
+      "class2:DAN": {
+        "sign": 0,
+        "nt": "dopamine (modulatory)",
+        "confidence": "reported",
+        "source": "Eichler et al. 2017: antibody labelling, 'seven MBINs are dopaminergic (DAN-c1, -d1, -f1, -g1, -i1, -j1, and -k1)'; treated as neuromodulatory (sign 0), acting through the plasticity rule rather than as a fast synaptic drive"
+      },
+      "class2:OAN": {
+        "sign": 0,
+        "nt": "octopamine (modulatory)",
+        "confidence": "reported",
+        "source": "Eichler et al. 2017: 'four are octopaminergic (OAN-a1, -a2, -e1, and -g1)'"
+      }
+    },
+    "byNode": {
+      "3299214": {
+        "annotation": "MBON-j1",
+        "labels": [
+          "MBON-j1"
+        ],
+        "sign": -1,
+        "nt": "glutamate",
+        "confidence": "probable",
+        "sources": [
+          "Eichler et al. 2017: 'glutamatergic (MBON-i1, -j1, -k1)'; glutamate is usually inhibitory in the insect CNS but this is not confirmed for these cells"
+        ]
+      },
+      "4022539": {
+        "annotation": "MBON-m1; CN-62",
+        "labels": [
+          "MBON-m1"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eschbach et al. 2020: 'the GABAergic MBON-m1'"
+        ]
+      },
+      "4195012": {
+        "annotation": "MBON-h1; MBON-h2",
+        "labels": [
+          "MBON-h1",
+          "MBON-h2"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eichler et al. 2017: 'GABAergic (MBON-g1, -g2, -h1, -h2)'"
+        ]
+      },
+      "4230749": {
+        "annotation": "MBON-h1; MBON-h2",
+        "labels": [
+          "MBON-h1",
+          "MBON-h2"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eichler et al. 2017: 'GABAergic (MBON-g1, -g2, -h1, -h2)'"
+        ]
+      },
+      "4401350": {
+        "annotation": "MBON-g1",
+        "labels": [
+          "MBON-g1"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eichler et al. 2017: 'GABAergic (MBON-g1, -g2, -h1, -h2)'"
+        ]
+      },
+      "4598363": {
+        "annotation": "MBON-g1",
+        "labels": [
+          "MBON-g1"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eichler et al. 2017: 'GABAergic (MBON-g1, -g2, -h1, -h2)'"
+        ]
+      },
+      "4617479": {
+        "annotation": "FBN-7",
+        "labels": [
+          "FBN-7"
+        ],
+        "sign": 1,
+        "nt": "acetylcholine",
+        "confidence": "reported",
+        "sources": [
+          "Eschbach et al. 2020: 'the cholinergic FBN-7'"
+        ]
+      },
+      "5395823": {
+        "annotation": "MBON-g2",
+        "labels": [
+          "MBON-g2"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eichler et al. 2017: 'GABAergic (MBON-g1, -g2, -h1, -h2)'"
+        ]
+      },
+      "7026287": {
+        "annotation": "FBN-23",
+        "labels": [
+          "FBN-23"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eschbach et al. 2020: 'the GABAergic FBN-23'"
+        ]
+      },
+      "7802210": {
+        "annotation": "MBON-i1",
+        "labels": [
+          "MBON-i1"
+        ],
+        "sign": -1,
+        "nt": "glutamate",
+        "confidence": "probable",
+        "sources": [
+          "Eichler et al. 2017: 'glutamatergic (MBON-i1, -j1, -k1)', 'could be inhibitory'; Eschbach et al. 2020: 'the glutamatergic MBON-i1', treated as potentially inhibitory"
+        ]
+      },
+      "7980369": {
+        "annotation": "FBN-23",
+        "labels": [
+          "FBN-23"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eschbach et al. 2020: 'the GABAergic FBN-23'"
+        ]
+      },
+      "8338584": {
+        "annotation": "MBON-h1; MBON-h2",
+        "labels": [
+          "MBON-h1",
+          "MBON-h2"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eichler et al. 2017: 'GABAergic (MBON-g1, -g2, -h1, -h2)'"
+        ]
+      },
+      "8798010": {
+        "annotation": "MBON-h1; MBON-h2",
+        "labels": [
+          "MBON-h1",
+          "MBON-h2"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eichler et al. 2017: 'GABAergic (MBON-g1, -g2, -h1, -h2)'"
+        ]
+      },
+      "8864785": {
+        "annotation": "FBN-7",
+        "labels": [
+          "FBN-7"
+        ],
+        "sign": 1,
+        "nt": "acetylcholine",
+        "confidence": "reported",
+        "sources": [
+          "Eschbach et al. 2020: 'the cholinergic FBN-7'"
+        ]
+      },
+      "9527333": {
+        "annotation": "FB2N-19",
+        "labels": [
+          "FB2N-19"
+        ],
+        "sign": 1,
+        "nt": "acetylcholine",
+        "confidence": "reported",
+        "sources": [
+          "Eschbach et al. 2020: 'the excitatory cholinergic FB2N' (FB2N-19)"
+        ]
+      },
+      "11524047": {
+        "annotation": "MBON-g2",
+        "labels": [
+          "MBON-g2"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eichler et al. 2017: 'GABAergic (MBON-g1, -g2, -h1, -h2)'"
+        ]
+      },
+      "13210358": {
+        "annotation": "FB2N-19",
+        "labels": [
+          "FB2N-19"
+        ],
+        "sign": 1,
+        "nt": "acetylcholine",
+        "confidence": "reported",
+        "sources": [
+          "Eschbach et al. 2020: 'the excitatory cholinergic FB2N' (FB2N-19)"
+        ]
+      },
+      "15421363": {
+        "annotation": "MBON-j1",
+        "labels": [
+          "MBON-j1"
+        ],
+        "sign": -1,
+        "nt": "glutamate",
+        "confidence": "probable",
+        "sources": [
+          "Eichler et al. 2017: 'glutamatergic (MBON-i1, -j1, -k1)'; glutamate is usually inhibitory in the insect CNS but this is not confirmed for these cells"
+        ]
+      },
+      "16797672": {
+        "annotation": "MBON-i1",
+        "labels": [
+          "MBON-i1"
+        ],
+        "sign": -1,
+        "nt": "glutamate",
+        "confidence": "probable",
+        "sources": [
+          "Eichler et al. 2017: 'glutamatergic (MBON-i1, -j1, -k1)', 'could be inhibitory'; Eschbach et al. 2020: 'the glutamatergic MBON-i1', treated as potentially inhibitory"
+        ]
+      },
+      "16846805": {
+        "annotation": "MBON-k1",
+        "labels": [
+          "MBON-k1"
+        ],
+        "sign": -1,
+        "nt": "glutamate",
+        "confidence": "probable",
+        "sources": [
+          "Eichler et al. 2017: 'glutamatergic (MBON-i1, -j1, -k1)'; as for MBON-j1"
+        ]
+      },
+      "17016974": {
+        "annotation": "MBON-m1; CN-62",
+        "labels": [
+          "MBON-m1"
+        ],
+        "sign": -1,
+        "nt": "GABA",
+        "confidence": "reported",
+        "sources": [
+          "Eschbach et al. 2020: 'the GABAergic MBON-m1'"
+        ]
+      },
+      "18028397": {
+        "annotation": "MBON-k1",
+        "labels": [
+          "MBON-k1"
+        ],
+        "sign": -1,
+        "nt": "glutamate",
+        "confidence": "probable",
+        "sources": [
+          "Eichler et al. 2017: 'glutamatergic (MBON-i1, -j1, -k1)'; as for MBON-j1"
+        ]
+      }
+    },
+    "default": {
+      "sign": 1,
+      "note": "no neurotransmitter data exists for the larval brain connectome; unlisted neurons are treated as excitatory magnitude-only — ENGINEERING_CHOICE",
+      "tag": "ENGINEERING_CHOICE"
+    },
+    "unverified": "Per-cell transmitters that the build brief attributed to the cited papers but that could not be verified in the accessible full texts (they live in figures/supplements only) are deliberately NOT encoded: MBON-e1 'cholinergic'. Eichler et al. 2017 state only that 'MBONs are glutamatergic, cholinergic, or GABAergic' for the remaining MBONs.",
+    "tag": "INFERRED_FROM_LITERATURE"
+  }
+}

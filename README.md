@@ -31,6 +31,7 @@ consume the same task signals and emit the same `Plan`:
 | `learned` | small logistic router, trainable in the harness |
 | `fly` | activation propagated through a real FlyWire connectome artifact, read out to actions |
 | `fly:shuffled`, `fly:random_degree`, `fly:norecurrence`, `fly:signless`, `fly:ablate=MB_CA,EB`, `fly:learning` | null models and ablations of the same |
+| `fly:connectome=l1-larva-winding2023-1+plastic` | the whole larval brain at single-neuron resolution, with dopamine-gated depression at the real KC→MBON synapses (`+learning` adds adapter learning; `:ablate=flag:MBIN` lesions the dopaminergic neurons) |
 
 ```bash
 npm run build
@@ -40,6 +41,8 @@ node dist/cli.js fly plan "<task>" --planner fly --dry-run   # decide + write a 
 node dist/cli.js plan "<task>" --planner fly       # decide and execute with the real workers
 node dist/cli.js fly trace <runId>                 # plain-text trace: signals → activity → action → plan
 node dist/cli.js fly replay <runId>                # deterministic replay, diffs against the stored plan
+node dist/cli.js fly groups <connectomeId>         # node groups (regions / cell classes / sensory modalities) the adapters can address
+node dist/cli.js fly sensitivity --planners "fly,fly:shuffled"   # where task information survives: features → input → activity → scores
 node dist/cli.js fly eval --planners "rules,fly,fly:shuffled" --seeds 3 --epochs 8   # matched trials, mock worker world
 ```
 

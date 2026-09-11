@@ -9,6 +9,7 @@ No TypeScript lives here; this directory only produces data.
 | --- | --- | --- | --- |
 | `fafb-v783-projectome-1` | `connectome/fafb-v783-projectome-1/` | neuropil (region) graph, 79 nodes | yes (all three files) |
 | `fafb-v783-neuron-1` | `connectome/fafb-v783-neuron-1/` | neuron graph, ~139k nodes | `manifest.json`, `graph.header.json` only — `graph.bin` and `neurons.parquet` are gitignored and rebuilt locally |
+| `l1-larva-winding2023-1` | `connectome/l1-larva-winding2023-1/` | neuron graph of the L1 **larval** brain, 2,952 nodes, four synapse-type channels (`build_larva.py`, see the Larva section) | yes (all four files, 3.3 MB) |
 
 ## How to run
 
@@ -233,3 +234,289 @@ Zenodo publishes MD5 not SHA-256; the annotation repo has no license
 statement; `hemilineage` exists only as `ito_lee_hemilineage` /
 `hartenstein_hemilineage`; `top_nt` uses full names (`acetylcholine`), not
 the `ACH` codes.
+
+## Larva — Winding et al. 2023 L1 larval brain → `l1-larva-winding2023-1`
+
+`build_larva.py` builds a second, much smaller **neuron-level** artifact from the
+whole first-instar (L1) *Drosophila* larval brain connectome of Winding et al.
+2023 (Science 379:eadd9330, "The connectome of an insect brain"). It imports the
+hashing / download / timer helpers from `build.py` but is otherwise independent
+(different sources; the FlyWire downloads are not needed). Where the adult
+artifact splits every edge by predicted **neurotransmitter**, this one splits it
+by **synapse type** (axo-dendritic, axo-axonic, dendro-dendritic, dendro-axonic):
+there is no transmitter data for the larva at all. All four output files are
+small (3.3 MB together) and are meant to be tracked in git.
+
+### How to run
+
+```sh
+cd connectome-etl
+./.venv/bin/python build_larva.py --download   # ~11 MB into raw/larva/ (gitignored)
+./.venv/bin/python build_larva.py --build      # -> ../connectome/l1-larva-winding2023-1/
+./.venv/bin/python build_larva.py --all        # both
+```
+
+* `--download` is idempotent: every GitHub file is verified against its **git
+  blob SHA-1** from the contents API at the pinned commit, the Zenodo archive
+  against the record's **MD5**; a mismatch deletes the file and stops the build
+  (nothing is ever built from unverified data). It makes five unauthenticated
+  GitHub API calls (rate limit 60/h) and one Zenodo call; if the GitHub API is
+  unreachable the check is recorded as `unverified`, never silently passed. It
+  writes `raw/larva/download_manifest.json` (URL, bytes, MD5, SHA-256, blob
+  SHA-1, commit, per-member hashes of the Data S1 zip, licence fields).
+* `--build` takes ~3 s and well under 1 GB of RAM; `--raw-dir` / `--out-dir`
+  override the locations as for `build.py`.
+
+### Inputs (all open, no login)
+
+| File | Source, pinned | Bytes | SHA-256 | Role |
+| --- | --- | ---: | --- | --- |
+| `Supplementary-Data-S1.zip` | GitHub [`brain-networks/larval-drosophila-connectome`](https://github.com/brain-networks/larval-drosophila-connectome) @ `15e065f5c29f08c96ccd64ea8fe0f51510629009` (blob `e7eff2cd…`) — a mirror of Science Data S1 | 1,107,380 | `8c1f4380…a72a4c` | connectivity (primary) + cell types |
+| `data/processed-elife/unmatched_full_nodes.csv` | GitHub [`neurodata/bilateral-connectome`](https://github.com/neurodata/bilateral-connectome) @ `4482b9022f27d361011c9c7442e32ca51d607d08` = tag `elife-v5` (blob `181d62eb…`) | 2,638,863 | `d430f9bc…dccadb` | names, hemisphere, pairs, lineage, class1/class2, flags |
+| `data/processed-elife/unmatched_full_edgelist.csv` | same commit (blob `1975f187…`) | 2,351,007 | `92468519…129266` | cross-check only |
+| `neurodata/bilateral-connectome-elife-v5.zip` | Zenodo [10.5281/zenodo.7733481](https://doi.org/10.5281/zenodo.7733481) (MD5 `9809ae7e…`, licence id `other-open`) | 4,802,330 | `1697f84a…c5fe7c` | DOI-backed archive of the same commit; its two CSVs are asserted byte-identical to the GitHub copies |
+
+Actual contents found (do not trust the brief, trust the files):
+
+* The Data S1 zip does **not** contain `science.add9330_data_s2/s3/s4.csv`. It
+  contains `aa_`, `ad_`, `da_`, `dd_` and `all-all_connectivity_matrix.csv`
+  (dense 2,952 × 2,952 CSVs, header row and index column = CATMAID skeleton ids,
+  **row = presynaptic, column = postsynaptic**, integer counts written as floats
+  like `9.0`), `annotations.csv` (`left_id, right_id, celltype,
+  additional_annotations, level_7_cluster`; 1,373 pair rows → 2,610 ids),
+  `inputs.csv` (`axon_input, dendrite_input`) and `outputs.csv` (`axon_output,
+  dendrite_output`) for 2,956 ids, plus `celltype_axonio_ratio.csv` and
+  `celltype_dendriteioratio.csv` (not used).
+* The five matrices list the same 2,952 ids in **different row orders**, so
+  they must be aligned by id before anything is added. After alignment the sum
+  of the four channels equals the all-all matrix exactly (asserted).
+* `unmatched_full_nodes.csv` has 3,013 rows × 106 columns. Used: `name,
+  hemisphere, pair, pair_id, lineage, class1, class2, simple_group` and the
+  boolean flags `KCs, MBONs, MBINs, dVNCs, dSEZs, RGNs`. There is **no `DN`
+  column**; descending neurons are `dVNCs` / `dSEZs`. `celltype_discrete` holds
+  LaTeX-formatted labels (`DN$^{\mathrm{VNC}}$`), so the plain `simple_group`
+  column is used for the fallback cell type instead.
+* `unmatched_full_edgelist.csv` is headerless `source,target,weight` with
+  111,243 rows over 3,013 ids.
+* The mushroom-body neuron names (DAN-i1, MBON-g1, …) live in Data S1
+  `additional_annotations`; the neurodata `name` column has the CATMAID names
+  (`MBE1c left`), and `class2` carries `DAN` / `OAN` for the MBINs.
+
+### Outputs (`connectome/l1-larva-winding2023-1/`)
+
+* `nodes.json` — array sorted by **ascending numeric skeleton id** (`id` is
+  emitted as a string), `index` = array position, one entry per neuron of the
+  matrices (2,952). Fields: `id, index, provenance ("MEASURED"), name,
+  hemisphere (L|R|?), pairId, pairedWith, lineage, class1, class2, cellType,
+  annotation, cluster, groups, inSynapses, outSynapses`. `groups` is what the
+  runtime keys on: `class:<class1 token>` (one per `;`-separated token; falls
+  back to `class:<cellType>` when class1 is `unk`, else `class:unk`),
+  `class2:<class2>`, `type:<paper cell type>`, `hemisphere:L|R`, `flag:KC`,
+  `flag:MBON`, `flag:MBIN`, `flag:DN`, `out:DN-VNC`, `out:DN-SEZ`, `out:RGN`,
+  `sens:<modality>`.
+* `graph.json` — `{"format":"coo","n":2952,"src":[…],"dst":[…],"weight":[…],
+  "channels":{"ad":[…],"aa":[…],"dd":[…],"da":[…]}}`; one entry per (pre, post)
+  pair with ≥ 1 synapse in any channel, sorted by `(src, dst)`, `weight` =
+  sum of the four channels (asserted per edge), autapses kept.
+* `plasticity.json` — curated, every block tagged: `plasticEdges` (KC → MBON
+  `ad` edges under `class2:DAN` modulation, with the Eschbach 2020 / Jürgensen
+  2024 rule), `dopaminergic` (appetitive / aversive / unknown DAN ids plus a
+  per-name evidence table), `octopaminergic`, `otherModulatory`,
+  `mushroomBodyOutputNeurons`, `signs` (`byGroup`, `byNode`, `default`,
+  `unverified`).
+* `manifest.json` — same shape as the FAFB manifests: `source` (files, hashes,
+  commits, DOI, licences verbatim, citations), `preprocessing` (steps, input
+  schemas, neuron-universe reconciliation, annotation coverage, tagged
+  assumptions), `graph` (`channels: ["ad","aa","dd","da"]`, per-channel
+  totals), `groups` (every distinct group string with its count),
+  `plasticitySummary`, `stats` (sanity checks, reproduction of the paper's own
+  text statistics, edge-list cross-check, top edges), `build`, `checksums`
+  (`sha256:` of `nodes.json`, `graph.json`, `plasticity.json`).
+
+### Method and every assumption
+
+The manifest carries the same list under `preprocessing.assumptions[]`.
+
+1. **Weight = synapse count** (`syn_count_as_weight`, engineering choice):
+   manually annotated chemical contacts summed over the four channels; a
+   structural proxy, no sizes / receptors / gap junctions / neuromodulation.
+2. **Channels are synapse types** (`channels_are_synapse_types`, measured):
+   `ad / aa / dd / da` as published in Data S1; the axon/dendrite split of each
+   skeleton is the authors'.
+3. **No neurotransmitter data** (`no_neurotransmitter_data`, engineering
+   choice): the artifact has no `nt` field; the only transmitter knowledge is
+   the literature table in `plasticity.json`; everything else is magnitude-only
+   (sign +1 by convention).
+4. **No sign encoded** (`sign_not_encoded`, from literature): KCs presumed
+   cholinergic (inferred from the adult by Eichler 2017), APL GABAergic, DANs /
+   OANs modulatory, MBON-g1/g2/h1/h2 and MBON-m1 GABAergic, MBON-i1/j1/k1
+   glutamatergic (probably inhibitory); any sign the runtime applies must be
+   labelled as inferred.
+5. **Data S1 is the connectivity source** (`primary_source_is_data_s1`): the
+   Pedigo edge list is a cross-check only (see results for the exact
+   reconciliation).
+6. **Rows are presynaptic** (`row_is_presynaptic`, measured, verified three
+   ways: the edge list's `source,target,weight` reproduces `matrix[row=source]
+   [col=target]` for all 110,298 shared edges; column sums never exceed
+   `inputs.csv`, row sums never exceed `outputs.csv`; sensory neurons have
+   almost no column synapses).
+7. **Two annotation tables merged** (`node_annotation_merge`): Data S1 supplies
+   `cellType`, `annotation`, `cluster`; neurodata supplies `name, hemisphere,
+   pair/pair_id, lineage, class1/class2`, flags. For 32 paired neurons Data S1's
+   `left_id/right_id` placement contradicts both the CATMAID names
+   (`PDM-DN_right`, `contra-vine left`, …) and neurodata's `hemisphere`; the
+   neurodata value is used. Labels are verbatim except for stripped whitespace
+   (`'MBNB A '` → `MBNB A`).
+8. **`class:` fallback** (`class_group_fallback`): 1,129 neurons have class1
+   `unk`; 810 of them get `class:<paper cell type>` (e.g. `class:pre-DN-VNC`)
+   so that every neuron carries its most specific label; 323 stay `class:unk`
+   (321 whose paper category is `Other`, 2 with no annotation anywhere).
+9. **`flag:DN` = dVNCs ∨ dSEZs** (`flag_dn_definition`); the flags are
+   inclusive (a `dSEZ;CN` neuron is flagged), hence `out:DN-SEZ` = 184 while the
+   paper's exclusive `DN-SEZ` cell type has 164 members. `out:` uses the paper's
+   spellings `DN-VNC / DN-SEZ / RGN`.
+10. **`sens:` modality** (`sens_modality_source`): Data S1
+    `additional_annotations` for `sensory` neurons (whole label) and for
+    `ascending` neurons carrying `mechano-Ch / proprio / noci / mechano-II/III`;
+    lower-cased, `/` and spaces → `-`. Second-order PNs get **no** `sens:`
+    group (their modality string stays verbatim in `annotation`). neurodata
+    `class2` (ORN, AN, MN, vtd, photoRh5/6, thermo) is exposed as `class2:`.
+11. **Plasticity curation** (`plasticity_curation`, from literature): valences
+    and transmitters were taken only from statements found in the full texts
+    (Europe PMC / PMC) of the cited papers; anything not found is `unknown`.
+    Valences come from optogenetic substitution experiments, not the connectome.
+12. **Autapses kept** (`autapses_kept`): 537 diagonal pairs / 783 synapses
+    (mostly a-a between KC branches).
+13. **`type:Other`** and **`cellType` fallback** (engineering choice): the 346
+    neurons absent from Data S1 `annotations.csv` get the paper's category via
+    `simple_group` (`unk` → `Other`, the paper's own "Other" bin); 4 neurons are
+    missing from the neurodata table, 2 of them (`3813487`, `17068730`) have no
+    annotation anywhere (`name: null`, `hemisphere: "?"`, `class:unk`).
+
+### Licence caveat
+
+* **Article:** CC BY 4.0. The PMC full text (PMC7614541) carries two statements
+  verbatim — "exclusive licensee American Association for the Advancement of
+  Science. No claim to original US government works.
+  https://www.sciencemag.org/about/science-licenses-journal-article-reuse" and
+  "This work is licensed under a CC BY 4.0 International license." Europe PMC
+  metadata: `isOpenAccess=Y, license='cc by'`.
+* **Data S1 file: NOT CONFIRMED; cite Winding et al. 2023.** The zip carries no
+  licence; the GitHub mirror has no LICENSE (API `license: null`) and its README
+  only says "Connectome data from Winding et al (2023) Science. These data were
+  originally made available as part of the previously mentioned manuscript.";
+  science.org answers automated requests with HTTP 403, so whether CC BY extends
+  to the supplement was not confirmable. Recorded verbatim in
+  `source.license` / `source.dataS1Mirror`.
+* **neurodata annotation table:** **MIT** at the pinned commit `4482b902`
+  (tag `elife-v5`, the Zenodo-archived version, Zenodo licence id
+  `other-open`); the repository HEAD (`0ff9bbe0`, 2024-04-05, "Update LICENSE")
+  switched to the **PolyForm Noncommercial License 1.0.0** (GitHub API `key:
+  other, spdx: NOASSERTION`). The two CSVs are byte-identical between the MIT
+  commit and HEAD; the build pins the MIT/Zenodo commit and records both
+  verbatim in `source.annotations.neurodata.license`.
+* Citations (all DOIs resolved through Crossref on the build date; the Zenodo
+  DOI through Zenodo/DataCite): Winding 2023 10.1126/science.add9330; Eichler
+  2017 10.1038/nature23455; Eschbach 2020 10.1038/s41593-020-0607-9; Saumweber
+  2018 10.1038/s41467-018-03130-1; Pedigo 2023 10.7554/eLife.83739; Saalfeld
+  2009 (CATMAID) 10.1093/bioinformatics/btp266; Jürgensen 2024
+  10.1016/j.isci.2023.108640.
+
+### Build results (first build, 2026-09-11)
+
+Wall time 21 s including the 11 MB download; the build itself is 3 s.
+
+**Graph:** 2,952 neurons, **110,677 edges**, 352,611 synapses, **537 autapses**
+(783 synapses). Per channel: a-d 234,958 synapses (**66.6 %**, 63,545 edges),
+a-a 90,800 (**25.8 %**, 40,636), d-d 20,415 (**5.8 %**, 9,019), d-a 6,438
+(**1.8 %**, 3,722) — the paper's text gives exactly 66.6 / 25.8 / 5.8 / 1.8 %.
+Weight quantiles 50/90/99/99.9 % = 2 / 7 / 21 / 48, max 121 (42a ORN → 42a PN).
+43 neurons have no output and 58 no input within the matrices (57 of the 58 are
+sensory neurons, whose inputs lie outside the brain).
+
+**Reproduction of the paper's own statistics** (paper value in brackets):
+weak edges (1–2 synapses) a-d 59.5 % [60], a-a 75.0 % [75], d-d 79.4 % [79],
+**d-a 86.1 % [91]**, all 65.3 % [66]; synapse share in ≥ 5-synapse edges a-d
+63.2 % [61], all 56.6 % [55]; share in weak edges a-d 21.0 % [22], all 26.2 %
+[28]; pairs connected in only one channel 94.6 % [95]; d-a edges that reverse an
+a-d edge 64.1 % [63]. Only the d-a weak-edge fraction is noticeably off.
+
+**Edge-list cross-check (Pedigo et al. 2023):** 111,243 rows, 3,013 ids,
+537 autapses, 353,859 synapses. 110,298 edges have both ends among the 2,952
+matrix neurons and **all 110,298 weights are identical** to the channel sums.
+The remaining 945 edge-list edges (2,160 synapses) involve 65 neurons that are
+not in the matrices (50 SEZ motor neurons flagged `motor`/`accessory_neurons`,
+9 immature "KC … young" cells, 10 `partially_differentiated`, …); 4 matrix
+neurons (`3813487, 8644484, 14531828, 17068730`) are absent from the edge list
+and contribute the 379 matrix edges it lacks. So the "111,243 edges incl. 536
+autapses" of the brief describes the 3,013-node Pedigo graph, not Data S1.
+
+**Neuron universe:** 2,952 matrix neurons; 2,948 have a neurodata row, 2,606 a
+Data S1 annotation row (the other 346 are the paper's "Other" bin, 343, one
+pre-DN-VNC, and the 2 unannotated cells). The paper's text counts 3,016
+neurons and ~548,000 synaptic sites; the matrices hold synapses *between* the
+2,952 neurons only (`inputs.csv` sums to 429,503 postsynaptic sites, of which
+352,611 = 82 % have a partner inside the matrices). Pairs: 2,804 reciprocal
+contralateral pairs from neurodata, 138 unpaired.
+
+**Distinct `groups` (97) with counts:**
+
+* `class:` (33) — sens 430, pre-DN-VNC 430, unk 323, LHN 255, CN 204, dSEZ 182,
+  dVNC 182, KC 144, PN-somato 138, pre-DN-SEZ 99, PN 86, CX 77, FFN 74, RGN 56,
+  MBON 48, uPN 42, ascending 40, FB2N 34, MBIN 28, mPN 28, FBN 26, LN 17,
+  LON 17, bLN 10, pLN 10, tPN 10, vPN 10, FAN 8, dUnk 8, A00c 6, cLN 4, APL 2,
+  keystone 2.
+* `class2:` (25) — AN 174, MN 153, ORN 42, 1claw 36, 3claw 34, 4claw 33, vtd 26,
+  photoRh6 19, 2claw 19, app 16, multi 16, 5claw 15, DAN 14, IPC 14, av 12,
+  olfac 12, photoRh5 10, ITP 8, neith 8, 6claw 7, CA-LP 6, Trio 6, thermo 6,
+  Duet 4, OAN 4.
+* `type:` (18) — pre-DN-VNC 477, sensory 430, Other 343, PN 206, LHN 202,
+  DN-VNC 182, DN-SEZ 164, PN-somato 152, KC 144, LN 110, MB-FBN 108,
+  pre-DN-SEZ 102, CN 100, RGN 54, MB-FFN 54, MBON 48, ascending 46, MBIN 28.
+* `hemisphere:` — L 1,471, R 1,479 (2 unknown).
+* `flag:` — DN 366, KC 144, MBON 48, MBIN 28.
+* `out:` — DN-SEZ 184, DN-VNC 182, RGN 56.
+* `sens:` (12) — gustatory-external 131, gustatory-pharyngeal 107, gut 85,
+  olfactory 42, visual 29, respiratory 26, thermo-cold 6, thermo-warm 4 (the 430
+  sensory neurons), plus mechano-ch 12, noci 12, proprio 8, mechano-ii-iii 2
+  (ascending neurons).
+
+**Mushroom-body neurons identified by name** (Data S1 `additional_annotations`;
+each name = one left/right pair): 7 DAN names / 14 ids — DAN-c1, -d1, -f1, -g1,
+-i1, -j1, -k1 — exactly the neurodata `class2 == DAN` set; OAN-e1, OAN-g1
+(4 ids, = `class2 == OAN`); MBIN-b1, -b2, -e1, -e2, -l1 (10 ids, transmitter
+unknown per Eichler 2017); 24 MBON names / 48 ids (MBON-a1 … -q1; two pairs
+are annotated "MBON-h1; MBON-h2"); 144 KCs (`flag:KC`, claw classes 1–6 in
+`class2:`); APL = `MBE12 left/right`. **DAN-h1 does not exist in L1**: Eichler
+2017 list seven DANs without it, so the pPAM reward cluster here is i1/j1/k1.
+Valence lists: appetitive = DAN-i1 (2 ids; Saumweber 2018 sufficiency);
+aversive = DAN-d1, -f1, -g1 (6 ids; Eschbach 2020); unknown = DAN-c1 (activation
+gives neither memory), DAN-j1 (no driver, untested), DAN-k1 (alone not
+rewarding). `signs.byNode` covers 22 cells: MBON-g1/g2/h1/h2 GABA, MBON-i1/j1/k1
+glutamate (probable −1), MBON-m1 GABA, FBN-7 and FB2N-19 acetylcholine, FBN-23
+GABA. MBON-e1 "cholinergic" could **not** be verified in any accessible text and
+is left unknown (recorded under `signs.unverified`).
+
+**Sanity checks (all pass):** uPN → KC is 3,665 a-d vs 2 a-a synapses and is
+the #1 a-d input class to KCs (uPN 3,665, APL 681, PN 393, mPN 344, LHN 255);
+over all channels KCs' top inputs are KC→KC a-a (14,854) and MBIN→KC a-a
+(4,709) before uPNs. KC → MBON a-d edges exist for **48/48 MBONs** (median 306
+KC a-d synapses per MBON). DAN → KC is **100 % a-a** (3,708 synapses), MBIN → KC
+100 % a-a, KC → MBIN 99.6 % a-a; DAN → MBON 98 % a-d; APL → KC 98.6 % a-d,
+KC → APL 61 % a-d / 38 % d-a; KC → KC 92 % a-a / 8 % d-d; sensory neurons
+emit 30,127 synapses and receive 3,784 (all a-a / d-a, none a-d). Top edges are
+ORN → uPN a-d pairs (42a: 121/119, 83a: 111/100, 67b: 105/104, 33a: 104/100,
+13a: 101) and the d-d `broad T3 → broad T2` LN pair (108).
+
+**File sizes:** `nodes.json` 1,057,168 B, `graph.json` 2,142,688 B,
+`plasticity.json` 17,980 B, `manifest.json` 49 KB; raw downloads 11 MB.
+
+**Things that contradicted the brief:** the zip has no `data_s2/s3/s4` files
+(they are `annotations.csv`, `inputs.csv`, `outputs.csv` plus two ratio
+tables); the matrices are not in a common row order; the edge count is 110,677
+/ 537 autapses (the 111,243 / 536 figure is the Pedigo 3,013-node graph);
+there is no `DN` flag column (`dVNCs` / `dSEZs`); DAN-h1 is absent from L1 and
+DAN-k1 alone is not rewarding, so the appetitive list is DAN-i1 only; MBON-e1's
+transmitter is not verifiable from text; the neurodata licence is MIT at the
+archived commit but noncommercial at HEAD; the d-a weak-edge fraction is 86 %
+against the paper's 91 %.

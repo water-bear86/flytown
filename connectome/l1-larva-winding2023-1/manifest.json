@@ -1,0 +1,1426 @@
+{
+  "artifactVersion": 1,
+  "id": "l1-larva-winding2023-1",
+  "level": "neuron",
+  "createdAt": "2026-09-11T22:57:35Z",
+  "source": {
+    "dataset": "Drosophila melanogaster first-instar larval brain connectome (Winding et al. 2023)",
+    "organism": "Drosophila melanogaster, first-instar (L1) larva, 6 h after hatching; whole brain (both hemispheres) incl. sensory and ascending inputs; VNC not included",
+    "reconstruction": "CATMAID manual reconstruction of a serial-section EM volume (Ohyama et al. 2015 volume); node ids are CATMAID skeleton ids",
+    "files": [
+      {
+        "name": "Supplementary-Data-S1.zip",
+        "role": "dataS1",
+        "url": "https://raw.githubusercontent.com/brain-networks/larval-drosophila-connectome/15e065f5c29f08c96ccd64ea8fe0f51510629009/Supplementary-Data-S1.zip",
+        "repo": "brain-networks/larval-drosophila-connectome",
+        "commit": "15e065f5c29f08c96ccd64ea8fe0f51510629009",
+        "bytes": 1107380,
+        "sha256": "8c1f43809ed5d527ba61b154e377cc21da26383a75eda8aab85ce05607a72a4c",
+        "md5": "5e913645e68c0e82766e3a987591c0ad",
+        "gitBlobSha1": "e7eff2cd789602c8a91bb2390b5d717faf0f8b51",
+        "gitBlobSha1Check": "OK"
+      },
+      {
+        "name": "unmatched_full_nodes.csv",
+        "role": "neurodata_nodes",
+        "url": "https://raw.githubusercontent.com/neurodata/bilateral-connectome/4482b9022f27d361011c9c7442e32ca51d607d08/data/processed-elife/unmatched_full_nodes.csv",
+        "repo": "neurodata/bilateral-connectome",
+        "commit": "4482b9022f27d361011c9c7442e32ca51d607d08",
+        "bytes": 2638863,
+        "sha256": "d430f9bcb61e76e1bf681539382bced179d273ed8192f668a46c254b48dccadb",
+        "md5": "ef36cdad311855fa0ee466a59f1b93fe",
+        "gitBlobSha1": "181d62ebbcaaf96357afbf952a7cd6349b730aa3",
+        "gitBlobSha1Check": "OK"
+      },
+      {
+        "name": "unmatched_full_edgelist.csv",
+        "role": "neurodata_edgelist",
+        "url": "https://raw.githubusercontent.com/neurodata/bilateral-connectome/4482b9022f27d361011c9c7442e32ca51d607d08/data/processed-elife/unmatched_full_edgelist.csv",
+        "repo": "neurodata/bilateral-connectome",
+        "commit": "4482b9022f27d361011c9c7442e32ca51d607d08",
+        "bytes": 2351007,
+        "sha256": "92468519f57012c8400ed397a6ade978f2228a7dc0146e4991e30cdde8129266",
+        "md5": "1704db05456646e3e438d7eea62ddd59",
+        "gitBlobSha1": "1975f1877c9b3d60e14eb073b23e6195f35f5c1c",
+        "gitBlobSha1Check": "OK"
+      }
+    ],
+    "dataS1Members": [
+      {
+        "name": "Supplementary-Data-S1/celltype_dendriteioratio.csv",
+        "bytes": 34029,
+        "sha256": "885f22873b1410e7817ca517aa591d80c0b76ad9e65a84202827576b5c18927c",
+        "used": false
+      },
+      {
+        "name": "Supplementary-Data-S1/da_connectivity_matrix.csv",
+        "bytes": 28738194,
+        "sha256": "e0d3dd85a53516271eeb310af0c0cd590a4efc1380b65f9aed6b34edecfcb317",
+        "used": true
+      },
+      {
+        "name": "Supplementary-Data-S1/aa_connectivity_matrix.csv",
+        "bytes": 34524851,
+        "sha256": "6ea30ce009da9baf5280dac80f37c2d9d21d1620e38a04eea2051920781b3e36",
+        "used": true
+      },
+      {
+        "name": "Supplementary-Data-S1/inputs.csv",
+        "bytes": 55324,
+        "sha256": "a42d206abe2963dd99f2edef9bad3dfa5e6b0b36ec1c87d99aafd21432a45851",
+        "used": true
+      },
+      {
+        "name": "Supplementary-Data-S1/outputs.csv",
+        "bytes": 55124,
+        "sha256": "01cb2aeebb5b78bb36dabddd8220a3b5ba3fc6ce728b7860bdcaaee44f091276",
+        "used": true
+      },
+      {
+        "name": "Supplementary-Data-S1/celltype_axonio_ratio.csv",
+        "bytes": 59709,
+        "sha256": "e7b4908a0a52627f5e97b9496c2cb7e2d64ddfdf4d98dffdf8bb8ccebe82999d",
+        "used": false
+      },
+      {
+        "name": "Supplementary-Data-S1/dd_connectivity_matrix.csv",
+        "bytes": 30491891,
+        "sha256": "476ee5e609091cdc623ba0620a6353f4aa652d145ed74929f07c04bbe6536d0c",
+        "used": true
+      },
+      {
+        "name": "Supplementary-Data-S1/annotations.csv",
+        "bytes": 65148,
+        "sha256": "477250fc559684f0e898a12016f41221bfa320012e378ab7ae8c5125c7776f7e",
+        "used": true
+      },
+      {
+        "name": "Supplementary-Data-S1/all-all_connectivity_matrix.csv",
+        "bytes": 34914576,
+        "sha256": "94d51a821217048acf711f4feb71693a8487f2547540c6f2f25896c60e2348e3",
+        "used": true
+      },
+      {
+        "name": "Supplementary-Data-S1/ad_connectivity_matrix.csv",
+        "bytes": 34487969,
+        "sha256": "6c758683f657e787fca5626dcab2a8e31fbcaf687ad6c9b2cb4fdd6b584a426f",
+        "used": true
+      }
+    ],
+    "dataS1Mirror": {
+      "repo": "brain-networks/larval-drosophila-connectome",
+      "commit": "15e065f5c29f08c96ccd64ea8fe0f51510629009",
+      "githubLicenseField": null
+    },
+    "annotations": {
+      "dataS1": {
+        "file": "Supplementary-Data-S1/annotations.csv",
+        "columnsUsed": [
+          "left_id",
+          "right_id",
+          "celltype",
+          "additional_annotations",
+          "level_7_cluster"
+        ]
+      },
+      "neurodata": {
+        "repo": "neurodata/bilateral-connectome",
+        "tag": "elife-v5",
+        "commit": "4482b9022f27d361011c9c7442e32ca51d607d08",
+        "zenodoDoi": "10.5281/zenodo.7733481",
+        "zenodoArchive": {
+          "name": "bilateral-connectome-elife-v5.zip",
+          "key": "neurodata/bilateral-connectome-elife-v5.zip",
+          "url": "https://zenodo.org/api/records/7733481/files/neurodata/bilateral-connectome-elife-v5.zip/content",
+          "bytes": 4802330,
+          "sha256": "1697f84a7f4020eff1c6c2f6d0a2c3594eac883538c0e6e4bcf901546cc5fe7c",
+          "md5": "9809ae7edd7e19e06c1e65a011ea6782",
+          "zenodoChecksum": "md5:9809ae7edd7e19e06c1e65a011ea6782"
+        },
+        "zenodoArchiveMembers": [
+          {
+            "name": "neurodata-bilateral-connectome-4482b90/data/processed-elife/unmatched_full_nodes.csv",
+            "bytes": 2638863,
+            "sha256": "d430f9bcb61e76e1bf681539382bced179d273ed8192f668a46c254b48dccadb",
+            "identicalToGitHubCopy": true
+          },
+          {
+            "name": "neurodata-bilateral-connectome-4482b90/data/processed-elife/unmatched_full_edgelist.csv",
+            "bytes": 2351007,
+            "sha256": "92468519f57012c8400ed397a6ade978f2228a7dc0146e4991e30cdde8129266",
+            "identicalToGitHubCopy": true
+          }
+        ],
+        "zenodoLicense": {
+          "id": "other-open"
+        },
+        "githubLicenseFieldAtHead": {
+          "key": "other",
+          "name": "Other",
+          "spdx_id": "NOASSERTION",
+          "url": null,
+          "node_id": "MDc6TGljZW5zZTA="
+        },
+        "file": "data/processed-elife/unmatched_full_nodes.csv",
+        "columnsUsed": [
+          "name",
+          "hemisphere",
+          "pair",
+          "pair_id",
+          "lineage",
+          "class1",
+          "class2",
+          "simple_group",
+          "KCs",
+          "MBONs",
+          "MBINs",
+          "dVNCs",
+          "dSEZs",
+          "RGNs"
+        ],
+        "edgelist": "data/processed-elife/unmatched_full_edgelist.csv (cross-check only)",
+        "license": "MIT License at the pinned commit 4482b902 (tag elife-v5, the version archived as Zenodo 10.5281/zenodo.7733481, Zenodo licence id 'other-open'). LICENSE file verbatim: 'MIT License / Copyright (c) 2021, NeuroData Lab at Johns Hopkins University, Benjamin D. Pedigo / Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, ...'. NOTE: the repository HEAD (0ff9bbe0, 2024-04-05, commit 'Update LICENSE') replaced this with the PolyForm Noncommercial License 1.0.0 (GitHub API license key 'other', spdx NOASSERTION); the two CSV files used here are byte-identical (SHA-256) between the archived MIT commit and HEAD. The connectivity itself is Winding et al. 2023's; these CSVs are Pedigo et al. 2023's processed form (eLife article CC BY 4.0)."
+      }
+    },
+    "license": "Article: CC BY 4.0 (Winding et al. 2023, per the PMC full text and Europe PMC metadata). Data S1 file: NOT CONFIRMED; cite Winding et al. 2023. The Supplementary Data S1 archive carries no licence file of its own. The GitHub mirror brain-networks/larval-drosophila-connectome has no LICENSE file (GitHub API license=null at commit 15e065f5); its README says only: 'Connectome data from Winding et al (2023) Science. These data were originally made available as part of the previously mentioned manuscript.' The article itself is open access: the PMC full text (PMC7614541) carries two licence statements, 'exclusive licensee American Association for the Advancement of Science. No claim to original US government works. https://www.sciencemag.org/about/science-licenses-journal-article-reuse' and 'This work is licensed under a CC BY 4.0 International license.' (Europe PMC metadata: isOpenAccess=Y, license='cc by'). Whether CC BY 4.0 extends to the supplementary data file could not be confirmed (science.org answers automated requests with HTTP 403). Annotation table: see annotations.neurodata.license.",
+    "citations": [
+      "Winding et al. 2023, Science 379:eadd9330, doi:10.1126/science.add9330 (The connectome of an insect brain; primary data = Supplementary Data S1)",
+      "Eichler et al. 2017, Nature, doi:10.1038/nature23455 (The complete connectome of a learning and memory centre in an insect brain; mushroom-body cell names, transmitter identities)",
+      "Eschbach et al. 2020, Nature Neuroscience, doi:10.1038/s41593-020-0607-9 (Recurrent architecture for adaptive regulation of learning in the insect brain; DAN valences, feedback-neuron transmitters)",
+      "Saumweber et al. 2018, Nature Communications, doi:10.1038/s41467-018-03130-1 (Functional architecture of reward learning in mushroom body extrinsic neurons of larval Drosophila; DAN-i1 reward sufficiency)",
+      "Pedigo et al. 2023, eLife, doi:10.7554/eLife.83739 (Generative network modeling reveals quantitative definitions of bilateral symmetry exhibited by a whole insect brain connectome; processed node/edge tables)",
+      "Saalfeld et al. 2009, Bioinformatics, doi:10.1093/bioinformatics/btp266 (CATMAID: collaborative annotation toolkit for massive amounts of image data; reconstruction platform, skeleton ids)",
+      "Jürgensen et al. 2024, iScience, doi:10.1016/j.isci.2023.108640 (Prediction error drives associative learning and conditioned behavior in a spiking model of Drosophila larva; formal KC>MBON learning rule)"
+    ],
+    "citationVerification": "All seven DOIs resolved through the Crossref REST API on the build date (first author, year, journal and title matched); Zenodo DOI 10.5281/zenodo.7733481 resolved through the Zenodo and DataCite APIs (title 'neurodata/bilateral-connectome: elife-v5')."
+  },
+  "preprocessing": {
+    "tool": "connectome-etl/build_larva.py",
+    "steps": [
+      "Download Supplementary-Data-S1.zip from brain-networks/larval-drosophila-connectome@15e065f5c29f08c96ccd64ea8fe0f51510629009 (verify git blob SHA-1 via the GitHub contents API); download data/processed-elife/unmatched_full_nodes.csv, data/processed-elife/unmatched_full_edgelist.csv from neurodata/bilateral-connectome@4482b9022f27d361011c9c7442e32ca51d607d08 (tag elife-v5; blob SHA-1 verified); download the Zenodo archive 10.5281/zenodo.7733481 (MD5 verified against the record) and assert its copies of the two CSVs are byte-identical.",
+      "Read the four Data S1 matrices aa/ad/da/dd (dense skeleton-id x skeleton-id synapse counts, row = presynaptic, column = postsynaptic). The five matrix files list the same 2,952 ids in DIFFERENT row orders; every matrix is re-indexed onto the ascending numeric id list before use, and the aligned sum of the four channels is asserted equal to all-all_connectivity_matrix.csv.",
+      "nodes.json: one entry per matrix neuron, sorted by ascending numeric skeleton id (`id` emitted as a string, `index` = position). Annotation fields are left-joined from Data S1 annotations.csv (paper cell type, additional annotations incl. sensory modality and MB neuron names, level-7 cluster; both left_id and right_id columns are unpivoted) and from the neurodata node table (name, hemisphere, pair, pair_id, lineage, class1, class2, flags). Labels are kept verbatim except that surrounding whitespace is stripped.",
+      "groups: class:<token> for every ';'-separated token of neurodata class1 (fallback: class:<paper cellType> when class1 is 'unk' and the cell type is not 'Other', else class:unk); class2:<class2>; type:<paper cellType> (fallback: neurodata simple_group translated to the paper spelling); hemisphere:L|R; flag:KC / flag:MBON / flag:MBIN from the neurodata KCs/MBONs/MBINs flags; flag:DN when dVNCs or dSEZs; out:DN-VNC / out:DN-SEZ / out:RGN from dVNCs / dSEZs / RGNs; sens:<modality> from additional_annotations for cellType 'sensory' (whole label) and 'ascending' (tokens mechano-Ch, proprio, noci, mechano-II/III), lower-cased with '/' and spaces replaced by '-'.",
+      "inSynapses / outSynapses per node = column / row sums over the four channels (synapses from/to the 2,952 matrix neurons only; Data S1 inputs.csv/outputs.csv count all CATMAID sites and are not used).",
+      "graph.json: COO over (pre, post) pairs with any synapse in any channel; weight = sum of the four channels; channels[ch][i] is the per-channel split of weight[i]; edges sorted by (src, dst); autapses kept.",
+      "plasticity.json: curated from Data S1 neuron names plus the cited papers (full texts read from Europe PMC / PMC); nothing in it is derived from the connectivity."
+    ],
+    "inputSchemas": {
+      "aa_connectivity_matrix.csv": "dense 2952x2952 CSV; header row and index column = CATMAID skeleton ids (row = presynaptic, column = postsynaptic); float-formatted integer synapse counts (min 0, max 65); first row id 29",
+      "ad_connectivity_matrix.csv": "dense 2952x2952 CSV; header row and index column = CATMAID skeleton ids (row = presynaptic, column = postsynaptic); float-formatted integer synapse counts (min 0, max 121); first row id 29",
+      "da_connectivity_matrix.csv": "dense 2952x2952 CSV; header row and index column = CATMAID skeleton ids (row = presynaptic, column = postsynaptic); float-formatted integer synapse counts (min 0, max 22); first row id 9842383",
+      "dd_connectivity_matrix.csv": "dense 2952x2952 CSV; header row and index column = CATMAID skeleton ids (row = presynaptic, column = postsynaptic); float-formatted integer synapse counts (min 0, max 108); first row id 17360254",
+      "all-all_connectivity_matrix.csv": "dense 2952x2952 CSV; header row and index column = CATMAID skeleton ids (row = presynaptic, column = postsynaptic); float-formatted integer synapse counts (min 0, max 121); first row id 29",
+      "annotations.csv": "columns=['left_id', 'right_id', 'celltype', 'additional_annotations', 'level_7_cluster'], 1373 rows (one per left/right pair or unpaired neuron)",
+      "inputs.csv": "columns=['axon_input', 'dendrite_input'] (2956 ids; per-neuron postsynaptic site totals incl. partners outside the matrices)",
+      "outputs.csv": "columns=['axon_output', 'dendrite_output'] (2956 ids)",
+      "unmatched_full_nodes.csv": "3013 rows x 106 columns; index = skeleton id; columns=['name', 'brain_neurons', 'left', 'right', 'sink', 'preliminary_LN', 'partially_differentiated', 'motor', 'unsplittable', 'class1', 'all_class1', 'n_class1', 'class2', 'all_class2', 'n_class2', 'merge_class', 'paper_clustered_neurons', 'center', 'ipsilateral_axon', 'contralateral_axon', 'bilateral_axon', 'incomplete', 'MBON_special-cases', 'accessory_neurons', 'duplicated_neurons', 'developmental_defect', 'missing_axon', 'missing_dendrite', 'duplicated_neurons_to_delete', 'brain_and_inputs', 'very_incomplete', 'axon_lat', 'outputs', 'inputs', 'a1_ascending', 'sensory', 'a1_sensory', 'reconstruction_incomplete', 'io', 'sensories', 'PNs', 'LHNs', 'MBINs', 'KCs', 'MB-FBNs', 'CNs', 'dSEZs', 'dVNCs', 'RGNs', 'pre-dVNCs', 'ascendings', 'MBONs', 'pre-dSEZs', 'FFNs', 'PNs-somato', 'LNs', 'simple_group', 'all_simple_groups', 'n_simple_groups', 'color', 'hemisphere', 'pair', 'pair_id', 'lineage', 'axon_output', 'axon_input', 'dendrite_output', 'dendrite_input', 'considered', 'selected', 'selected_lcc', 'sum_walk_sort', 'predicted_pair', 'predicted_pair_id', 'has_valid_predicted_pair', 'latent_0', 'latent_1', 'latent_2', 'latent_3', 'latent_4', 'latent_5', 'latent_6', 'latent_7', 'latent_8', 'latent_9', 'latent_10', 'latent_11', 'latent_12', 'latent_13', 'latent_14', 'latent_15', 'has_embedding', 'dc_level_1_n_components=10_min_split=32', 'dc_level_2_n_components=10_min_split=32', 'dc_level_3_n_components=10_min_split=32', 'dc_level_4_n_components=10_min_split=32', 'dc_level_5_n_components=10_min_split=32', 'dc_level_6_n_components=10_min_split=32', 'dc_level_7_n_components=10_min_split=32', 'dc_level_8_n_components=10_min_split=32', 'dc_level_0_n_components=10_min_split=32', 'sum_signal_flow', 'sum_signal_flow_asc', 'sum_rank_signal_flow', '_inds', 'celltype_discrete']",
+      "unmatched_full_edgelist.csv": "headerless; columns source,target,weight (111,243 rows; weight float-formatted integers)"
+    },
+    "matrixRowOrdersIdentical": false,
+    "neuronUniverse": {
+      "matrixNeurons": 2952,
+      "inNeurodataTable": 2948,
+      "notInNeurodataTable": [
+        "3813487",
+        "8644484",
+        "14531828",
+        "17068730"
+      ],
+      "inDataS1Annotations": 2606,
+      "notInDataS1Annotations": 346,
+      "noAnnotationAnywhere": [
+        "3813487",
+        "17068730"
+      ],
+      "neurodataRowsNotInMatrices": 65,
+      "neurodataRowsNotInMatricesBySimpleGroup": {
+        "unk": 54,
+        "KCs": 9,
+        "pre-dVNCs": 1,
+        "sensories": 1
+      },
+      "neurodataRowsNotInMatricesFlags": {
+        "motor": 50,
+        "partially_differentiated": 10,
+        "accessory_neurons": 50,
+        "brain_neurons": 14
+      },
+      "paperText": "Winding et al. 2023 report 3,016 neurons (480 input neurons + 2,536 differentiated brain neurons) and ~548,000 synaptic sites; Data S1's matrices cover 2,952 of them and 352,611 synapses between them."
+    },
+    "annotationCoverage": {
+      "hemisphereFromDataS1": [
+        "8644484",
+        "14531828"
+      ],
+      "hemisphereUnknown": [
+        "3813487",
+        "17068730"
+      ],
+      "hemisphereDisagreementsS1vsNeurodata": {
+        "count": 32,
+        "ids": [
+          "17351780",
+          "19054481",
+          "12336493",
+          "4983938",
+          "8542422",
+          "8069432",
+          "3450751",
+          "10160250",
+          "17036160",
+          "15547235",
+          "17036132",
+          "11157622",
+          "2568522",
+          "12612426",
+          "8539175",
+          "13988443",
+          "3420915",
+          "3622234",
+          "5321459",
+          "10809383",
+          "5462159",
+          "6446394",
+          "8540770",
+          "15488316",
+          "10059655",
+          "11639192",
+          "3498479",
+          "3414508",
+          "12928099",
+          "15474790",
+          "3564452",
+          "3571478"
+        ]
+      },
+      "classFallbackToCellType": 810,
+      "classUnknown": 323,
+      "cellTypeFromNeurodataFallback": 344,
+      "simpleGroupToCellTypeMap": {
+        "pre-dVNCs": "pre-DN-VNC",
+        "sensories": "sensory",
+        "unk": "Other",
+        "PNs": "PN",
+        "LHNs": "LHN",
+        "dVNCs": "DN-VNC",
+        "dSEZs": "DN-SEZ",
+        "PNs-somato": "PN-somato",
+        "KCs": "KC",
+        "LNs": "LN",
+        "MB-FBNs": "MB-FBN",
+        "pre-dSEZs": "pre-DN-SEZ",
+        "CNs": "CN",
+        "RGNs": "RGN",
+        "FFNs": "MB-FFN",
+        "MBONs": "MBON",
+        "ascendings": "ascending",
+        "MBINs": "MBIN"
+      }
+    },
+    "assumptions": [
+      {
+        "id": "syn_count_as_weight",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Edge weight = number of manually annotated chemical synaptic contacts between the two skeletons (a polyadic presynaptic site counts once per postsynaptic partner), summed over the four synapse-type channels. A STRUCTURAL proxy: no synapse size, receptor identity, dynamics, gap junctions (absent from the dataset) or neuromodulation."
+      },
+      {
+        "id": "channels_are_synapse_types",
+        "category": "MEASURED",
+        "text": "graph.channels = ['ad','aa','dd','da'] split every edge by the axon/dendrite compartment of the pre- and postsynaptic sites as published in Data S1 (Winding et al. 2023 Fig. 1C/D). These channels take the place the adult artifact gives to neurotransmitter classes. Compartment (axon vs dendrite) assignment is the authors' skeleton split, not ours."
+      },
+      {
+        "id": "no_neurotransmitter_data",
+        "category": "ENGINEERING_CHOICE",
+        "text": "There is NO neurotransmitter information in the larval brain connectome (no nt column, no predictions). The artifact therefore carries no nt field; the only transmitter knowledge is the curated per-group/per-node table in plasticity.json (INFERRED_FROM_LITERATURE) and everything else defaults to an unsigned, magnitude-only edge (sign +1 by convention)."
+      },
+      {
+        "id": "sign_not_encoded",
+        "category": "INFERRED_FROM_LITERATURE",
+        "text": "No sign is encoded in graph.json. Literature for the larval mushroom body: KCs presumed cholinergic (from the adult), APL GABAergic, DANs dopaminergic and OANs octopaminergic (modulatory), several MBONs GABAergic or glutamatergic (see plasticity.json). Any sign the runtime applies must be labelled as inferred."
+      },
+      {
+        "id": "primary_source_is_data_s1",
+        "category": "ENGINEERING_CHOICE",
+        "text": "The Data S1 matrices are the connectivity source; the Pedigo et al. 2023 edge list (3,013 nodes, 111,243 edges, 536 autapses) is used only as a cross-check. Its 65 extra neurons (mostly SEZ motor neurons, immature 'young' KCs and partially differentiated cells) and the 4 matrix neurons it omits explain the difference to this artifact's 110,677 edges / 537 autapses; all 110,298 shared edges have identical weights."
+      },
+      {
+        "id": "row_is_presynaptic",
+        "category": "MEASURED",
+        "text": "Matrix rows are presynaptic and columns postsynaptic. Verified three ways: the Pedigo edge list (source,target,weight) reproduces matrix[row=source][col=target] for every shared edge; per-neuron column sums never exceed Data S1 inputs.csv (postsynaptic site totals) and row sums never exceed outputs.csv; sensory neurons have almost no column (input) synapses."
+      },
+      {
+        "id": "node_annotation_merge",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Two annotation tables are merged. Data S1 annotations.csv (the paper's own) supplies cellType, annotation (incl. sensory modality and MB neuron names) and cluster; the neurodata table supplies name, hemisphere, pair/pair_id, lineage, class1/class2 and the boolean flags. Where the two disagree on hemisphere (32 paired neurons whose Data S1 left_id/right_id placement contradicts their CATMAID names and the neurodata `hemisphere`), the neurodata value is used; Data S1's side is used only for the 2 neurons absent from the neurodata table."
+      },
+      {
+        "id": "class_group_fallback",
+        "category": "ENGINEERING_CHOICE",
+        "text": "class: groups come from neurodata class1 (split on ';' so e.g. 'LHN;CN' yields class:LHN and class:CN). For the 1,129 neurons whose class1 is 'unk', the paper's cell type is used instead when it is a real category (e.g. class:pre-DN-VNC), so that every neuron has the most specific class label available; class:unk marks the remainder (paper category 'Other' or no annotation)."
+      },
+      {
+        "id": "flag_dn_definition",
+        "category": "ENGINEERING_CHOICE",
+        "text": "flag:DN marks descending neurons = neurodata dVNCs OR dSEZs (descending to the ventral nerve cord or to the subesophageal zone). The neurodata flags are inclusive (a neuron with class1 'dSEZ;CN' is flagged), so out:DN-SEZ (184) is larger than the paper's exclusive DN-SEZ cell-type count (164); out:* uses the paper's spellings DN-VNC / DN-SEZ / RGN."
+      },
+      {
+        "id": "sens_modality_source",
+        "category": "ENGINEERING_CHOICE",
+        "text": "sens:<modality> uses Data S1 additional_annotations (the paper's modality labels) for sensory neurons and for ascending neurons that carry a modality token; second-order projection neurons are NOT given sens: groups (their modality is kept verbatim in `annotation`). neurodata class2 (ORN, AN, MN, vtd, photoRh5/6, thermo) is a nerve/receptor-based vocabulary and is exposed as class2: groups instead."
+      },
+      {
+        "id": "plasticity_curation",
+        "category": "INFERRED_FROM_LITERATURE",
+        "text": "plasticity.json designates KC->MBON a-d edges as plastic under dopaminergic modulation and lists DAN valences and transmitter signs ONLY where a statement was found in the full text of the cited papers; unverifiable cells are left 'unknown'. Valences come from optogenetic substitution experiments, not from the connectome."
+      },
+      {
+        "id": "autapses_kept",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Diagonal entries (537 pairs, 783 synapses, mostly a-a between KC branches) are kept as self-edges."
+      }
+    ]
+  },
+  "graph": {
+    "nodeCount": 2952,
+    "edgeCount": 110677,
+    "totalSynapses": 352611,
+    "weightSemantics": "synapse_count",
+    "channels": [
+      "ad",
+      "aa",
+      "dd",
+      "da"
+    ],
+    "channelMeaning": {
+      "ad": "axo-dendritic: presynaptic site on the axon of `src`, postsynaptic site on the dendrite of `dst`",
+      "aa": "axo-axonic: presynaptic site on the axon of `src`, postsynaptic site on the axon of `dst`",
+      "dd": "dendro-dendritic: presynaptic site on the dendrite of `src`, postsynaptic site on the dendrite of `dst`",
+      "da": "dendro-axonic: presynaptic site on the dendrite of `src`, postsynaptic site on the axon of `dst`"
+    },
+    "channelSynapses": {
+      "ad": 234958,
+      "aa": 90800,
+      "dd": 20415,
+      "da": 6438
+    },
+    "channelShares": {
+      "ad": 0.6663,
+      "aa": 0.2575,
+      "dd": 0.0579,
+      "da": 0.0183
+    },
+    "channelEdges": {
+      "ad": 63545,
+      "aa": 40636,
+      "dd": 9019,
+      "da": 3722
+    },
+    "autapses": 537,
+    "autapseSynapses": 783,
+    "nodeOrder": "ascending numeric CATMAID skeleton id; nodes.json[].index == array position == graph src/dst index",
+    "files": {
+      "nodes.json": {
+        "bytes": 1057168
+      },
+      "graph.json": {
+        "bytes": 2142688
+      },
+      "plasticity.json": {
+        "bytes": 17980
+      }
+    }
+  },
+  "nodeFields": {
+    "id": "CATMAID skeleton id (string)",
+    "index": "0..n-1 position",
+    "provenance": "MEASURED",
+    "name": "neurodata `name` (CATMAID neuron name; null for 2 neurons)",
+    "hemisphere": "L | R | ? (neurodata hemisphere; Data S1 side for 2 neurons)",
+    "pairId": "neurodata pair_id (string) or null when unpaired",
+    "pairedWith": "skeleton id of the contralateral homologue or null",
+    "lineage": "neurodata lineage (verbatim, 'unk' when unknown)",
+    "class1": "neurodata class1 (verbatim, 'unk' when unknown; null when the neuron is not in that table)",
+    "class2": "neurodata class2 subclass or null",
+    "cellType": "Data S1 celltype (paper category) or neurodata fallback",
+    "annotation": "Data S1 additional_annotations verbatim ('no official annotation' is the paper's own placeholder) or null",
+    "cluster": "Data S1 level_7_cluster or null",
+    "groups": "see preprocessing.steps[3]",
+    "inSynapses": "sum of incoming weights",
+    "outSynapses": "sum of outgoing weights"
+  },
+  "groups": {
+    "class2:1claw": 36,
+    "class2:2claw": 19,
+    "class2:3claw": 34,
+    "class2:4claw": 33,
+    "class2:5claw": 15,
+    "class2:6claw": 7,
+    "class2:AN": 174,
+    "class2:CA-LP": 6,
+    "class2:DAN": 14,
+    "class2:Duet": 4,
+    "class2:IPC": 14,
+    "class2:ITP": 8,
+    "class2:MN": 153,
+    "class2:OAN": 4,
+    "class2:ORN": 42,
+    "class2:Trio": 6,
+    "class2:app": 16,
+    "class2:av": 12,
+    "class2:multi": 16,
+    "class2:neith": 8,
+    "class2:olfac": 12,
+    "class2:photoRh5": 10,
+    "class2:photoRh6": 19,
+    "class2:thermo": 6,
+    "class2:vtd": 26,
+    "class:A00c": 6,
+    "class:APL": 2,
+    "class:CN": 204,
+    "class:CX": 77,
+    "class:FAN": 8,
+    "class:FB2N": 34,
+    "class:FBN": 26,
+    "class:FFN": 74,
+    "class:KC": 144,
+    "class:LHN": 255,
+    "class:LN": 17,
+    "class:LON": 17,
+    "class:MBIN": 28,
+    "class:MBON": 48,
+    "class:PN": 86,
+    "class:PN-somato": 138,
+    "class:RGN": 56,
+    "class:ascending": 40,
+    "class:bLN": 10,
+    "class:cLN": 4,
+    "class:dSEZ": 182,
+    "class:dUnk": 8,
+    "class:dVNC": 182,
+    "class:keystone": 2,
+    "class:mPN": 28,
+    "class:pLN": 10,
+    "class:pre-DN-SEZ": 99,
+    "class:pre-DN-VNC": 430,
+    "class:sens": 430,
+    "class:tPN": 10,
+    "class:uPN": 42,
+    "class:unk": 323,
+    "class:vPN": 10,
+    "flag:DN": 366,
+    "flag:KC": 144,
+    "flag:MBIN": 28,
+    "flag:MBON": 48,
+    "hemisphere:L": 1471,
+    "hemisphere:R": 1479,
+    "out:DN-SEZ": 184,
+    "out:DN-VNC": 182,
+    "out:RGN": 56,
+    "sens:gustatory-external": 131,
+    "sens:gustatory-pharyngeal": 107,
+    "sens:gut": 85,
+    "sens:mechano-ch": 12,
+    "sens:mechano-ii-iii": 2,
+    "sens:noci": 12,
+    "sens:olfactory": 42,
+    "sens:proprio": 8,
+    "sens:respiratory": 26,
+    "sens:thermo-cold": 6,
+    "sens:thermo-warm": 4,
+    "sens:visual": 29,
+    "type:CN": 100,
+    "type:DN-SEZ": 164,
+    "type:DN-VNC": 182,
+    "type:KC": 144,
+    "type:LHN": 202,
+    "type:LN": 110,
+    "type:MB-FBN": 108,
+    "type:MB-FFN": 54,
+    "type:MBIN": 28,
+    "type:MBON": 48,
+    "type:Other": 343,
+    "type:PN": 206,
+    "type:PN-somato": 152,
+    "type:RGN": 54,
+    "type:ascending": 46,
+    "type:pre-DN-SEZ": 102,
+    "type:pre-DN-VNC": 477,
+    "type:sensory": 430
+  },
+  "plasticitySummary": {
+    "danNames": [
+      "DAN-c1",
+      "DAN-d1",
+      "DAN-f1",
+      "DAN-g1",
+      "DAN-i1",
+      "DAN-j1",
+      "DAN-k1"
+    ],
+    "danIds": 14,
+    "danIdsByClass2": 14,
+    "oanNames": [
+      "OAN-e1",
+      "OAN-g1"
+    ],
+    "mbinOtherNames": [
+      "MBIN-b1",
+      "MBIN-b2",
+      "MBIN-e1",
+      "MBIN-e2",
+      "MBIN-l1"
+    ],
+    "mbonNames": [
+      "MBON-a1",
+      "MBON-a2",
+      "MBON-b1",
+      "MBON-b2",
+      "MBON-b3",
+      "MBON-c1",
+      "MBON-d1",
+      "MBON-d2",
+      "MBON-d3",
+      "MBON-e1",
+      "MBON-e2",
+      "MBON-f1",
+      "MBON-g1",
+      "MBON-g2",
+      "MBON-h1",
+      "MBON-h2",
+      "MBON-i1",
+      "MBON-j1",
+      "MBON-k1",
+      "MBON-m1",
+      "MBON-n1",
+      "MBON-o1",
+      "MBON-p1",
+      "MBON-q1"
+    ],
+    "mbonIds": 48,
+    "kcIds": 144,
+    "signedNodes": 22,
+    "signedLabels": [
+      "FB2N-19",
+      "FBN-23",
+      "FBN-7",
+      "MBON-g1",
+      "MBON-g2",
+      "MBON-h1",
+      "MBON-h2",
+      "MBON-i1",
+      "MBON-j1",
+      "MBON-k1",
+      "MBON-m1"
+    ],
+    "valenceLists": {
+      "appetitive": 2,
+      "aversive": 6,
+      "unknown": 6
+    }
+  },
+  "stats": {
+    "kcInputs": {
+      "topPresynapticClassesAllChannels": [
+        [
+          "KC",
+          14854
+        ],
+        [
+          "MBIN",
+          4709
+        ],
+        [
+          "uPN",
+          3667
+        ],
+        [
+          "APL",
+          691
+        ],
+        [
+          "PN",
+          419
+        ],
+        [
+          "mPN",
+          345
+        ],
+        [
+          "LHN",
+          334
+        ],
+        [
+          "tPN",
+          226
+        ]
+      ],
+      "topPresynapticClassesAd": [
+        [
+          "uPN",
+          3665
+        ],
+        [
+          "APL",
+          681
+        ],
+        [
+          "PN",
+          393
+        ],
+        [
+          "mPN",
+          344
+        ],
+        [
+          "LHN",
+          255
+        ],
+        [
+          "tPN",
+          226
+        ],
+        [
+          "unk",
+          99
+        ],
+        [
+          "vPN",
+          39
+        ]
+      ],
+      "uPNtoKC": {
+        "ad": {
+          "synapses": 3665,
+          "edges": 599
+        },
+        "aa": {
+          "synapses": 2,
+          "edges": 2
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "totalSynapses": 3667,
+        "channelFractions": {
+          "ad": 0.9995,
+          "aa": 0.0005,
+          "dd": 0.0,
+          "da": 0.0
+        },
+        "dominantChannel": "ad"
+      },
+      "PNtypeToKC": {
+        "ad": {
+          "synapses": 4681,
+          "edges": 811
+        },
+        "aa": {
+          "synapses": 29,
+          "edges": 26
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "totalSynapses": 4710,
+        "channelFractions": {
+          "ad": 0.9938,
+          "aa": 0.0062,
+          "dd": 0.0,
+          "da": 0.0
+        },
+        "dominantChannel": "ad"
+      }
+    },
+    "kcToMbon": {
+      "block": {
+        "ad": {
+          "synapses": 15747,
+          "edges": 2746
+        },
+        "aa": {
+          "synapses": 770,
+          "edges": 419
+        },
+        "dd": {
+          "synapses": 1235,
+          "edges": 238
+        },
+        "da": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "totalSynapses": 17752,
+        "channelFractions": {
+          "ad": 0.8871,
+          "aa": 0.0434,
+          "dd": 0.0696,
+          "da": 0.0
+        },
+        "dominantChannel": "ad"
+      },
+      "mbonsWithKcAdInput": 48,
+      "mbonsTotal": 48,
+      "mbonsWithoutKcAdInput": [],
+      "kcAdSynapsesPerMbonMedian": 306.0
+    },
+    "motifs": {
+      "DAN_to_KC": {
+        "ad": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "aa": {
+          "synapses": 3708,
+          "edges": 1207
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "totalSynapses": 3708,
+        "channelFractions": {
+          "ad": 0.0,
+          "aa": 1.0,
+          "dd": 0.0,
+          "da": 0.0
+        },
+        "dominantChannel": "aa"
+      },
+      "MBIN_to_KC": {
+        "ad": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "aa": {
+          "synapses": 4709,
+          "edges": 1652
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "totalSynapses": 4709,
+        "channelFractions": {
+          "ad": 0.0,
+          "aa": 1.0,
+          "dd": 0.0,
+          "da": 0.0
+        },
+        "dominantChannel": "aa"
+      },
+      "KC_to_MBIN": {
+        "ad": {
+          "synapses": 22,
+          "edges": 19
+        },
+        "aa": {
+          "synapses": 6063,
+          "edges": 1957
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "totalSynapses": 6085,
+        "channelFractions": {
+          "ad": 0.0036,
+          "aa": 0.9964,
+          "dd": 0.0,
+          "da": 0.0
+        },
+        "dominantChannel": "aa"
+      },
+      "DAN_to_MBON": {
+        "ad": {
+          "synapses": 1089,
+          "edges": 63
+        },
+        "aa": {
+          "synapses": 22,
+          "edges": 14
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "totalSynapses": 1111,
+        "channelFractions": {
+          "ad": 0.9802,
+          "aa": 0.0198,
+          "dd": 0.0,
+          "da": 0.0
+        },
+        "dominantChannel": "ad"
+      },
+      "MBIN_to_MBON": {
+        "ad": {
+          "synapses": 1882,
+          "edges": 139
+        },
+        "aa": {
+          "synapses": 45,
+          "edges": 22
+        },
+        "dd": {
+          "synapses": 6,
+          "edges": 4
+        },
+        "da": {
+          "synapses": 3,
+          "edges": 3
+        },
+        "totalSynapses": 1936,
+        "channelFractions": {
+          "ad": 0.9721,
+          "aa": 0.0232,
+          "dd": 0.0031,
+          "da": 0.0015
+        },
+        "dominantChannel": "ad"
+      },
+      "MBON_to_MBIN": {
+        "ad": {
+          "synapses": 300,
+          "edges": 81
+        },
+        "aa": {
+          "synapses": 66,
+          "edges": 28
+        },
+        "dd": {
+          "synapses": 6,
+          "edges": 5
+        },
+        "da": {
+          "synapses": 37,
+          "edges": 24
+        },
+        "totalSynapses": 409,
+        "channelFractions": {
+          "ad": 0.7335,
+          "aa": 0.1614,
+          "dd": 0.0147,
+          "da": 0.0905
+        },
+        "dominantChannel": "ad"
+      },
+      "APL_to_KC": {
+        "ad": {
+          "synapses": 681,
+          "edges": 133
+        },
+        "aa": {
+          "synapses": 4,
+          "edges": 4
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 6,
+          "edges": 5
+        },
+        "totalSynapses": 691,
+        "channelFractions": {
+          "ad": 0.9855,
+          "aa": 0.0058,
+          "dd": 0.0,
+          "da": 0.0087
+        },
+        "dominantChannel": "ad"
+      },
+      "KC_to_APL": {
+        "ad": {
+          "synapses": 925,
+          "edges": 139
+        },
+        "aa": {
+          "synapses": 6,
+          "edges": 6
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 578,
+          "edges": 124
+        },
+        "totalSynapses": 1509,
+        "channelFractions": {
+          "ad": 0.613,
+          "aa": 0.004,
+          "dd": 0.0,
+          "da": 0.383
+        },
+        "dominantChannel": "ad"
+      },
+      "KC_to_KC": {
+        "ad": {
+          "synapses": 12,
+          "edges": 12
+        },
+        "aa": {
+          "synapses": 13621,
+          "edges": 5774
+        },
+        "dd": {
+          "synapses": 1191,
+          "edges": 987
+        },
+        "da": {
+          "synapses": 30,
+          "edges": 29
+        },
+        "totalSynapses": 14854,
+        "channelFractions": {
+          "ad": 0.0008,
+          "aa": 0.917,
+          "dd": 0.0802,
+          "da": 0.002
+        },
+        "dominantChannel": "aa"
+      },
+      "sensory_to_all": {
+        "ad": {
+          "synapses": 26399,
+          "edges": 3823
+        },
+        "aa": {
+          "synapses": 3728,
+          "edges": 1673
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "totalSynapses": 30127,
+        "channelFractions": {
+          "ad": 0.8763,
+          "aa": 0.1237,
+          "dd": 0.0,
+          "da": 0.0
+        },
+        "dominantChannel": "ad"
+      },
+      "all_to_sensory": {
+        "ad": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "aa": {
+          "synapses": 2148,
+          "edges": 1234
+        },
+        "dd": {
+          "synapses": 0,
+          "edges": 0
+        },
+        "da": {
+          "synapses": 1636,
+          "edges": 373
+        },
+        "totalSynapses": 3784,
+        "channelFractions": {
+          "ad": 0.0,
+          "aa": 0.5677,
+          "dd": 0.0,
+          "da": 0.4323
+        },
+        "dominantChannel": "aa"
+      }
+    },
+    "orientationCheck": {
+      "sensoryOutSynapses": 30127,
+      "sensoryInSynapses": 3784,
+      "sensoryNeurons": 430,
+      "neuronsWithZeroIn": 58,
+      "zeroInThatAreSensory": 57,
+      "neuronsWithZeroOut": 43
+    },
+    "paperTextReproduction": {
+      "ad": {
+        "edges": 63545,
+        "synapses": 234958,
+        "weakEdgeFraction_1or2": 0.595,
+        "synapseShareInStrongEdges_ge5": 0.632,
+        "synapseShareInWeakEdges_1or2": 0.21,
+        "maxWeight": 121
+      },
+      "aa": {
+        "edges": 40636,
+        "synapses": 90800,
+        "weakEdgeFraction_1or2": 0.75,
+        "synapseShareInStrongEdges_ge5": 0.354,
+        "synapseShareInWeakEdges_1or2": 0.423,
+        "maxWeight": 65
+      },
+      "dd": {
+        "edges": 9019,
+        "synapses": 20415,
+        "weakEdgeFraction_1or2": 0.794,
+        "synapseShareInStrongEdges_ge5": 0.427,
+        "synapseShareInWeakEdges_1or2": 0.417,
+        "maxWeight": 108
+      },
+      "da": {
+        "edges": 3722,
+        "synapses": 6438,
+        "weakEdgeFraction_1or2": 0.861,
+        "synapseShareInStrongEdges_ge5": 0.305,
+        "synapseShareInWeakEdges_1or2": 0.561,
+        "maxWeight": 22
+      },
+      "all": {
+        "edges": 110677,
+        "synapses": 352611,
+        "weakEdgeFraction_1or2": 0.653,
+        "synapseShareInStrongEdges_ge5": 0.566,
+        "synapseShareInWeakEdges_1or2": 0.262,
+        "maxWeight": 121
+      },
+      "pairsConnectedInOnlyOneChannel": 0.946,
+      "daEdgesThatReverseAnAdEdge": 0.641,
+      "expectedFromWindingText": {
+        "channelShares": {
+          "ad": 0.666,
+          "aa": 0.258,
+          "dd": 0.058,
+          "da": 0.018
+        },
+        "weakEdgeFraction_1or2": {
+          "ad": 0.6,
+          "aa": 0.75,
+          "dd": 0.79,
+          "da": 0.91,
+          "all": 0.66
+        },
+        "synapseShareInStrongEdges_ge5": {
+          "ad": 0.61,
+          "all": 0.55
+        },
+        "synapseShareInWeakEdges_1or2": {
+          "ad": 0.22,
+          "all": 0.28
+        },
+        "pairsConnectedInOnlyOneChannel": 0.95,
+        "daEdgesThatReverseAnAdEdge": 0.63
+      }
+    },
+    "edgelistCrossCheck": {
+      "rows": 111243,
+      "distinctIds": 3013,
+      "autapses": 537,
+      "synapses": 353859,
+      "idsNotInMatrices": 65,
+      "matrixIdsNotInEdgelist": 4,
+      "edgesWithBothEndsInMatrices": 110298,
+      "ofWhichWeightIdentical": 110298,
+      "edgesOutsideMatrixIdSet": 945,
+      "synapsesOutsideMatrixIdSet": 2160,
+      "matrixEdgesAbsentFromEdgelist": 379
+    },
+    "topEdges": [
+      {
+        "src": "3827211",
+        "srcName": "42a ORN right",
+        "srcClass": "sens",
+        "dst": "8244723",
+        "dstName": "42a PN right",
+        "dstClass": "uPN",
+        "weight": 121,
+        "channels": {
+          "ad": 121,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "3464773",
+        "srcName": "42a ORN left",
+        "srcClass": "sens",
+        "dst": "3486381",
+        "dstName": "42a PN left",
+        "dstClass": "uPN",
+        "weight": 119,
+        "channels": {
+          "ad": 119,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "2571761",
+        "srcName": "83a ORN right",
+        "srcClass": "sens",
+        "dst": "8243455",
+        "dstName": "83a PN right",
+        "dstClass": "uPN",
+        "weight": 111,
+        "channels": {
+          "ad": 111,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "6557581",
+        "srcName": "broad T3 right",
+        "srcClass": "bLN",
+        "dst": "8198238",
+        "dstName": "broad T2 right",
+        "dstClass": "bLN",
+        "weight": 108,
+        "channels": {
+          "ad": 0,
+          "aa": 0,
+          "dd": 108,
+          "da": 0
+        }
+      },
+      {
+        "src": "6791927",
+        "srcName": "67b ORN left",
+        "srcClass": "sens",
+        "dst": "16259595",
+        "dstName": "67b PN left",
+        "dstClass": "uPN",
+        "weight": 105,
+        "channels": {
+          "ad": 105,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "3708875",
+        "srcName": "33a ORN left",
+        "srcClass": "sens",
+        "dst": "8021456",
+        "dstName": "33a PN left",
+        "dstClass": "uPN",
+        "weight": 104,
+        "channels": {
+          "ad": 104,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "3790004",
+        "srcName": "67b ORN right",
+        "srcClass": "sens",
+        "dst": "8246081",
+        "dstName": "67b PN right",
+        "dstClass": "uPN",
+        "weight": 104,
+        "channels": {
+          "ad": 104,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "4073353",
+        "srcName": "13a ORN right",
+        "srcClass": "sens",
+        "dst": "8244823",
+        "dstName": "13a PN right",
+        "dstClass": "uPN",
+        "weight": 101,
+        "channels": {
+          "ad": 101,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "3547397",
+        "srcName": "83a ORN left",
+        "srcClass": "sens",
+        "dst": "7865767",
+        "dstName": "83a PN left",
+        "dstClass": "uPN",
+        "weight": 100,
+        "channels": {
+          "ad": 100,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "3872653",
+        "srcName": "33a ORN right",
+        "srcClass": "sens",
+        "dst": "13589251",
+        "dstName": "33a PN right",
+        "dstClass": "uPN",
+        "weight": 100,
+        "channels": {
+          "ad": 100,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "3885215",
+        "srcName": "74a ORN right",
+        "srcClass": "sens",
+        "dst": "8140109",
+        "dstName": "74a PN right",
+        "dstClass": "uPN",
+        "weight": 99,
+        "channels": {
+          "ad": 99,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "2608843",
+        "srcName": "42b ORN right",
+        "srcClass": "sens",
+        "dst": "8245692",
+        "dstName": "42b PN right",
+        "dstClass": "uPN",
+        "weight": 95,
+        "channels": {
+          "ad": 95,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "7542938",
+        "srcName": "74a ORN left",
+        "srcClass": "sens",
+        "dst": "7843730",
+        "dstName": "74a PN left",
+        "dstClass": "uPN",
+        "weight": 95,
+        "channels": {
+          "ad": 95,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      },
+      {
+        "src": "8198238",
+        "srcName": "broad T2 right",
+        "srcClass": "bLN",
+        "dst": "6557581",
+        "dstName": "broad T3 right",
+        "dstClass": "bLN",
+        "weight": 94,
+        "channels": {
+          "ad": 0,
+          "aa": 0,
+          "dd": 94,
+          "da": 0
+        }
+      },
+      {
+        "src": "15746421",
+        "srcName": "MN-R-Sens-B2-ACpl-02 (Awesome MN sensory 1)",
+        "srcClass": "sens",
+        "dst": "4391978",
+        "dstName": "mPN iACT C2 right",
+        "dstClass": "mPN",
+        "weight": 94,
+        "channels": {
+          "ad": 94,
+          "aa": 0,
+          "dd": 0,
+          "da": 0
+        }
+      }
+    ],
+    "catmaidSiteTotals": {
+      "inputsCsvTotalPostsynapticSites": 429503,
+      "outputsCsvTotalPresynapticSites": 674498,
+      "matrixSynapses": 352611,
+      "matrixInLeqInputsCsvForAllNeurons": true,
+      "matrixOutLeqOutputsCsvForAllNeurons": true,
+      "inputsCsvIdsNotInMatrices": [
+        8199012,
+        15542199,
+        15609427,
+        15998319
+      ]
+    },
+    "weightQuantiles": {
+      "0.5": 2,
+      "0.9": 7,
+      "0.99": 21,
+      "0.999": 48
+    }
+  },
+  "build": {
+    "python": "3.14.6",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "packages": {
+      "pandas": "3.0.5",
+      "pyarrow": "25.0.1",
+      "numpy": "2.5.3",
+      "requests": "2.34.2"
+    },
+    "timingsSec": {
+      "load Data S1 matrices": 1.93,
+      "load Data S1 annotations": 0.07,
+      "load neurodata tables": 0.03,
+      "assemble nodes": 0.36,
+      "assemble graph": 0.03,
+      "plasticity table": 0.0,
+      "stats + sanity checks": 0.2
+    }
+  },
+  "checksums": {
+    "nodes.json": "sha256:1d8fdbfdf42c8746c6ec5e50f356bcac2178029efb379c98cc8d57429bc23a75",
+    "graph.json": "sha256:4d4c77f792d48e49cdf912bb8e9a65fb2b047b943510b82e86135699844fa879",
+    "plasticity.json": "sha256:cd3366b4517a5c64eca21d8f03dc0a478e9616f3a68faee504b333a1e2d8eba5"
+  }
+}

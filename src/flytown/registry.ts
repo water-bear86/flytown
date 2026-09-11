@@ -33,7 +33,10 @@ export interface ResolveOptions {
 }
 
 export function parsePlannerSpec(spec: string): { kind: string; flags: Record<string, string | true> } {
-  const [kind, rest] = spec.split(":", 2);
+  // Split on the FIRST colon only — flag values may themselves contain colons (ablate=flag:KC).
+  const colon = spec.indexOf(":");
+  const kind = colon < 0 ? spec : spec.slice(0, colon);
+  const rest = colon < 0 ? "" : spec.slice(colon + 1);
   const flags: Record<string, string | true> = {};
   if (rest) {
     for (const part of rest.split("+")) {
@@ -71,6 +74,19 @@ export function resolveFlyOptions(spec: string, opts: ResolveOptions): FlyPlanne
   if (typeof flags.insteps === "string") fly.engine = { ...(fly.engine ?? {}), inputSteps: Number(flags.insteps) };
   if (typeof flags.lr === "string") fly.learningRate = Number(flags.lr);
   if (flags.noself) fly.excludeSelfEdges = true;
+  if (flags.plastic) fly.plastic = true;
+  if (flags.nosparse) fly.sparseGroups = [];
+  else if (typeof flags.sparse === "string") {
+    // sparse=0.05  or  sparse=flag:KC@0.05+class:LHN@0.2
+    fly.sparseGroups = flags.sparse.includes("@")
+      ? flags.sparse.split("+").map((s) => { const [group, f] = s.split("@"); return { group, fraction: Number(f) }; })
+      : [{ group: "flag:KC", fraction: Number(flags.sparse) }];
+  }
+  if (typeof flags.plr === "string") fly.plasticParams = { ...(fly.plasticParams ?? {}), lr: Number(flags.plr) };
+  if (typeof flags.channels === "string") {
+    // e.g. channels=aa:0.5,dd:0.5,da:0.25
+    fly.channelWeights = Object.fromEntries(flags.channels.split(",").map((kv) => { const [k, v] = kv.split(":"); return [k, Number(v)]; }));
+  }
   return fly;
 }
 
@@ -93,4 +109,5 @@ export function resolvePlannerBackend(spec: string, opts: ResolveOptions): Plann
 export const KNOWN_PLANNER_SPECS = [
   "llm", "rules", "random", "learned",
   "fly", "fly:shuffled", "fly:random_degree", "fly:signless", "fly:norecurrence", "fly:learning",
+  "fly:connectome=<id>", "fly:plastic", "fly:learning+plastic", "fly:ablate=<region|group,...>",
 ];
