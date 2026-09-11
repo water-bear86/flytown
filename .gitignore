@@ -1,0 +1,11 @@
+node_modules/
+dist/
+release/
+.env
+.env.local
+*.log
+.superpowers/
+
+# per-project Warren state
+.goblintown/
+.vercel
