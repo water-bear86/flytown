@@ -1053,8 +1053,7 @@ async function cmdRoute(args: string[]): Promise<void> {
 async function cmdServe(args: string[]): Promise<void> {
   const flags = parseFlags(args);
   const port = flags.port ? Number(flags.port) : 7777;
-  const chatMode = flags.chat === "true";
-  await serve({ cwd: process.cwd(), port, autopilot: !chatMode });
+  await serve({ cwd: process.cwd(), port });
 }
 
 async function cmdCloud(args: string[]): Promise<void> {

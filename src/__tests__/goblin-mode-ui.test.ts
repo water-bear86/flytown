@@ -10,23 +10,6 @@ const cliSource = readFileSync(join(repoRoot, "src", "cli.ts"), "utf8");
 const packageJson = readFileSync(join(repoRoot, "package.json"), "utf8");
 
 describe("AI-first Tank shell", () => {
-  it("serves the full Tank shell from the default route", () => {
-    assert.match(serverSource, /app\.get\("\/", async \(_req, res\) => renderHome/);
-    assert.match(serverSource, /app\.get\("\/tank"/);
-    assert.match(serverSource, /function tankHtml/);
-    assert.match(serverSource, /id="tank">/);
-    assert.match(serverSource, /chat-mode codex-chat-surface sidecar-mode/);
-    assert.match(serverSource, /id="sidecar-surface"[\s\S]*Codex sidecar/);
-    assert.doesNotMatch(serverSource, /app\.get\("\/", async \(_req, res\) => renderGoblinMode/);
-  });
-
-  it("keeps compact mini Tank controls out of the default shell", () => {
-    assert.doesNotMatch(serverSource, /id="tank-box"/);
-    assert.doesNotMatch(serverSource, /id="tank-enabled"/);
-    assert.doesNotMatch(serverSource, /compact live Tank/i);
-    assert.doesNotMatch(serverSource, /one chat goblin mode/i);
-  });
-
   it("provides single-goblin and town run endpoints for the shell", () => {
     assert.match(serverSource, /app\.post\("\/api\/goblin\/single"/);
     assert.match(serverSource, /\/api\/goblin\/single/);

@@ -16,26 +16,4 @@ describe("cloud mode", () => {
     assert.match(serverSource, /trimmedEnv\("FIREBASE_AUTH_DOMAIN"\) \?\? DEFAULT_FIREBASE_CLIENT_CONFIG\.authDomain/);
     assert.match(serverSource, /enabled: true/);
   });
-
-  it("asks for a local-or-cloud choice before Firebase initializes", () => {
-    assert.match(serverSource, /cloudModeStorageKey = "goblintown\.cloudMode\.v1"/);
-    assert.match(serverSource, /function isCloudModeEnabled/);
-    assert.match(serverSource, /function setCloudModeChoice/);
-    assert.match(serverSource, /function bootFirebaseIfCloudMode/);
-    assert.match(serverSource, /if \(!isCloudModeEnabled\(\)\) return;[\s\S]*const boot = ensureFirebaseReady\(\)/);
-    assert.match(serverSource, /bootFirebaseIfCloudMode\(\);/);
-    assert.doesNotMatch(serverSource, /void ensureFirebaseReady\(\)\.catch/);
-    assert.match(serverSource, /id="onboard-local-mode"/);
-    assert.match(serverSource, /id="onboard-cloud-mode"/);
-    assert.match(serverSource, /Stay Local/);
-    assert.match(serverSource, /Use Goblintown Cloud/);
-  });
-
-  it("exposes cloud mode controls in the Account menu", () => {
-    assert.match(serverSource, /id="cloud-mode-status"/);
-    assert.match(serverSource, /id="cloud-local-mode"/);
-    assert.match(serverSource, /id="cloud-enable-mode"/);
-    assert.match(serverSource, /Cloud Mode/);
-    assert.match(serverSource, /authGoogleBtn\.disabled = !cloudOn \|\| !enabled/);
-  });
 });

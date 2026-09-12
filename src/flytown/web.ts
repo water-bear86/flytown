@@ -1,5 +1,5 @@
 /**
- * FLYTOWN web control surface — served by the same Express app as the Tank.
+ * FLYTOWN web control surface — the app's only UI, served at `/` and `/fly`.
  *
  *   GET  /fly                         the page (vanilla HTML/JS, no build step)
  *   GET  /api/fly/planners            planner specs + connectome ids
@@ -152,11 +152,13 @@ export function flyPageHtml(warrenName: string): string {
 <style>
   :root { color-scheme: dark; --bg:#07090d; --panel:#0e1219; --panel2:#131a24; --line:#1f2a38; --ink:#dfe7f1; --muted:#8a98ab; --acc:#7cf3c9; --warn:#f6c177; --bad:#ff7b8a; --mono: ui-monospace, SFMono-Regular, Menlo, monospace; }
   * { box-sizing: border-box; }
+  /* the hidden attribute must beat the flex/grid display rules below */
+  [hidden] { display: none !important; }
   body { margin:0; background: radial-gradient(1200px 700px at 30% -10%, #10202a 0%, var(--bg) 55%); color:var(--ink); font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif; }
   header { display:flex; align-items:baseline; gap:16px; padding:14px 20px; border-bottom:1px solid var(--line); background:rgba(7,9,13,.8); position:sticky; top:0; backdrop-filter: blur(6px); }
   header h1 { margin:0; font-size:18px; letter-spacing:.08em; }
   header .sub { color:var(--muted); font-size:12px; }
-  header a { color:var(--muted); margin-left:auto; text-decoration:none; }
+  header .meta { color:var(--muted); margin-left:auto; font-size:12px; }
   nav.tabs { display:flex; gap:4px; padding:10px 20px 0; }
   nav.tabs button { background:transparent; border:1px solid var(--line); border-bottom:none; color:var(--muted); padding:8px 14px; border-radius:8px 8px 0 0; cursor:pointer; }
   nav.tabs button.active { color:var(--ink); background:var(--panel); }
@@ -185,10 +187,40 @@ export function flyPageHtml(warrenName: string): string {
   .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   .log { font: 12px/1.5 var(--mono); max-height:260px; overflow:auto; }
   .log div { border-bottom:1px dashed var(--line); padding:2px 0; }
+  /* working state */
+  button[disabled] { opacity:.5; cursor:progress; }
+  .spin { display:inline-block; width:11px; height:11px; border:2px solid var(--line); border-top-color:var(--acc); border-radius:50%; animation: spin .8s linear infinite; vertical-align:-1px; margin-right:6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .working { color:var(--acc); }
+  .phases { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+  .phase { font-size:11px; padding:3px 8px; border:1px solid var(--line); border-radius:999px; color:var(--muted); }
+  .phase.now { color:#06231a; background:var(--acc); border-color:var(--acc); font-weight:600; }
+  .phase.done { color:var(--acc); border-color:var(--acc); }
+  /* live plan DAG */
+  .dag { display:flex; align-items:stretch; gap:8px; overflow-x:auto; padding:4px 0 8px; }
+  .dagnode { min-width:128px; border:1px solid var(--line); border-radius:8px; padding:8px; background:var(--panel2); position:relative; }
+  .dagnode .nid { font: 11px var(--mono); color:var(--muted); }
+  .dagnode .nact { font-size:12px; margin-top:2px; }
+  .dagnode .nmeta { font-size:10.5px; color:var(--muted); margin-top:4px; }
+  .dagnode.running { border-color:var(--acc); box-shadow:0 0 0 1px var(--acc) inset; }
+  .dagnode.running::after { content:""; position:absolute; inset:auto 0 0 0; height:2px; background:linear-gradient(90deg, transparent, var(--acc), transparent); background-size:60% 100%; animation: sweep 1.2s linear infinite; }
+  @keyframes sweep { from { background-position:-60% 0; } to { background-position:160% 0; } }
+  .dagnode.done { border-color:#2c6b55; } .dagnode.done .nid { color:var(--acc); }
+  .dagnode.failed { border-color:var(--bad); } .dagnode.failed .nid { color:var(--bad); }
+  .arrow { align-self:center; color:var(--muted); }
+  .swarm { display:flex; gap:4px; flex-wrap:wrap; min-height:18px; margin-top:6px; }
+  .fly { width:7px; height:7px; border-radius:50%; background:var(--warn); opacity:.85; animation: bob 1.4s ease-in-out infinite; }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  .fly.rest { background:var(--muted); animation:none; }
+  @media (prefers-reduced-motion: reduce) {
+    .spin { animation:none; border-top-color:var(--acc); }
+    .dagnode.running::after { animation:none; background:var(--acc); }
+    .fly { animation:none; }
+  }
 </style>
 </head>
 <body>
-<header><h1>FLYTOWN</h1><span class="sub">a real animal connectome routing a synthetic swarm · warren: ${escapeHtml(warrenName)}</span><a href="/">← Tank</a></header>
+<header><h1>FLYTOWN</h1><span class="sub">a real animal connectome routing a synthetic swarm</span><span class="meta">warren: ${escapeHtml(warrenName)}</span></header>
 <nav class="tabs">
   <button class="active" data-tab="run">Run</button>
   <button data-tab="traces">Traces</button>
@@ -210,7 +242,21 @@ export function flyPageHtml(warrenName: string): string {
       <div class="row">
         <button class="primary" id="btn-dry">Decide only (no workers)</button>
         <button class="ghost" id="btn-exec">Decide and execute</button>
-        <span class="muted" id="run-status"></span>
+        <span id="run-status" class="muted"></span>
+      </div>
+      <div class="phases" id="phases" hidden>
+        <span class="phase" data-phase="decide">decide</span>
+        <span class="arrow">→</span>
+        <span class="phase" data-phase="plan">plan</span>
+        <span class="arrow">→</span>
+        <span class="phase" data-phase="workers">workers</span>
+        <span class="arrow">→</span>
+        <span class="phase" data-phase="done">done</span>
+      </div>
+      <div id="dag-holder" hidden>
+        <h2 style="margin-top:12px">Plan</h2>
+        <div class="dag" id="dag"></div>
+        <div class="row"><span class="muted" id="dag-meta"></span></div>
       </div>
       <h2 style="margin-top:16px">Execution log</h2>
       <div class="log" id="exec-log"><div class="muted">No run yet.</div></div>
@@ -218,6 +264,10 @@ export function flyPageHtml(warrenName: string): string {
     <div class="card">
       <h2>Decision trace</h2>
       <div id="trace-view"><p class="muted">Run a decision to see what stimulated the network, which nodes activated, and what orchestration action followed.</p></div>
+      <div id="trace-pending" hidden>
+        <p class="working"><span class="spin"></span><span id="pending-label">propagating activity through the connectome…</span></p>
+        <div class="bar"><i id="pending-bar" style="width:6%"></i></div>
+      </div>
     </div>
   </div>
 </section>
@@ -324,38 +374,129 @@ function wireStep(container, t) {
   s.addEventListener("input", () => { container.querySelector("#brain-holder").innerHTML = brainSvg(t.brain, Number(s.value)); container.querySelector("#step-label").textContent = s.value; });
 }
 
+// ---------- working state ----------
+const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let busy = false, pendingTimer = null, elapsedTimer = null, t0 = 0;
+function setBusy(on, label) {
+  busy = on;
+  $("btn-dry").disabled = on; $("btn-exec").disabled = on;
+  $("run-status").className = on ? "working" : "muted";
+  $("run-status").innerHTML = on ? '<span class="spin"></span><span id="status-label">' + esc(label || "working…") + '</span>' : esc(label || "");
+  if (on) { t0 = Date.now(); clearInterval(elapsedTimer); elapsedTimer = setInterval(() => { const l = $("status-label"); if (l) l.textContent = (label || "working…") + " " + ((Date.now() - t0) / 1000).toFixed(0) + "s"; }, 500); }
+  else { clearInterval(elapsedTimer); }
+}
+function statusLabel(s) { const l = $("status-label"); if (l) l.textContent = s; }
+function setPhase(name) {
+  $("phases").hidden = false;
+  const order = ["decide", "plan", "workers", "done"];
+  const i = order.indexOf(name);
+  document.querySelectorAll("#phases .phase").forEach((el) => {
+    const j = order.indexOf(el.dataset.phase);
+    el.classList.toggle("now", j === i);
+    el.classList.toggle("done", j < i || (name === "done" && j <= i));
+  });
+}
+function showPending(on, label) {
+  $("trace-pending").hidden = !on;
+  if (label) $("pending-label").textContent = label;
+  clearInterval(pendingTimer);
+  if (on) { let w = 6; pendingTimer = setInterval(() => { w = Math.min(94, w + Math.max(0.6, (94 - w) * 0.08)); $("pending-bar").style.width = w.toFixed(1) + "%"; }, REDUCED ? 600 : 200); }
+}
+// Live plan DAG
+let dagState = new Map();
+function renderDag(plan) {
+  $("dag-holder").hidden = false;
+  const d = $("dag");
+  if (plan && plan.halt) { d.innerHTML = '<div class="dagnode failed" style="min-width:240px"><div class="nid">HALT · ' + esc(plan.halt.kind) + '</div><div class="nact">' + esc(plan.halt.reason) + '</div></div>'; return; }
+  const nodes = (plan && plan.nodes) || [];
+  d.innerHTML = nodes.map((n, i) => {
+    const st = dagState.get(n.id) || {};
+    const cls = st.status ? " " + st.status : "";
+    const flies = st.status === "running" ? Number(n.packSize || 1) : st.status === "done" ? Number(n.packSize || 1) : 0;
+    return (i ? '<span class="arrow">→</span>' : "") +
+      '<div class="dagnode' + cls + '" id="dagnode-' + esc(n.id) + '"><div class="nid">' + esc(n.id) + (st.status ? " · " + esc(st.status) : "") + '</div>' +
+      '<div class="nact">' + esc((n.hints && n.hints.action) || n.kind) + '</div>' +
+      '<div class="nmeta">pack ' + esc(String(n.packSize || 1)) + ' · ' + esc(n.personality || "?") + (st.outcome ? '<br>' + esc(st.outcome) : "") + (st.step ? '<br>' + esc(st.step) : "") + '</div>' +
+      '<div class="swarm">' + Array.from({ length: flies }, () => '<span class="fly' + (st.status === "done" ? " rest" : "") + '"></span>').join("") + '</div></div>';
+  }).join("");
+}
+
 // ---------- run tab ----------
-let lastTrace = null;
+let lastTrace = null, currentPlan = null;
 $("btn-dry").addEventListener("click", async () => {
-  $("run-status").textContent = "deciding…";
+  if (busy) return;
+  setBusy(true, "deciding");
+  setPhase("decide");
+  showPending(true, "propagating activity through the connectome…");
+  $("dag-holder").hidden = true;
   try {
     const r = await api("/api/fly/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: $("task").value, planner: $("planner").value, maxNodes: Number($("maxNodes").value) }) });
-    $("run-status").textContent = r.trace ? "decided (trace " + r.trace.runId + ")" : "decided (no trace: " + $("planner").value + ")";
-    if (r.trace) { lastTrace = r.trace; $("trace-view").innerHTML = traceHtml(r.trace, r.text); wireStep($("trace-view"), r.trace); }
+    showPending(false);
+    if (r.trace) { lastTrace = r.trace; $("trace-view").innerHTML = traceHtml(r.trace, r.text); wireStep($("trace-view"), r.trace); animateSteps($("trace-view"), r.trace); }
     else $("trace-view").innerHTML = '<pre>' + esc(JSON.stringify(r.plan, null, 2)) + '</pre>';
-  } catch (e) { $("run-status").textContent = "error: " + e.message; }
+    currentPlan = r.plan; dagState = new Map(); renderDag(r.plan);
+    setPhase("plan");
+    setBusy(false, r.trace ? "decided · trace " + r.trace.runId : "decided");
+  } catch (e) { showPending(false); setBusy(false, "error: " + e.message); }
 });
 $("btn-exec").addEventListener("click", async () => {
+  if (busy) return;
   const log = $("exec-log"); log.innerHTML = "";
   const line = (s, cls) => { const d = document.createElement("div"); if (cls) d.className = cls; d.textContent = s; log.prepend(d); };
-  $("run-status").textContent = "starting…";
+  setBusy(true, "starting");
+  setPhase("decide");
+  showPending(true, "deciding…");
+  dagState = new Map(); $("dag-holder").hidden = true;
   try {
     const r = await api("/api/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: $("task").value, planner: $("planner").value, maxNodes: Number($("maxNodes").value) }) });
-    $("run-status").textContent = "run " + r.runId;
+    statusLabel("run " + r.runId);
+    line("run " + r.runId + " started");
     const es = new EventSource("/api/rite/" + r.runId + "/stream");
+    const finish = (label, cls) => { showPending(false); setPhase("done"); setBusy(false, label); es.close(); line(label, cls); };
     for (const kind of ["plan:planning", "plan:trace", "plan:built", "plan:halt", "plan:node:start", "plan:node:done", "plan:node:failed", "plan:replan", "plan:fallback", "plan:done", "done", "error"]) {
       es.addEventListener(kind, async (ev) => {
         let data = {}; try { data = JSON.parse(ev.data); } catch {}
         line(kind + " " + JSON.stringify(data).slice(0, 220), kind === "error" || kind === "plan:node:failed" ? "bad" : kind === "plan:done" || kind === "done" ? "ok" : "");
+        if (kind === "plan:planning") { setPhase("decide"); showPending(true, "planner deciding…"); statusLabel("deciding"); }
         if (kind === "plan:trace" && data.runId) {
-          try { const t = await api("/api/fly/trace/" + encodeURIComponent(data.runId)); lastTrace = t.trace; $("trace-view").innerHTML = traceHtml(t.trace, t.text); wireStep($("trace-view"), t.trace); } catch {}
+          showPending(false);
+          try { const t = await api("/api/fly/trace/" + encodeURIComponent(data.runId)); lastTrace = t.trace; $("trace-view").innerHTML = traceHtml(t.trace, t.text); wireStep($("trace-view"), t.trace); animateSteps($("trace-view"), t.trace); } catch {}
         }
-        if (kind === "done" || kind === "error") es.close();
+        if (kind === "plan:built") { currentPlan = data.plan; renderDag(data.plan); setPhase(data.plan && data.plan.halt ? "done" : "workers"); showPending(false); statusLabel("workers running"); }
+        if (kind === "plan:halt") { setPhase("done"); }
+        if (kind === "plan:node:start") { dagState.set(data.nodeId, { status: "running" }); renderDag(currentPlan); statusLabel("node " + data.nodeId); }
+        if (kind === "plan:node:done") { dagState.set(data.nodeId, { status: "done", outcome: data.outcome }); renderDag(currentPlan); }
+        if (kind === "plan:node:failed") { dagState.set(data.nodeId, { status: "failed", outcome: data.reason }); renderDag(currentPlan); }
+        if (kind === "plan:replan") { statusLabel("replanning (depth " + data.depth + ")"); }
+        if (kind === "plan:done") { $("dag-meta").textContent = "plan " + data.outcome + (data.finalArtifactId ? " · artifact " + data.finalArtifactId : ""); }
+        if (kind === "done") finish("finished in " + ((Date.now() - t0) / 1000).toFixed(0) + "s", "ok");
+        if (kind === "error") finish("error: " + (data.message || "unknown"), "bad");
       });
     }
-    es.addEventListener("step", (ev) => { let d = {}; try { d = JSON.parse(ev.data); } catch {} line("  [" + (d.nodeId || "?") + "] " + (d.step && d.step.kind || "")); });
-  } catch (e) { $("run-status").textContent = "error: " + e.message; }
+    es.addEventListener("step", (ev) => {
+      let d = {}; try { d = JSON.parse(ev.data); } catch {}
+      const kindName = (d.step && d.step.kind) || "";
+      line("  [" + (d.nodeId || "?") + "] " + kindName);
+      if (d.nodeId) { const st = dagState.get(d.nodeId) || { status: "running" }; st.step = kindName; dagState.set(d.nodeId, st); renderDag(currentPlan); }
+    });
+  } catch (e) { showPending(false); setBusy(false, "error: " + e.message); }
 });
+// Play the propagation forward once on arrival, so the page shows the network working.
+function animateSteps(container, t) {
+  if (!t.brain || REDUCED || t.brain.steps.length < 3) return;
+  const slider = container.querySelector("#step");
+  if (!slider) return;
+  let i = 0;
+  const holder = container.querySelector("#brain-holder");
+  const label = container.querySelector("#step-label");
+  const id = setInterval(() => {
+    if (i >= t.brain.steps.length || !document.body.contains(holder)) { clearInterval(id); return; }
+    holder.innerHTML = brainSvg(t.brain, i);
+    if (label) label.textContent = String(i);
+    slider.value = String(i);
+    i++;
+  }, 90);
+}
 
 // ---------- traces tab ----------
 async function loadTraces() {

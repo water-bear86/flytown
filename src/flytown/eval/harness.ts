@@ -51,6 +51,15 @@ export interface LiveOptions {
   trollTools?: boolean;
   /** score every live run's final output against its fixture rubric with the LLM judge (default true) */
   judge?: boolean;
+  /**
+   * Refuse to start unless the resolved provider passes a live smoke test
+   * (default true). A whole 400k-token run was once wasted because a running
+   * server had re-saved warren.json and dropped the provider's
+   * `requestParams` — the model then spent its entire output budget on hidden
+   * reasoning, every worker came back empty, and the numbers were garbage
+   * that still looked like a result. Fail fast instead.
+   */
+  preflight?: boolean;
   /** feed the live reward (judge quality, or termination if no judge) back into learnable planners after each run (default false) */
   liveLearning?: boolean;
 }
@@ -178,6 +187,8 @@ export interface HarnessReport {
   summaries: PlannerSummary[];
   comparison?: Comparison;
   training: TrainingRecord[];
+  /** live mode: the provider smoke test that gated the run */
+  preflight?: PreflightResult;
   outDir: string;
 }
 
@@ -188,6 +199,37 @@ function isLearnable(spec: string): boolean {
 
 export function rewardFor(correct: boolean, tokens: number): number {
   return correct ? Math.max(0, 1 - 0.2 * Math.min(1, tokens / 30_000)) : 0;
+}
+
+export interface PreflightResult {
+  ok: boolean;
+  provider: { id: string; baseURL?: string; model: string; apiKeySource: string; requestParams: string };
+  replyChars: number;
+  usage?: number;
+  error?: string;
+}
+
+/**
+ * One real model call through the configured provider before spending a
+ * budget. Records the resolved provider settings in the report so a run's
+ * validity is auditable after the fact.
+ */
+export async function preflightProvider(warrenRoot: string): Promise<PreflightResult> {
+  const { withProviderRoot, resolveActiveProviderRuntimeForSlot, callCreature } = await import("../../openai-client.js");
+  const { makeGoblin } = await import("../../creatures.js");
+  const runtime = withProviderRoot(warrenRoot, () => resolveActiveProviderRuntimeForSlot("goblin"));
+  const provider = {
+    id: runtime.id, baseURL: runtime.baseURL, model: runtime.models.goblin,
+    apiKeySource: runtime.apiKeySource, requestParams: JSON.stringify(runtime.requestParams ?? {}),
+  };
+  try {
+    const { text, usage } = await withProviderRoot(warrenRoot, () =>
+      callCreature(makeGoblin("stoic"), "Reply with exactly: ready", { maxOutputTokens: 64 }));
+    const replyChars = text.trim().length;
+    return { ok: replyChars > 0, provider, replyChars, usage: usage.totalTokens, error: replyChars > 0 ? undefined : "provider returned an empty response" };
+  } catch (err) {
+    return { ok: false, provider, replyChars: 0, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
@@ -205,6 +247,15 @@ export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
   const epochs = opts.epochs ?? 0;
   const trainSeeds = opts.trainSeeds ?? seeds.map((s) => s + 1000);
   const liveBudget = { totalTokens: 0, cap: opts.live?.maxTotalTokens ?? 3_000_000 };
+  let preflight: PreflightResult | undefined;
+  if (opts.live && opts.live.preflight !== false) {
+    preflight = await preflightProvider(opts.live.warrenRoot);
+    log(`preflight: ${preflight.ok ? "ok" : "FAILED"} · ${preflight.provider.id}/${preflight.provider.model} · key from ${preflight.provider.apiKeySource} · requestParams ${preflight.provider.requestParams} · reply ${preflight.replyChars} chars`);
+    if (!preflight.ok) {
+      throw new Error(`live preflight failed (${preflight.error}). Provider ${preflight.provider.id}/${preflight.provider.model}, requestParams ${preflight.provider.requestParams}. Refusing to spend a budget on a provider that cannot answer — check the Warren's provider config (a running server can re-save warren.json and drop requestParams) and the API key.`);
+    }
+    liveBudget.totalTokens += preflight.usage ?? 0;
+  }
   for (const f of fixtures) if (!repoCache.has(f.repo)) repoCache.set(f.repo, await scanRepo(f.repo));
   const runPlanner = async (spec: string) => {
     const fallbacks: unknown[] = [];
@@ -249,7 +300,7 @@ export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
   const report: HarnessReport = {
     createdAt: new Date().toISOString(),
     options: { planners: opts.planners, seeds, maxReplan: opts.maxReplan ?? 2, maxNodes: opts.maxNodes ?? 6, root, writeTraces: !!opts.writeTraces, compare: pair, epochs, trainSeeds, live: opts.live, fixtures: fixtures.map((f) => ({ ...f })) },
-    fixtureAvailability: availability, runs, summaries, comparison, training, outDir,
+    fixtureAvailability: availability, runs, summaries, comparison, training, preflight, outDir,
   };
   await writeFile(join(outDir, "report.json"), JSON.stringify(report, null, 2) + "\n", "utf8");
   await writeFile(join(outDir, "report.md"), renderReport(report), "utf8");
@@ -529,6 +580,10 @@ export function renderReport(r: HarnessReport): string {
   const L: string[] = [];
   const live = r.options.live;
   L.push(`# FLYTOWN evaluation report`, ``, `created: ${r.createdAt}  ·  seeds: ${r.options.seeds?.join(",")}  ·  fixtures: ${r.options.fixtures?.length}  ·  ${live ? `**LIVE** — real Goblintown pipeline against the provider in ${live.warrenRoot} (pack ≤ ${live.packSize ?? 2}, ≤ ${live.maxOutputTokensPerCall ?? 400} output tokens/call, ≤ ${live.budgetTokensPerRun ?? 40_000} tokens/run${r.options.epochs ? "; learnable planners trained in the mock world first" : ""})` : "mock worker world (not live models)"}`, ``);
+  if (live && r.preflight) {
+    const p = r.preflight.provider;
+    L.push(`> provider (preflight ${r.preflight.ok ? "passed" : "FAILED"}): ${p.id} · ${p.model} · key from ${p.apiKeySource} · requestParams ${p.requestParams} · smoke reply ${r.preflight.replyChars} chars`, ``);
+  }
   if (live) {
     const spent = r.runs.reduce((s, x) => s + x.tokens, 0);
     const wall = r.runs.reduce((s, x) => s + x.wallMs, 0);

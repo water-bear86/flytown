@@ -118,12 +118,9 @@ Usage:
       Show the bundled Goblintown Cloud project, first-run Local Only vs Goblintown Cloud choice,
       Settings -> Account controls, and optional Firebase env overrides.
 
-  goblintown serve [--port <N>] [--chat]
-      Start the Goblin Mode GUI. Default port=7777.
-      By default runs in AI-autopilot mode: the Tank diorama with config menus, no chat surface.
-      Use --chat to restore the legacy chat UI.
-      Settings also contains API Provider and Reset -> Asteroid Mode.
-      Bundled sprite sheets and the Goblintown wordmark are loaded from site/assets.
+  goblintown serve [--port <N>]
+      Start the FLYTOWN web control surface. Default port=7777.
+      Serves the planner/trace/connectome/eval UI plus the orchestration HTTP API.
 
 Environment:
   OPENAI_API_KEY              required (except for init / drift / hoard / inbox / outbox / audit / graph / export / compare / ancestry)
