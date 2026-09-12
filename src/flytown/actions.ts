@@ -210,3 +210,66 @@ function haltReason(kind: "blocked" | "approval" | "success", s: TaskSignals): s
   if (kind === "approval") return s.cues.asksForApproval ? "task requires explicit human approval before proceeding" : "security-sensitive or irreversible work needs human sign-off";
   return s.cues.asksToStop ? "task asked to stop early; nothing further required" : "planner judged the task already satisfied by prior artifacts";
 }
+
+export type ActionEffectKind = "shaped" | "default" | "inert";
+export interface ActionEffect {
+  action: string;
+  primary: boolean;
+  /** shaped: changed the plan · default: the plan has this anyway · inert: selected but ignored by the compiler. */
+  effect: ActionEffectKind;
+  why: string;
+}
+
+const HALT_ACTIONS: ReadonlySet<string> = new Set(["terminate_blocked", "request_human_approval", "terminate_success"]);
+
+/**
+ * What each selected action actually did to the compiled plan.
+ *
+ * A decision lists every action above the inclusion threshold, but the
+ * compiler acts on only some of them: a halt only as the primary action, a
+ * retry only after a recorded failure, extra steps only under the node cap.
+ * Showing the decision without this overstates how much the planner (fly or
+ * otherwise) shaped the work. Mirrors the rules in compilePlan and decide.
+ */
+export function actionEffects(
+  decision: Pick<OrchDecision, "primary" | "included">,
+  signals: Pick<TaskSignals, "history" | "priorArtifacts">,
+  plan: Pick<Plan, "halt" | "nodes">,
+): ActionEffect[] {
+  const selected: string[] = [decision.primary, ...decision.included];
+  const has = (a: string) => selected.includes(a);
+  const node = (id: string) => plan.nodes.some((n) => n.id === id);
+  const capped = "dropped: the plan hit its node cap";
+  return selected.map((action, i) => {
+    const primary = i === 0;
+    const e = (effect: ActionEffectKind, why: string): ActionEffect => ({ action, primary, effect, why });
+    if (plan.halt) {
+      return primary && HALT_ACTIONS.has(action) ? e("shaped", `halted the plan (${plan.halt.kind})`) : e("inert", "the plan halted before any work");
+    }
+    if (HALT_ACTIONS.has(action)) return e("inert", "halts only as the primary action");
+    switch (action) {
+      case "spawn_flight": return e("default", "every plan that runs has a main work step");
+      case "increase_swarm_size": return e("shaped", "raised the swarm size");
+      case "surface_uncertainty": return e("shaped", "debate on the main step, enumerated hypotheses, cynical workers");
+      case "request_artifact_investigation":
+        if (!node("investigate")) return e("inert", capped);
+        return has("search_memory") ? e("default", "search_memory already added the investigation step") : e("shaped", "added an investigation step before the main work");
+      case "search_memory":
+        if (!node("investigate")) return e("inert", capped);
+        return e("shaped", signals.priorArtifacts > 0 ? "added a step reviewing prior artifacts" : "added an investigation step (no prior artifacts to review)");
+      case "retry_new_approach":
+        if (signals.history.failureReason) return e("shaped", "rewrote the main task to avoid the recorded failure");
+        if (signals.history.replanDepth > 0) return e("shaped", "rotated the worker personality away from the failed attempt");
+        return e("inert", "no earlier failure to steer away from");
+      case "run_tests": return node("verify") ? e("shaped", "added a verification step against tests and build") : e("inert", capped);
+      case "run_tool":
+        if (!node("verify")) return e("inert", capped);
+        return has("run_tests") ? e("default", "run_tests already added the verification step") : e("shaped", "added a tool-verification step");
+      case "invoke_reviewer": return node("review") ? e("shaped", "added a review step") : e("inert", capped);
+      case "merge_results":
+        if (!node("synthesize")) return e("inert", capped);
+        return plan.nodes.length > 2 ? e("default", "a multi-step plan ends in synthesis anyway") : e("shaped", "added a synthesis step");
+      default: return e("inert", "not a current orchestration action (older record)");
+    }
+  });
+}

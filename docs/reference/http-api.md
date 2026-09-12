@@ -9,9 +9,9 @@ uses. Endpoints are local-first and write to the terrarium's `.flytown/`.
 | --- | --- | --- |
 | GET | `/` | The web control surface (also served at `/fly`). |
 | GET | `/api/fly/planners` | Planner specs, connectome ids, and the terrarium's default planner. |
-| POST | `/api/fly/plan` | Decide only, run nothing: `{ task, planner, maxNodes }` → `{ trace, plan, text }`. |
-| GET | `/api/fly/traces` | Decision trace ids, newest first. |
-| GET | `/api/fly/trace/:id` | One decision trace plus its plain-text rendering. |
+| POST | `/api/fly/plan` | Decide only, run nothing: `{ task, planner, maxNodes }` → `{ trace, plan, text, effects }`. `effects` labels each selected action `shaped`, `default` or `inert` with a reason. |
+| GET | `/api/fly/traces` | Decision traces, newest first, with the primary action's effect. |
+| GET | `/api/fly/trace/:id` | One decision trace, its plain-text rendering and its action effects. |
 | POST | `/api/fly/replay/:id` | Re-run a stored decision deterministically and diff it. |
 | GET | `/api/fly/connectomes` | Connectome artifact ids. |
 | GET | `/api/fly/connectome/:id` | Manifest summary, node groups, plasticity, top edges. |

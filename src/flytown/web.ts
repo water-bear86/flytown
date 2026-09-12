@@ -23,9 +23,12 @@ import { join } from "node:path";
 import type { Express, Request, Response } from "express";
 import type { Terrarium } from "../terrarium.js";
 import { DEFAULT_PLANNER, KNOWN_PLANNER_SPECS, resolvePlannerBackend } from "./registry.js";
-import { listTraces, readTrace, renderTraceText, writeTrace } from "./trace.js";
+import { listTraces, readTrace, renderTraceText, writeTrace, type DecisionTrace } from "./trace.js";
+import { actionEffects } from "./actions.js";
 import { defaultConnectomeRoot, degreeStats, groupIndex, listConnectomes, loadConnectome } from "./connectome/artifact.js";
 import { diffPlans, replayTrace } from "./cli.js";
+
+const effectsOf = (t: DecisionTrace) => actionEffects(t.decision, t.signals, t.plan);
 
 export function registerFlyRoutes(app: Express, terrarium: Terrarium): void {
   const root = terrarium.root;
@@ -48,7 +51,7 @@ export function registerFlyRoutes(app: Express, terrarium: Terrarium): void {
       const runId = `${spec.replace(/[^a-z0-9]+/gi, "_")}-${Date.now().toString(36)}`;
       const out = await backend.plan({ task, cwd: root, maxNodes: typeof body.maxNodes === "number" ? body.maxNodes : 6, runId });
       if (out.trace) await writeTrace(root, out.trace);
-      res.json({ plan: out.plan, trace: out.trace ?? null, text: out.trace ? renderTraceText(out.trace) : null, usage: out.usage ?? null });
+      res.json({ plan: out.plan, trace: out.trace ?? null, text: out.trace ? renderTraceText(out.trace) : null, effects: out.trace ? effectsOf(out.trace) : null, usage: out.usage ?? null });
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
     }
@@ -68,7 +71,8 @@ export function registerFlyRoutes(app: Express, terrarium: Terrarium): void {
     for (const r of rows.slice(0, 200)) {
       const t = await readTrace(root, r.id);
       if (!t) continue;
-      out.push({ id: r.id, plannerId: t.plannerId, createdAt: t.createdAt, primary: t.decision.primary, task: t.signals.task.slice(0, 140), halt: t.plan.halt?.kind ?? null, nodes: t.plan.nodes.length, connectome: t.brain?.connectomeId ?? null, variant: t.brain?.variant ?? null, outcome: t.outcome?.planOutcome ?? null });
+      const primaryEffect = effectsOf(t)[0];
+      out.push({ id: r.id, plannerId: t.plannerId, createdAt: t.createdAt, primary: t.decision.primary, primaryEffect: primaryEffect?.effect ?? null, primaryWhy: primaryEffect?.why ?? null, task: t.signals.task.slice(0, 140), halt: t.plan.halt?.kind ?? null, nodes: t.plan.nodes.length, connectome: t.brain?.connectomeId ?? null, variant: t.brain?.variant ?? null, outcome: t.outcome?.planOutcome ?? null });
     }
     res.json(out);
   });
@@ -76,7 +80,7 @@ export function registerFlyRoutes(app: Express, terrarium: Terrarium): void {
   app.get("/api/fly/trace/:id", async (req, res) => {
     const t = await readTrace(root, req.params.id);
     if (!t) { res.status(404).json({ error: "no such trace" }); return; }
-    res.json({ trace: t, text: renderTraceText(t) });
+    res.json({ trace: t, text: renderTraceText(t), effects: effectsOf(t) });
   });
 
   app.post("/api/fly/replay/:id", async (req, res) => {
@@ -180,6 +184,8 @@ export function flyPageHtml(terrariumName: string): string {
   tr.click { cursor:pointer; } tr.click:hover { background:var(--panel2); }
   .bar { height:8px; background:#1a2432; border-radius:4px; overflow:hidden; } .bar > i { display:block; height:100%; background:var(--acc); }
   .tag { display:inline-block; font-size:10px; letter-spacing:.06em; padding:2px 6px; border-radius:4px; border:1px solid var(--line); color:var(--muted); margin-left:6px; }
+  ul.effects { list-style:none; padding:0; margin:4px 0 10px; } ul.effects li { margin:3px 0; font-size:13px; } ul.effects code { font-family:var(--mono); }
+  .eff.shaped { color:var(--acc); } .eff.default { color:var(--ink); } .eff.inert { color:var(--muted); text-decoration:line-through; }
   .tag.MEASURED { color:var(--acc); border-color:var(--acc); } .tag.INFERRED_FROM_LITERATURE { color:var(--warn); border-color:var(--warn); } .tag.METAPHOR { color:var(--bad); border-color:var(--bad); }
   .brain { width:100%; height:auto; background:radial-gradient(circle at 50% 45%, #0f1c25 0%, #080c11 70%); border:1px solid var(--line); border-radius:10px; }
   .brain text { font: 9px var(--mono); fill:#9fb3c8; }
@@ -292,10 +298,11 @@ export function flyPageHtml(terrariumName: string): string {
 <section class="tab" id="tab-about">
   <div class="card">
     <h2>What this is</h2>
-    <p>A published, static wiring diagram of a fruit-fly brain (FlyWire FAFB v783 collapsed to brain regions, or the whole first-instar larval brain from Winding et al. 2023) is used as the fixed topology of a small dynamical system. A task becomes a sensory pattern; activity propagates; a readout maps the resulting pattern to one of thirteen orchestration actions; that action becomes a FLYTOWN plan and the existing worker pipeline executes it unchanged.</p>
+    <p>A published, static wiring diagram of a fruit-fly brain (FlyWire FAFB v783 collapsed to brain regions, or the whole first-instar larval brain from Winding et al. 2023) is used as the fixed topology of a small dynamical system. A task becomes a sensory pattern; activity propagates; a readout scores thirteen orchestration actions. The top action, and any scoring at least half as high, go to the same deterministic compiler every planner uses, which builds the FLYTOWN plan the worker pipeline executes. The compiler acts on only some of those actions, and the decision trace marks which ones changed the plan.</p>
     <h2>What it is not</h2>
     <p>Not a mind, not a simulation of a living animal, not conscious. The connectome is anatomy: it carries no firing thresholds, receptor kinetics, learning history or internal state. Every quantity here is tagged <span class="tag MEASURED">MEASURED</span> (from the data), <span class="tag INFERRED_FROM_LITERATURE">INFERRED_FROM_LITERATURE</span>, <span class="tag ENGINEERING_CHOICE">ENGINEERING_CHOICE</span> or <span class="tag METAPHOR">METAPHOR</span> so you can see which is which.</p>
     <h2>Where the evidence stands</h2>
+    <p>The default planner is the hand-written rules router: in live runs it matched the LLM planner's answer quality at lower cost, and it is the only planner that reliably stops on blocked or finished tasks. The fly planners are opt-in.</p>
     <p>Matched experiments against shuffled and rewired copies of the same graph have so far <b>not</b> shown the real wiring to matter for routing quality. The Evaluations tab shows every run, including the null results. That is the point of the harness.</p>
   </div>
 </section>
@@ -350,10 +357,14 @@ function brainSvg(brain, t) {
   out += '<text x="12" y="' + (H - 10) + '">circle size/opacity = activity · amber ring = receives task input · hover for values</text></svg>';
   return out;
 }
-function traceHtml(t, text) {
+function traceHtml(t, text, effects) {
   let h = "";
   h += '<div class="row"><b>' + esc(t.plannerId) + '</b><span class="tag">' + esc(t.runId) + '</span></div>';
   h += '<p><b>Decision:</b> ' + esc(t.decision.primary) + (t.decision.included.length ? ' + ' + esc(t.decision.included.join(", ")) : "") + ' · swarm ' + t.decision.swarmSize + ' · ' + esc(t.decision.personality) + '</p>';
+  if (effects && effects.length) {
+    h += '<ul class="effects">' + effects.map((e) => '<li><code class="eff ' + esc(e.effect) + '">' + esc(e.action) + '</code>' + (e.primary ? '<span class="tag">primary</span>' : '') + ' <span class="muted">' + esc(e.effect) + ': ' + esc(e.why) + '</span></li>').join("") + '</ul>';
+    h += '<p class="muted" style="font-size:12px">shaped = changed the plan · default = the plan has this anyway · inert = selected, but the compiler ignored it</p>';
+  }
   const scores = Object.entries(t.actionScores).sort((a, b) => b[1] - a[1]);
   h += '<table><tr><th>action</th><th style="width:55%">score</th></tr>' + scores.slice(0, 8).map(([a, v]) => '<tr><td>' + esc(a) + '</td><td><div class="bar"><i style="width:' + (v * 100).toFixed(1) + '%"></i></div><span class="muted">' + v.toFixed(3) + '</span></td></tr>').join("") + '</table>';
   if (t.brain) {
@@ -432,7 +443,7 @@ $("btn-dry").addEventListener("click", async () => {
   try {
     const r = await api("/api/fly/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: $("task").value, planner: $("planner").value, maxNodes: Number($("maxNodes").value) }) });
     showPending(false);
-    if (r.trace) { lastTrace = r.trace; $("trace-view").innerHTML = traceHtml(r.trace, r.text); wireStep($("trace-view"), r.trace); animateSteps($("trace-view"), r.trace); }
+    if (r.trace) { lastTrace = r.trace; $("trace-view").innerHTML = traceHtml(r.trace, r.text, r.effects); wireStep($("trace-view"), r.trace); animateSteps($("trace-view"), r.trace); }
     else $("trace-view").innerHTML = '<pre>' + esc(JSON.stringify(r.plan, null, 2)) + '</pre>';
     currentPlan = r.plan; dagState = new Map(); renderDag(r.plan);
     setPhase("plan");
@@ -460,7 +471,7 @@ $("btn-exec").addEventListener("click", async () => {
         if (kind === "plan:planning") { setPhase("decide"); showPending(true, "planner deciding…"); statusLabel("deciding"); }
         if (kind === "plan:trace" && data.runId) {
           showPending(false);
-          try { const t = await api("/api/fly/trace/" + encodeURIComponent(data.runId)); lastTrace = t.trace; $("trace-view").innerHTML = traceHtml(t.trace, t.text); wireStep($("trace-view"), t.trace); animateSteps($("trace-view"), t.trace); } catch {}
+          try { const t = await api("/api/fly/trace/" + encodeURIComponent(data.runId)); lastTrace = t.trace; $("trace-view").innerHTML = traceHtml(t.trace, t.text, t.effects); wireStep($("trace-view"), t.trace); animateSteps($("trace-view"), t.trace); } catch {}
         }
         if (kind === "plan:built") { currentPlan = data.plan; renderDag(data.plan); setPhase(data.plan && data.plan.halt ? "done" : "workers"); showPending(false); statusLabel("workers running"); }
         if (kind === "plan:halt") { setPhase("done"); }
@@ -503,10 +514,10 @@ async function loadTraces() {
   try {
     const rows = await api("/api/fly/traces");
     if (!rows.length) { $("trace-list").innerHTML = '<p class="muted">No traces yet. Run a decision.</p>'; return; }
-    $("trace-list").innerHTML = '<table><tr><th>planner</th><th>decision</th><th>task</th><th>plan</th></tr>' + rows.map((r) => '<tr class="click" data-id="' + esc(r.id) + '"><td>' + esc(r.plannerId) + '</td><td>' + esc(r.primary) + '</td><td class="muted">' + esc(r.task) + '</td><td>' + (r.halt ? 'halt:' + esc(r.halt) : r.nodes + ' nodes') + '</td></tr>').join("") + '</table>';
+    $("trace-list").innerHTML = '<table><tr><th>planner</th><th>decision</th><th>task</th><th>plan</th></tr>' + rows.map((r) => '<tr class="click" data-id="' + esc(r.id) + '"><td>' + esc(r.plannerId) + '</td><td><span class="eff ' + esc(r.primaryEffect || "") + '" title="' + esc(r.primaryEffect ? r.primaryEffect + ': ' + r.primaryWhy : "") + '">' + esc(r.primary) + '</span></td><td class="muted">' + esc(r.task) + '</td><td>' + (r.halt ? 'halt:' + esc(r.halt) : r.nodes + ' nodes') + '</td></tr>').join("") + '</table>';
     $("trace-list").querySelectorAll("tr.click").forEach((tr) => tr.addEventListener("click", async () => {
       const t = await api("/api/fly/trace/" + encodeURIComponent(tr.dataset.id));
-      $("trace-detail").innerHTML = '<div class="row"><button class="ghost" id="btn-replay">Replay deterministically</button><span class="muted" id="replay-status"></span></div>' + traceHtml(t.trace, t.text);
+      $("trace-detail").innerHTML = '<div class="row"><button class="ghost" id="btn-replay">Replay deterministically</button><span class="muted" id="replay-status"></span></div>' + traceHtml(t.trace, t.text, t.effects);
       wireStep($("trace-detail"), t.trace);
       $("btn-replay").addEventListener("click", async () => {
         $("replay-status").textContent = "replaying…";

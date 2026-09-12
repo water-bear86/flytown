@@ -55,4 +55,20 @@ describe("app smoke", () => {
     assert.deepEqual(body, { error: "messages must end with a user message" });
   });
 
+  it("labels what each selected action did to the plan", async () => {
+    const url = await startApp();
+    const response = await fetch(new URL("/api/fly/plan", url), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planner: "rules", task: "Fix the off-by-one in the pagination helper and add a regression test" }),
+    });
+    const body = await response.json() as { trace: { decision: { primary: string; included: string[] } }; effects: { action: string; primary: boolean; effect: string }[] };
+
+    assert.equal(response.status, 200);
+    assert.equal(body.effects.length, 1 + body.trace.decision.included.length);
+    assert.equal(body.effects[0].action, body.trace.decision.primary);
+    assert.equal(body.effects[0].primary, true);
+    for (const e of body.effects) assert.ok(["shaped", "default", "inert"].includes(e.effect), e.effect);
+  });
+
 });

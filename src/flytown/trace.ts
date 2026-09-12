@@ -11,7 +11,7 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Plan } from "../types.js";
-import type { ActionScores, OrchDecision } from "./actions.js";
+import { actionEffects, type ActionScores, type OrchDecision } from "./actions.js";
 import type { PlanRequest } from "./planner-backend.js";
 import type { ExternalSignals, TaskSignals } from "./signals.js";
 
@@ -155,6 +155,7 @@ export function renderTraceText(t: DecisionTrace): string {
   const top = Object.entries(t.actionScores).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([a, v]) => `${a}=${v.toFixed(3)}`).join("  ");
   lines.push(`actions: ${top}`);
   lines.push(`decision: primary=${t.decision.primary} included=[${t.decision.included.join(",")}] swarm=${t.decision.swarmSize} personality=${t.decision.personality}`);
+  for (const e of actionEffects(t.decision, t.signals, t.plan)) lines.push(`  ${e.effect.padEnd(7)} ${e.action}${e.primary ? " (primary)" : ""}: ${e.why}`);
   if (t.brain) {
     const b = t.brain;
     lines.push(`brain: ${b.connectomeId}${b.level ? ` (${b.level})` : ""} variant=${b.variant}${b.ablatedRegions.length ? ` ablated=[${b.ablatedRegions.join(",")}]` : ""} recurrence=${b.recurrence} steps=${b.stats.steps} active=${b.stats.activeRegions}/${b.engine.nodes ?? "?"} max=${b.stats.maxActivity.toFixed(3)}`);
