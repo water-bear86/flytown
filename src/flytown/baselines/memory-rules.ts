@@ -31,8 +31,22 @@ import { FlyMemory, type RecallResult } from "../memory.js";
 
 /** Actions to amplify when experience says "tasks like this go badly". */
 const CAUTION: readonly string[] = ["request_artifact_investigation", "search_memory", "invoke_reviewer", "increase_pack_size", "surface_uncertainty", "run_tests", "retry_new_approach"];
-/** Actions to amplify when experience says "tasks like this go fine". */
-const DIRECTNESS: readonly string[] = ["spawn_subrite", "terminate_success"];
+/**
+ * Actions to amplify when experience says "tasks like this go fine": just do
+ * the work. Deliberately NOT terminate_success — a memory that similar tasks
+ * went well is no reason to declare this one already done.
+ */
+const DIRECTNESS: readonly string[] = ["spawn_subrite"];
+
+/**
+ * Calibration: retrieved valence shifts on the real larval graph are small
+ * (mean |shift| ≈ 0.01 over the training corpus), so the gain is set so a
+ * typical retrieval produces a ~0.2 blend, and the dead zone sits below the
+ * observed noise floor. Both are ENGINEERING_CHOICE, calibrated on the
+ * training half of the corpus only.
+ */
+export const DEFAULT_MEMORY_GAIN = 20;
+export const DEFAULT_MEMORY_DEAD_ZONE = 0.003;
 
 export interface MemoryRulesOptions {
   memory: FlyMemory;
@@ -43,20 +57,30 @@ export interface MemoryRulesOptions {
   id?: string;
 }
 
-export function applyMemoryModulation(scores: ActionScores, recall: RecallResult, opts: { gain?: number; deadZone?: number } = {}): { scores: ActionScores; direction: "caution" | "directness" | "none"; magnitude: number } {
-  const gain = opts.gain ?? 1.5;
-  const dead = opts.deadZone ?? 0.02;
+/**
+ * Blend the router's scores toward a caution or directness profile.
+ *
+ * Interpolation rather than multiplication, because a multiplicative nudge
+ * can never introduce an action the router scored at exactly zero — and
+ * "similar tasks went badly, so investigate first even though the rules did
+ * not ask for it" is precisely the advice a memory should be able to give.
+ * The blend is capped so memory advises and never overrides.
+ */
+export function applyMemoryModulation(scores: ActionScores, recall: RecallResult, opts: { gain?: number; deadZone?: number; maxBlend?: number } = {}): { scores: ActionScores; direction: "caution" | "directness" | "none"; magnitude: number } {
+  const gain = opts.gain ?? DEFAULT_MEMORY_GAIN;
+  const dead = opts.deadZone ?? DEFAULT_MEMORY_DEAD_ZONE;
+  const maxBlend = opts.maxBlend ?? 0.5;
   const v = recall.valenceShift;
   if (!Number.isFinite(v) || Math.abs(v) < dead) return { scores, direction: "none", magnitude: 0 };
   // Negative shift = similar tasks were punished = be careful.
   const caution = v < 0;
-  const magnitude = Math.min(1, Math.abs(v) * gain);
+  const magnitude = Math.min(maxBlend, Math.abs(v) * gain);
+  const target = caution ? CAUTION : DIRECTNESS;
+  const share = 1 / target.length;
   const out = { ...scores };
   for (const a of ORCH_ACTIONS) {
-    const boosted = caution ? CAUTION.includes(a) : DIRECTNESS.includes(a);
-    const damped = caution ? DIRECTNESS.includes(a) : CAUTION.includes(a);
-    if (boosted) out[a] = out[a] * (1 + magnitude);
-    else if (damped) out[a] = out[a] * (1 - 0.5 * magnitude);
+    const toward = target.includes(a) ? share : 0;
+    out[a] = (1 - magnitude) * out[a] + magnitude * toward;
   }
   return { scores: normalizeScores(out), direction: caution ? "caution" : "directness", magnitude };
 }

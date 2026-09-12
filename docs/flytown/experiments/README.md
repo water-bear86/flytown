@@ -212,6 +212,38 @@ Reading:
 
 What this run bought: the full loop — real workers, real repositories, real model cost — runs end to end under hard caps with replayable traces, and the numbers are honest. What it did not buy: any evidence for the biology. Next, in order: (a) an LLM-judge quality score per fixture (the troll gate is not enough), (b) more than one seed and the full fixture set within budget (drop `llm`'s pack size or nodes), (c) live reward feeding the adapters instead of mock-only training — and (d) the standing recommendation stays: do not tune adapters post-hoc against these results.
 
+## 2026-09-12 — giving the fly a different job: the mushroom body as a task memory (`2026-09-12-mushroom-body-memory.md`)
+
+Three configurations had put the connectome in the per-task *decision* seat and found the same null. The diagnosis was that the job was wrong, not the graph: action selection needs task-dependent output, and a fixed-point readout of a recurrent graph is nearly task-invariant. Associative memory is the job this circuit demonstrably has, and it comes with a precise, falsifiable claim from the literature — Kenyon-cell sparse codes are a locality-sensitive hash, so an association learned at KC→MBON synapses for one odour generalises to similar odours (Dasgupta, Stevens & Navlakha, *Science* 2017).
+
+Two model-free experiments (80 authored tasks over the same ten categories, no model calls, `src/flytown/memory.ts` + `eval/hash-experiment.ts`), each run on the real larval graph and on label-shuffled and degree-preserving-rewired copies:
+
+1. **Is the KC code a locality-sensitive hash of tasks?** AUC of same-category vs cross-category code similarity; Spearman correlation between code similarity and input-space (keyword) similarity; collision rate.
+2. **Does a stored association generalise?** Train on half of each category, test recall's sign on the held-out half.
+
+**Two defects in our own pipeline surfaced first, and both had to be fixed before the test meant anything:**
+
+- **Receptor saturation.** Every task was activating *all 42* larval olfactory receptors identically (measured receptor overlap 1.000), because the planner's encoder sends a uniform "stimulus intensity" term to the whole receptor population. The odour carried no task identity at all, so the first run's numbers were meaningless. The memory path now drives receptors only through the keyword odour code (overlap 0.10–0.48 depending on sparseness), and odour sparseness is swept rather than chosen.
+- **Wrong circuit shape.** The fly-hashing claim is about a *feedforward* three-layer circuit; we were reading Kenyon cells at the fixed point of a whole-brain recurrent simulation, where activity from everywhere floods them. `FlyMemory` now walks the measured pathway one hop at a time (sensory → projection neurons → Kenyon cells → k-WTA). This helped the real graph materially (AUC 0.538 → 0.594 at the original odour setting) but did not change the conclusion.
+
+**Result (feedforward, odour sparseness swept 0.024 → 0.15):**
+
+| | real | shuffled | rewired |
+|---|---|---|---|
+| AUC, same vs cross category | 0.594–0.649 | **0.680–0.740** | 0.567–0.688 |
+| Spearman, code vs input similarity | 0.10–0.18 | 0.15–0.19 | 0.09–0.21 |
+| collision-free codes | **100% at every setting** | 51–89% | 74–99% |
+| held-out sign accuracy | 45–50% | 23–26% | 45–53% |
+| p (retrieved sign better than chance) | ≥ 0.63 | — | ≥ 0.25 |
+
+**The locality-sensitive-hash claim does not transfer to this circuit as implemented.** The real larval ORN→PN→KC pathway separates task categories *worse* than a label-shuffled copy of the same graph at every odour setting (real minus shuffled: AUC −0.04 to −0.12), ties the degree-preserving rewire, and its retrieved valence is at chance on held-out tasks. Shuffling in this artifact replaces the real pathway with a random projection through a random subgraph — i.e. the textbook LSH setup — so the honest reading is that a generic random projection is a better task hash here than the measured larval wiring.
+
+The one respect in which the real wiring wins is **selectivity**: it is collision-free at every setting (100% distinct codes) where the shuffled graph collides on 11–49% of tasks. Its codes are more specific and less similarity-preserving — consistent with each larval KC sampling very few projection neurons, which makes winners flip on small input changes. That is a real property of the measured circuit, and it is the opposite of what a good LSH needs.
+
+Also worth recording: retrieved valence shifts are tiny (mean |shift| ≈ 0.01), which is why the `rules+memory` planner's blend had to be calibrated with a gain of ~20 — and why the honest conclusion is that this memory carries very little signal, not that it needs more tuning.
+
+**Where that leaves the fly.** Four falsification attempts across three roles (region-level decision, neuron-level decision with plasticity, associative memory) and no role yet in which the measured wiring beats its own null. The remaining untested ideas are narrower than "use the connectome for X": (a) the collision-freeness result suggests a *deduplication / novelty-detection* role rather than a similarity-retrieval one — "have I seen exactly this before" is what this code is good at; (b) an adult mushroom body has ~2,000 Kenyon cells against the larva's 144, and the hash's discriminative power is expected to scale with that dimensionality — the `fafb-v783-neuron-1` artifact exists but the runtime cannot load its binary graph yet. Both are pre-registerable. Neither is a reason to keep tuning the current one.
+
 ## 2026-09-12 — LIVE run 2 with the LLM judge (`2026-09-12-live-run2-judge.md`)
 
 Same pipeline and provider as live run 1, plus: an LLM judge scoring every final output against a per-fixture rubric (rubrics written before any live output was inspected), online live reward for the learnable planners (after mock pre-training), the trained small learned router as a fifth planner, 2 seeds, `--max-nodes 4`. 100 runs, 5.24M tokens, 141 minutes; the 5M ceiling skipped `llm`'s two `stop-already-done` runs.
