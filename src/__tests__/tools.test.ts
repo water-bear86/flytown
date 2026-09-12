@@ -120,8 +120,8 @@ describe("runToolCalls (json.parse, regex.match)", () => {
 
 describe("http.head safety gate", () => {
   it("is disabled by default", async () => {
-    const orig = process.env.GOBLINTOWN_TOOLS_HTTP;
-    delete process.env.GOBLINTOWN_TOOLS_HTTP;
+    const orig = process.env.FLYTOWN_TOOLS_HTTP;
+    delete process.env.FLYTOWN_TOOLS_HTTP;
     try {
       const r = await runToolCalls(
         [{ name: "http.head", args: { url: "https://example.com" } }],
@@ -131,7 +131,7 @@ describe("http.head safety gate", () => {
       assert.equal(result.ok, false);
       assert.match(result.error ?? "", /disabled/);
     } finally {
-      if (orig !== undefined) process.env.GOBLINTOWN_TOOLS_HTTP = orig;
+      if (orig !== undefined) process.env.FLYTOWN_TOOLS_HTTP = orig;
     }
   });
 });
@@ -139,12 +139,12 @@ describe("http.head safety gate", () => {
 describe("web.fetch", () => {
   it("fetches readable public page text", async () => {
     const tool = createWebFetchTool(async () =>
-      new Response("<html><title>GitHub Repo</title><body><script>nope()</script><h1>Goblintown</h1><p>README facts.</p></body></html>", {
+      new Response("<html><title>GitHub Repo</title><body><script>nope()</script><h1>FLYTOWN</h1><p>README facts.</p></body></html>", {
         status: 200,
         headers: { "content-type": "text/html" },
       }),
     );
-    const result = await tool.invoke({ url: "https://github.com/0xbl33p/goblintown" }) as {
+    const result = await tool.invoke({ url: "https://github.com/example/flytown" }) as {
       ok: boolean;
       title: string;
       text: string;
@@ -152,7 +152,7 @@ describe("web.fetch", () => {
 
     assert.equal(result.ok, true);
     assert.equal(result.title, "GitHub Repo");
-    assert.match(result.text, /Goblintown/);
+    assert.match(result.text, /FLYTOWN/);
     assert.match(result.text, /README facts/);
     assert.doesNotMatch(result.text, /nope/);
   });

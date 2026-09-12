@@ -1,5 +1,5 @@
 /**
- * Debounced "thinking" relay for streaming creature responses to a UI.
+ * Debounced "thinking" relay for streaming insect responses to a UI.
  * - Accumulates token chunks.
  * - Flushes the cumulative text at most every `intervalMs` (default 120ms)
  *   OR once an additional `chunkBytes` of text has arrived since last flush.

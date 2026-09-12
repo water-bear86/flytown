@@ -6,8 +6,6 @@ release/
 *.log
 .superpowers/
 
-# per-project Warren state
-.goblintown/
 .vercel
 
 # connectome ETL: raw FlyWire downloads (~1.1 GB), Python venv, bytecode
@@ -18,5 +16,6 @@ connectome-etl/__pycache__/
 connectome/fafb-v783-neuron-1/graph.bin
 connectome/fafb-v783-neuron-1/neurons.parquet
 
-# FLYTOWN runtime state: traces, eval outputs, learned weights, live-eval warren
+# per-project FLYTOWN state: terrarium manifest, compost, runs, provider secrets,
+# decision traces, eval outputs, learned weights
 .flytown/

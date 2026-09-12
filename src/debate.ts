@@ -1,21 +1,21 @@
 /**
  * Phase 4 — Inter-agent debate round.
  *
- * After the initial goblin pack proposes, run one debate round where each
- * goblin sees the others' outputs and may revise. This closes the O3
- * communication gap (per the LLM-MAS-RL survey): currently goblins work in
+ * After the initial forager swarm proposes, run one debate round where each
+ * forager sees the others' outputs and may revise. This closes the O3
+ * communication gap (per the LLM-MAS-RL survey): currently foragers work in
  * parallel sandboxes, never see each other's work. Debate is training-free
- * and on the order of one extra goblin call per pack member.
+ * and on the order of one extra forager call per swarm member.
  *
  * Pure functions exported for testability:
- *   buildDebatePrompt — what each goblin sees during the debate round.
+ *   buildDebatePrompt — what each forager sees during the debate round.
  */
-import { makeGoblin } from "./creatures.js";
+import { makeForager } from "./castes.js";
 import { measureDrift } from "./drift.js";
-import { callCreature, callCreatureStream } from "./openai-client.js";
+import { callInsect, callInsectStream } from "./openai-client.js";
 import { makeThinkingRelay } from "./streaming.js";
-import type { Loot, OutputFormat, Personality } from "./types.js";
-import type { Hoard } from "./hoard.js";
+import type { Morsel, OutputFormat, Personality } from "./types.js";
+import type { Compost } from "./compost.js";
 
 export function buildDebatePrompt(opts: {
   task: string;
@@ -30,13 +30,13 @@ export function buildDebatePrompt(opts: {
   lines.push(`Original task:`);
   lines.push(opts.task);
   lines.push(``);
-  lines.push(`You are Goblin #${opts.selfIndex} (${opts.selfPersonality}). Your first attempt was:`);
+  lines.push(`You are Forager #${opts.selfIndex} (${opts.selfPersonality}). Your first attempt was:`);
   lines.push(opts.selfOutput);
   lines.push(``);
   if (opts.peerOutputs.length > 0) {
     lines.push(`Your peers proposed:`);
     for (const p of opts.peerOutputs) {
-      lines.push(`--- Peer Goblin #${p.index} (${p.personality}) ---`);
+      lines.push(`--- Peer Forager #${p.index} (${p.personality}) ---`);
       lines.push(truncate(p.output, 1200));
       lines.push(``);
     }
@@ -52,34 +52,34 @@ export function buildDebatePrompt(opts: {
 }
 
 /**
- * Run one round of debate over the existing goblin pack. Each goblin emits
- * a revised loot which is stashed and returned alongside the original.
+ * Run one round of debate over the existing forager swarm. Each forager emits
+ * a revised morsel which is stashed and returned alongside the original.
  *
- * Returns the *revised* loots (one per original goblin). Caller decides
+ * Returns the *revised* morsels (one per original forager). Caller decides
  * whether to use them in place of, or in addition to, the originals.
  */
 export async function runDebateRound(opts: {
-  riteId: string;
+  flightId: string;
   task: string;
-  packLoots: Loot[];
-  hoard: Hoard;
+  swarmMorsels: Morsel[];
+  compost: Compost;
   maxOutputTokensPerCall?: number;
   outputFormat?: OutputFormat;
   onSpawn?: (index: number) => void;
-  onDone?: (index: number, revisedLoot: Loot) => void;
+  onDone?: (index: number, revisedMorsel: Morsel) => void;
   onThink?: (index: number, cumulativeText: string) => void;
-}): Promise<{ revisedLoots: Loot[] }> {
-  const jobs = opts.packLoots.map((selfLoot, i) => async () => {
+}): Promise<{ revisedMorsels: Morsel[] }> {
+  const jobs = opts.swarmMorsels.map((selfMorsel, i) => async () => {
     opts.onSpawn?.(i);
-    const peers = opts.packLoots
+    const peers = opts.swarmMorsels
       .map((p, j) => ({ index: j, personality: p.personality, output: p.output }))
       .filter((_, j) => j !== i);
-    const goblin = makeGoblin(selfLoot.personality);
+    const forager = makeForager(selfMorsel.personality);
     const userPrompt = buildDebatePrompt({
       task: opts.task,
       selfIndex: i,
-      selfOutput: selfLoot.output,
-      selfPersonality: selfLoot.personality,
+      selfOutput: selfMorsel.output,
+      selfPersonality: selfMorsel.personality,
       peerOutputs: peers,
     });
 
@@ -88,7 +88,7 @@ export async function runDebateRound(opts: {
     if (opts.onThink) {
       const onThink = opts.onThink;
       const relay = makeThinkingRelay((text) => onThink(i, text));
-      const r = await callCreatureStream(goblin, userPrompt, relay.onChunk, {
+      const r = await callInsectStream(forager, userPrompt, relay.onChunk, {
         maxOutputTokens: opts.maxOutputTokensPerCall,
         outputFormat: opts.outputFormat,
       });
@@ -96,7 +96,7 @@ export async function runDebateRound(opts: {
       output = r.text;
       usage = r.usage;
     } else {
-      const r = await callCreature(goblin, userPrompt, {
+      const r = await callInsect(forager, userPrompt, {
         maxOutputTokens: opts.maxOutputTokensPerCall,
         outputFormat: opts.outputFormat,
       });
@@ -105,26 +105,26 @@ export async function runDebateRound(opts: {
     }
 
     const drift = measureDrift(output);
-    const revised: Loot = {
+    const revised: Morsel = {
       id: "",
-      riteId: opts.riteId,
-      creatureKind: "goblin",
-      personality: selfLoot.personality,
-      model: goblin.model,
+      flightId: opts.flightId,
+      caste: "forager",
+      personality: selfMorsel.personality,
+      model: forager.model,
       prompt: userPrompt,
       output,
-      parentLootIds: [selfLoot.id, ...peers.map((p) => opts.packLoots[p.index].id)],
+      parentMorselIds: [selfMorsel.id, ...peers.map((p) => opts.swarmMorsels[p.index].id)],
       timestamp: Date.now(),
       drift,
       usage,
     };
-    await opts.hoard.stash(revised);
+    await opts.compost.stash(revised);
     opts.onDone?.(i, revised);
     return revised;
   });
 
-  const revisedLoots = await Promise.all(jobs.map((fn) => fn()));
-  return { revisedLoots };
+  const revisedMorsels = await Promise.all(jobs.map((fn) => fn()));
+  return { revisedMorsels };
 }
 
 function truncate(s: string, n: number): string {

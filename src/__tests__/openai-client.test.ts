@@ -11,7 +11,7 @@ import {
   withProviderRoot,
 } from "../openai-client.js";
 import { setProviderSecretForRoot } from "../provider-secrets.js";
-import { initWarren, saveWarrenManifest } from "../warren.js";
+import { initTerrarium, saveTerrariumManifest } from "../terrarium.js";
 
 // `isFixedSamplingModel` is a small but load-bearing heuristic: it decides
 // whether a model rejects `temperature` and uses `max_completion_tokens`.
@@ -163,31 +163,31 @@ describe("completionTokenParamForModel", () => {
 });
 
 describe("provider root context", () => {
-  it("resolves model calls against an explicit Warren root without changing process cwd", async () => {
-    const tmp = await mkdtemp(join(tmpdir(), "goblintown-provider-root-"));
+  it("resolves model calls against an explicit Terrarium root without changing process cwd", async () => {
+    const tmp = await mkdtemp(join(tmpdir(), "flytown-provider-root-"));
     const priorCwd = process.cwd();
     try {
-      const root = join(tmp, "global-warren");
+      const root = join(tmp, "global-terrarium");
       const outside = join(tmp, "outside");
       await mkdir(outside, { recursive: true });
-      const warren = await initWarren(root);
-      warren.manifest.provider = {
+      const terrarium = await initTerrarium(root);
+      terrarium.manifest.provider = {
         preset: "deepseek",
         apiKeyEnv: "DEEPSEEK_API_KEY",
-        models: { goblin: "deepseek-chat" },
+        models: { forager: "deepseek-chat" },
       };
-      await saveWarrenManifest(warren);
+      await saveTerrariumManifest(terrarium);
       await setProviderSecretForRoot(root, "DEEPSEEK_API_KEY", "sk-stored");
 
       process.chdir(outside);
       const activeOutside = process.cwd();
       const runtime = withProviderRoot(root, () =>
-        resolveActiveProviderRuntimeForSlot("goblin"),
+        resolveActiveProviderRuntimeForSlot("forager"),
       );
 
       assert.equal(process.cwd(), activeOutside);
       assert.equal(runtime.id, "deepseek");
-      assert.equal(runtime.models.goblin, "deepseek-chat");
+      assert.equal(runtime.models.forager, "deepseek-chat");
       assert.equal(runtime.apiKeySource, "stored");
     } finally {
       process.chdir(priorCwd);

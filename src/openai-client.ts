@@ -15,7 +15,7 @@ import {
 } from "./providers.js";
 import { readProviderSecretsForRootSync } from "./provider-secrets.js";
 import type {
-  Creature,
+  Insect,
   ModelSlot,
   OutputFormat,
   TokenUsage,
@@ -48,7 +48,7 @@ export interface CallOptions {
   outputFormat?: OutputFormat;
 }
 
-export interface CreatureResponse {
+export interface InsectResponse {
   text: string;
   usage: TokenUsage;
 }
@@ -68,12 +68,12 @@ export function resolveActiveProviderRuntimeForSlot(
 
 /**
  * The model a slot will actually be called with: env override
- * (GOBLINTOWN_MODEL_<SLOT>) → the active Warren's provider config → fallback.
- * Creature factories use this so that labels, error messages and Loot records
+ * (FLYTOWN_MODEL_<SLOT>) → the active Terrarium's provider config → fallback.
+ * Insect factories use this so that labels, error messages and Morsel records
  * name the real model instead of a hard-coded default.
  */
 export function activeModelForSlot(slot: ModelSlot, fallback: string): string {
-  const env = process.env[`GOBLINTOWN_MODEL_${slot.toUpperCase()}`];
+  const env = process.env[`FLYTOWN_MODEL_${slot.toUpperCase()}`];
   if (env && env.trim()) return env.trim();
   try {
     const runtime = resolveActiveProviderRuntimeForSlot(slot);
@@ -128,13 +128,13 @@ interface BaseParams {
 }
 
 function buildBaseParams(
-  creature: Creature,
+  insect: Insect,
   slot: ModelSlot,
   userPrompt: string,
   opts: CallOptions,
   runtime: ProviderRuntime,
 ): BaseParams {
-  const model = resolveModel(runtime.models[slot] || creature.model, runtime.baseURL);
+  const model = resolveModel(runtime.models[slot] || insect.model, runtime.baseURL);
   const fixed = isFixedSamplingModel(model);
   const outputFormat = normalizeOutputFormat(opts.outputFormat ?? runtime.outputFormat);
   const params: BaseParams = {
@@ -143,15 +143,15 @@ function buildBaseParams(
     ...(runtime.requestParams ?? {}),
     model,
     messages: [
-      { role: "system", content: creature.systemPrompt },
+      { role: "system", content: insect.systemPrompt },
       { role: "user", content: appendFormatInstruction(userPrompt, outputFormat) },
     ],
   };
   if (outputFormat === "json") {
     params.response_format = { type: "json_object" };
   }
-  if (!fixed && creature.temperature !== undefined) {
-    params.temperature = creature.temperature;
+  if (!fixed && insect.temperature !== undefined) {
+    params.temperature = insect.temperature;
   }
   if (opts.maxOutputTokens !== undefined) {
     Object.assign(params, completionTokenParamForModel(model, opts.maxOutputTokens));
@@ -159,35 +159,35 @@ function buildBaseParams(
   return params;
 }
 
-export async function callCreature(
-  creature: Creature,
+export async function callInsect(
+  insect: Insect,
   userPrompt: string,
   opts: CallOptions = {},
-): Promise<CreatureResponse> {
-  const slot = creature.modelSlot ?? creature.kind;
+): Promise<InsectResponse> {
+  const slot = insect.modelSlot ?? insect.caste;
   const runtime = resolveActiveProviderRuntimeForSlot(slot);
   const client = getClient(runtime);
   const sem = sharedSemaphore();
   return sem.run(async () => {
     const completion = await client.chat.completions.create(
-      buildBaseParams(creature, slot, userPrompt, opts, runtime),
+      buildBaseParams(insect, slot, userPrompt, opts, runtime),
       { signal: opts.signal },
     );
     const text = completion.choices[0]?.message?.content;
     if (!text) {
       throw new Error(
-        `Creature ${creature.kind} returned an empty response (model=${creature.model}).`,
+        `Insect ${insect.caste} returned an empty response (model=${insect.model}).`,
       );
     }
     let usage: TokenUsage = {
       promptTokens: completion.usage?.prompt_tokens ?? 0,
       completionTokens: completion.usage?.completion_tokens ?? 0,
       totalTokens: completion.usage?.total_tokens ?? 0,
-      model: completion.model ?? creature.model,
+      model: completion.model ?? insect.model,
     };
     const formatted = await ensureFormattedOutput({
       client,
-      creature,
+      insect,
       slot,
       userPrompt,
       opts,
@@ -201,20 +201,20 @@ export async function callCreature(
   });
 }
 
-export async function callCreatureStream(
-  creature: Creature,
+export async function callInsectStream(
+  insect: Insect,
   userPrompt: string,
   onChunk: (chunk: string) => void,
   opts: CallOptions = {},
-): Promise<CreatureResponse> {
-  const slot = creature.modelSlot ?? creature.kind;
+): Promise<InsectResponse> {
+  const slot = insect.modelSlot ?? insect.caste;
   const runtime = resolveActiveProviderRuntimeForSlot(slot);
   const client = getClient(runtime);
   const sem = sharedSemaphore();
   return sem.run(async () => {
     const stream = await client.chat.completions.create(
       {
-        ...buildBaseParams(creature, slot, userPrompt, opts, runtime),
+        ...buildBaseParams(insect, slot, userPrompt, opts, runtime),
         stream: true,
         stream_options: { include_usage: true },
       },
@@ -225,7 +225,7 @@ export async function callCreatureStream(
       promptTokens: 0,
       completionTokens: 0,
       totalTokens: 0,
-      model: creature.model,
+      model: insect.model,
     };
     for await (const event of stream) {
       const delta = event.choices?.[0]?.delta?.content;
@@ -238,18 +238,18 @@ export async function callCreatureStream(
           promptTokens: event.usage.prompt_tokens ?? 0,
           completionTokens: event.usage.completion_tokens ?? 0,
           totalTokens: event.usage.total_tokens ?? 0,
-          model: event.model ?? creature.model,
+          model: event.model ?? insect.model,
         };
       }
     }
     if (text.length === 0) {
       throw new Error(
-        `Creature ${creature.kind} streamed an empty response (model=${creature.model}).`,
+        `Insect ${insect.caste} streamed an empty response (model=${insect.model}).`,
       );
     }
     const formatted = await ensureFormattedOutput({
       client,
-      creature,
+      insect,
       slot,
       userPrompt,
       opts,
@@ -266,7 +266,7 @@ export async function callCreatureStream(
 
 async function ensureFormattedOutput(opts: {
   client: OpenAI;
-  creature: Creature;
+  insect: Insect;
   slot: ModelSlot;
   userPrompt: string;
   opts: CallOptions;
@@ -274,7 +274,7 @@ async function ensureFormattedOutput(opts: {
   text: string;
   usage: TokenUsage;
   signal?: AbortSignal;
-}): Promise<CreatureResponse> {
+}): Promise<InsectResponse> {
   const outputFormat = normalizeOutputFormat(opts.opts.outputFormat);
   if (outputFormat === "freeform") return { text: opts.text, usage: opts.usage };
   try {
@@ -291,7 +291,7 @@ async function ensureFormattedOutput(opts: {
     });
     const repair = await opts.client.chat.completions.create(
       buildBaseParams(
-        opts.creature,
+        opts.insect,
         opts.slot,
         repairPrompt,
         { ...opts.opts, outputFormat },

@@ -1,14 +1,14 @@
-import { makeGoblin } from "./creatures.js";
-import { GOBLINTOWN_CHAT_CONTEXT } from "./chat-persona.js";
+import { makeForager } from "./castes.js";
+import { FLYTOWN_CHAT_CONTEXT } from "./chat-persona.js";
 import { measureDrift } from "./drift.js";
-import { callCreature } from "./openai-client.js";
+import { callInsect } from "./openai-client.js";
 import {
   createWebFetchTool,
   runToolCalls,
   type ToolResult,
 } from "./tools.js";
-import type { Hoard } from "./hoard.js";
-import type { Loot, ModelSlot, Personality, TokenUsage } from "./types.js";
+import type { Compost } from "./compost.js";
+import type { Morsel, ModelSlot, Personality, TokenUsage } from "./types.js";
 
 export type ChatRole = "user" | "assistant";
 
@@ -17,20 +17,20 @@ export interface ChatMessage {
   content: string;
 }
 
-export interface SingleGoblinChatOptions {
+export interface SingleForagerChatOptions {
   messages: ChatMessage[];
-  hoard: Hoard;
+  compost: Compost;
   personality?: Personality;
   modelSlot?: ModelSlot;
   maxOutputTokens?: number;
   fetchImpl?: typeof fetch;
 }
 
-export interface SingleGoblinChatResult {
+export interface SingleForagerChatResult {
   message: ChatMessage;
-  lootId: string;
+  morselId: string;
   usage?: TokenUsage;
-  goblintownOffer?: GoblintownOffer;
+  flightOffer?: FlightOffer;
   toolResults?: ToolResult[];
 }
 
@@ -38,7 +38,7 @@ const MAX_CHAT_MESSAGES = 24;
 const MAX_CHAT_CONTENT_CHARS = 6000;
 const MAX_CHAT_WEB_URLS = 3;
 
-export interface GoblintownOffer {
+export interface FlightOffer {
   task: string;
   requested: boolean;
   reason: "explicit" | "complex";
@@ -61,7 +61,7 @@ export function normalizeChatMessages(input: unknown): ChatMessage[] {
   return out.slice(-MAX_CHAT_MESSAGES);
 }
 
-export function buildSingleGoblinChatPrompt(
+export function buildSingleForagerChatPrompt(
   messages: ChatMessage[],
   toolResults: ToolResult[] = [],
 ): string {
@@ -73,15 +73,15 @@ export function buildSingleGoblinChatPrompt(
     .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
     .join("\n\n");
   return [
-    "You are the AI-first single Goblin chat mode: a regular single LLM model call.",
-    "Do not run multi-agent Goblintown orchestration inside this chat response.",
+    "You are the AI-first single-forager chat mode: a regular single LLM model call.",
+    "Do not run multi-agent FLYTOWN orchestration inside this chat response.",
     "Answer the latest user message directly. Use the prior transcript only for context.",
     "When web tool results are provided, treat them as fresh page context and cite the relevant URL in your answer.",
     "Keep the response practical, concise, and complete. Ask a follow-up only if required.",
-    "If the task is complex enough to benefit from the full Goblintown pack, briefly offer to run Goblintown as an optional next step, but still answer as the single Goblin now.",
-    "If the user explicitly asks for Goblintown, acknowledge that the full pack can be started through the chat surface.",
+    "If the task is complex enough to benefit from a full FLYTOWN flight, briefly offer to run a flight as an optional next step, but still answer as the single forager now.",
+    "If the user explicitly asks for a flight, acknowledge that a full flight can be started through the chat surface.",
     "",
-    GOBLINTOWN_CHAT_CONTEXT,
+    FLYTOWN_CHAT_CONTEXT,
     "",
     toolResults.length > 0 ? `Web tool results:\n${renderChatWebToolResults(toolResults)}` : "",
     toolResults.length > 0 ? "" : "",
@@ -161,21 +161,27 @@ export async function collectChatWebToolResults(
   );
 }
 
-export function detectGoblintownOffer(messages: ChatMessage[]): GoblintownOffer | undefined {
+/**
+ * Decide whether to offer a full flight. "explicit": the user asked for one
+ * (FLYTOWN by name, the full swarm, or a run/start/launch-a-flight phrase —
+ * "flight" alone is too common an English word to count). "complex": the task
+ * looks big enough to benefit from one.
+ */
+export function detectFlightOffer(messages: ChatMessage[]): FlightOffer | undefined {
   const normalized = normalizeChatMessages(messages);
   const userMessages = normalized.filter((m) => m.role === "user");
   const latest = userMessages[userMessages.length - 1];
   if (!latest) return undefined;
   let task = normalizeLikelyChatUrls(latest.content);
   if (
-    /\bgoblin\s*town\b|\bgoblintown\b|\bfull\s+pack\b|\bpack\s+of\s+goblins\b|\brite\b|\brites\b/i.test(
+    /\bfly\s*town\b|\bfull\s+swarm\b|\bswarm\s+of\s+foragers\b|\b(?:run|start|launch|do|kick\s+off)\s+(?:a\s+|the\s+|another\s+)?flights?\b/i.test(
       task,
     )
   ) {
     task = resolveExplicitRunTask(userMessages);
     return { task, requested: true, reason: "explicit" };
   }
-  if (looksComplexForGoblintown(task)) {
+  if (looksComplexForFlight(task)) {
     return { task, requested: false, reason: "complex" };
   }
   return undefined;
@@ -197,42 +203,42 @@ function isBareRunRequest(value: string): boolean {
     .replace(/[^\w\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return /^(please )?(do|run|start|make|launch|kick off) (a |the )?(rite|goblintown|goblin town|full pack)$/.test(
+  return /^(please )?(do|run|start|make|launch|kick off) (a |the )?(flight|flytown|fly town|full swarm)$/.test(
     normalized,
   );
 }
 
-export async function runSingleGoblinChat(
-  opts: SingleGoblinChatOptions,
-): Promise<SingleGoblinChatResult> {
+export async function runSingleForagerChat(
+  opts: SingleForagerChatOptions,
+): Promise<SingleForagerChatResult> {
   const personality = opts.personality ?? "chipper";
   const toolResults = await collectChatWebToolResults(opts.messages, opts.fetchImpl);
-  const prompt = buildSingleGoblinChatPrompt(opts.messages, toolResults);
-  const goblin = makeGoblin(personality);
+  const prompt = buildSingleForagerChatPrompt(opts.messages, toolResults);
+  const forager = makeForager(personality);
   if (opts.modelSlot) {
-    goblin.modelSlot = opts.modelSlot;
+    forager.modelSlot = opts.modelSlot;
   }
-  const { text, usage } = await callCreature(goblin, prompt, {
+  const { text, usage } = await callInsect(forager, prompt, {
     maxOutputTokens: opts.maxOutputTokens,
   });
-  const loot: Loot = {
+  const morsel: Morsel = {
     id: "",
-    creatureKind: "goblin",
-    personality: goblin.personality,
-    model: goblin.model,
+    caste: "forager",
+    personality: forager.personality,
+    model: forager.model,
     prompt,
     output: text,
     timestamp: Date.now(),
     drift: measureDrift(text),
     usage,
   };
-  const lootId = await opts.hoard.stash(loot);
-  const goblintownOffer = detectGoblintownOffer(opts.messages);
+  const morselId = await opts.compost.stash(morsel);
+  const flightOffer = detectFlightOffer(opts.messages);
   return {
     message: { role: "assistant", content: text },
-    lootId,
+    morselId,
     usage,
-    ...(goblintownOffer ? { goblintownOffer } : {}),
+    ...(flightOffer ? { flightOffer } : {}),
     ...(toolResults.length > 0 ? { toolResults } : {}),
   };
 }
@@ -242,7 +248,7 @@ function truncateContent(value: string): string {
   return `${value.slice(0, MAX_CHAT_CONTENT_CHARS - 15)}\n[truncated]`;
 }
 
-function looksComplexForGoblintown(task: string): boolean {
+function looksComplexForFlight(task: string): boolean {
   const words = task.split(/\s+/).filter(Boolean).length;
   const hasStructure = /\n\s*[-*0-9]/.test(task) || (task.match(/[?.!]/g)?.length ?? 0) >= 4;
   const complexTerms =

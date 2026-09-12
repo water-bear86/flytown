@@ -17,7 +17,7 @@ import {
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "goblintown-run-"));
+  dir = await mkdtemp(join(tmpdir(), "flytown-run-"));
 });
 
 afterEach(async () => {
@@ -28,7 +28,7 @@ function rec(runId: string, done = false): RunRecord {
   return {
     runId,
     task: "do thing",
-    packSize: 3,
+    swarmSize: 3,
     scanGlobs: [],
     events: [],
     done,
@@ -39,7 +39,7 @@ function rec(runId: string, done = false): RunRecord {
 describe("run-store", () => {
   it("ensureRunDir creates the directory and is idempotent", async () => {
     const path = await ensureRunDir(dir);
-    assert.match(path, /goblintown[\\/]+runs$/);
+    assert.match(path, /flytown[\\/]+runs$/);
     const again = await ensureRunDir(dir);
     assert.equal(path, again);
   });
@@ -76,18 +76,18 @@ describe("run-store", () => {
 
     appendRunEvent(r, "step", {
       kind: "thinking",
-      slot: "goblin#0",
+      slot: "forager#0",
       text: "first draft",
     });
     appendRunEvent(r, "step", {
       kind: "thinking",
-      slot: "goblin#0",
+      slot: "forager#0",
       text: "x".repeat(12_000),
     });
     appendRunEvent(r, "step", {
-      kind: "pack:goblin",
+      kind: "swarm:forager",
       index: 0,
-      lootId: "loot-1",
+      morselId: "morsel-1",
     });
 
     await saveRun(path, r);
@@ -112,16 +112,16 @@ describe("run-store", () => {
     const r = rec("checkpoint");
     r.status = "running";
 
-    appendRunEvent(r, "step", { kind: "pack:start", size: 2 });
+    appendRunEvent(r, "step", { kind: "swarm:start", size: 2 });
     appendRunEvent(r, "step", {
-      kind: "pack:goblin",
+      kind: "swarm:forager",
       index: 0,
-      lootId: "loot-1",
+      morselId: "morsel-1",
     });
     appendRunEvent(r, "step", {
       kind: "scribe:done",
       artifactId: "artifact-1",
-      riteId: "rite-1",
+      flightId: "flight-1",
     });
 
     await saveRun(path, r);
@@ -129,7 +129,7 @@ describe("run-store", () => {
 
     assert.ok(got);
     assert.equal(got!.checkpoint?.phase, "scribe:done");
-    assert.deepEqual(got!.checkpoint?.lootIds, ["loot-1"]);
+    assert.deepEqual(got!.checkpoint?.morselIds, ["morsel-1"]);
     assert.deepEqual(got!.checkpoint?.artifactIds, ["artifact-1"]);
     assert.equal(got!.checkpoint?.lastEventSeq, 2);
   });
@@ -146,7 +146,7 @@ describe("run-store", () => {
     assert.equal(r.resumable, true);
     assert.equal(r.finishedAt, 123_456);
     assert.match(r.error ?? "", /interrupted/);
-    assert.match(r.resumePrompt ?? "", /Continue the interrupted rite run/);
+    assert.match(r.resumePrompt ?? "", /Continue the interrupted flight run/);
     assert.match(r.resumePrompt ?? "", /review:start/);
   });
 
@@ -181,8 +181,8 @@ describe("run-store", () => {
     stale.status = "error";
     stale.error = "Budget exceeded: 25117 / 12000 tokens";
     stale.resumePrompt = [
-      "Continue the interrupted rite run stale.",
-      "Original task: Continue the interrupted rite run first.",
+      "Continue the interrupted flight run stale.",
+      "Original task: Continue the interrupted flight run first.",
       "Original task: Subjectively answer who was best before Michael Jordan.",
       "Last error: Budget exceeded: 25117 / 12000 tokens",
     ].join("\n");

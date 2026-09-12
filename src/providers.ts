@@ -7,17 +7,17 @@ import type {
   ProviderConfig,
   ProviderRouteConfig,
   ProviderPresetId,
-  WarrenManifest,
+  TerrariumManifest,
 } from "./types.js";
 import { normalizeOutputFormat } from "./formatting.js";
 
 export const MODEL_SLOTS: ModelSlot[] = [
-  "goblin",
-  "gremlin",
-  "raccoon",
-  "troll",
-  "ogre",
-  "pigeon",
+  "forager",
+  "wasp",
+  "scout",
+  "guard",
+  "soldier",
+  "messenger",
   "scribe",
   "embedding",
 ];
@@ -51,12 +51,12 @@ export interface ProviderRuntime {
 }
 
 const OPENAI_MODELS: Record<ModelSlot, string> = {
-  goblin: "gpt-5-mini",
-  gremlin: "gpt-5-mini",
-  raccoon: "gpt-5-mini",
-  troll: "gpt-5-mini",
-  ogre: "gpt-5",
-  pigeon: "gpt-5-mini",
+  forager: "gpt-5-mini",
+  wasp: "gpt-5-mini",
+  scout: "gpt-5-mini",
+  guard: "gpt-5-mini",
+  soldier: "gpt-5",
+  messenger: "gpt-5-mini",
   scribe: "gpt-5-mini",
   embedding: "text-embedding-3-small",
 };
@@ -66,12 +66,12 @@ function withChatModel(
   embeddingModel: string = OPENAI_MODELS.embedding,
 ): Record<ModelSlot, string> {
   return {
-    goblin: chatModel,
-    gremlin: chatModel,
-    raccoon: chatModel,
-    troll: chatModel,
-    ogre: chatModel,
-    pigeon: chatModel,
+    forager: chatModel,
+    wasp: chatModel,
+    scout: chatModel,
+    guard: chatModel,
+    soldier: chatModel,
+    messenger: chatModel,
     scribe: chatModel,
     embedding: embeddingModel,
   };
@@ -130,12 +130,12 @@ export const PROVIDER_PRESETS: Record<ProviderPresetId, ProviderPreset> = {
     baseURL: "https://api.mistral.ai/v1",
     apiKeyEnv: "MISTRAL_API_KEY",
     models: {
-      goblin: "mistral-small-latest",
-      gremlin: "mistral-small-latest",
-      raccoon: "mistral-small-latest",
-      troll: "mistral-small-latest",
-      ogre: "mistral-large-latest",
-      pigeon: "mistral-small-latest",
+      forager: "mistral-small-latest",
+      wasp: "mistral-small-latest",
+      scout: "mistral-small-latest",
+      guard: "mistral-small-latest",
+      soldier: "mistral-large-latest",
+      messenger: "mistral-small-latest",
       scribe: "mistral-small-latest",
       embedding: "mistral-embed",
     },
@@ -147,7 +147,7 @@ export const PROVIDER_PRESETS: Record<ProviderPresetId, ProviderPreset> = {
     apiKeyEnv: "DEEPSEEK_API_KEY",
     models: {
       ...withChatModel("deepseek-v4-flash"),
-      ogre: "deepseek-v4-pro",
+      soldier: "deepseek-v4-pro",
     },
   },
   anthropic: {
@@ -248,7 +248,7 @@ export function resolveProviderRuntime(
     baseURL && /openrouter\.ai/i.test(baseURL) && referer
       ? {
           "HTTP-Referer": referer,
-          "X-OpenRouter-Title": env.OPENROUTER_TITLE ?? "Goblintown",
+          "X-OpenRouter-Title": env.OPENROUTER_TITLE ?? "FLYTOWN",
         }
       : undefined;
 
@@ -323,7 +323,7 @@ export function loadProviderConfigFromCwd(cwd = process.cwd()): ProviderConfig {
   const manifestPath = findManifestPath(cwd);
   if (!manifestPath) return defaultProviderConfig();
   try {
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as WarrenManifest;
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as TerrariumManifest;
     return normalizeProviderConfig(manifest.provider);
   } catch {
     return defaultProviderConfig();
@@ -395,10 +395,10 @@ function normalizeProviderRoute(value: unknown): ProviderRouteConfig | null {
 function modelEnvValue(slot: ModelSlot, env: Env): string | undefined {
   const key =
     slot === "scribe"
-      ? "GOBLINTOWN_MODEL_SCRIBE"
+      ? "FLYTOWN_MODEL_SCRIBE"
       : slot === "embedding"
-        ? "GOBLINTOWN_EMBEDDING_MODEL"
-        : `GOBLINTOWN_MODEL_${slot.toUpperCase()}`;
+        ? "FLYTOWN_EMBEDDING_MODEL"
+        : `FLYTOWN_MODEL_${slot.toUpperCase()}`;
   return stringOrUndefined(env[key]);
 }
 
@@ -419,7 +419,7 @@ function stringOrUndefined(value: unknown): string | undefined {
 function findManifestPath(start: string): string | null {
   let cur = start;
   while (true) {
-    const candidate = join(cur, ".goblintown", "warren.json");
+    const candidate = join(cur, ".flytown", "terrarium.json");
     if (existsSync(candidate)) return candidate;
     const parent = dirname(cur);
     if (parent === cur) return null;

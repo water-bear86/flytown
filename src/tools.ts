@@ -1,18 +1,18 @@
 /**
- * Phase 5 — Tool-use scaffold for the Troll (verifier-as-reward).
+ * Phase 5 — Tool-use scaffold for the Guard (verifier-as-reward).
  *
  * Built-in safe tools:
  *   - json.parse:   parse + optional schema validation (no fetching)
  *   - regex.match:  test a regex against a string (sandboxed; capped runtime)
  *   - http.head:    HEAD a URL, return status + content-type. Disabled unless
- *                   GOBLINTOWN_TOOLS_HTTP=1 (network egress is opt-in).
+ *                   FLYTOWN_TOOLS_HTTP=1 (network egress is opt-in).
  *   - web.fetch:    GET a public http(s) URL and return readable page text.
  *   - shell.run:    run a single shell command. Disabled unless
- *                   GOBLINTOWN_TOOLS_SHELL=1 AND a per-call --shell-cmd
- *                   allowlist is provided to the warren.
+ *                   FLYTOWN_TOOLS_SHELL=1 AND a per-call --shell-cmd
+ *                   allowlist is provided to the terrarium.
  *
- * Tool-use is OPT-IN. Default troll remains pure-LLM. When --troll-tools is
- * passed, the troll runs a single tool-use round before producing its verdict.
+ * Tool-use is OPT-IN. Default guard remains pure-LLM. When --guard-tools is
+ * passed, the guard runs a single tool-use round before producing its verdict.
  *
  * The dispatcher is exported for testability and is fully synchronous-friendly
  * for tools that don't need IO.
@@ -33,7 +33,7 @@ export interface ToolResult {
 export interface ToolDefinition {
   name: string;
   description: string;
-  schema: Record<string, unknown>; // very loose; troll receives this as a hint
+  schema: Record<string, unknown>; // very loose; guard receives this as a hint
   invoke(args: Record<string, unknown>): Promise<unknown>;
 }
 
@@ -90,11 +90,11 @@ export const builtinTools: ToolDefinition[] = [
   },
   {
     name: "http.head",
-    description: "HEAD request a URL. Returns { status, contentType, ok }. Disabled unless GOBLINTOWN_TOOLS_HTTP=1.",
+    description: "HEAD request a URL. Returns { status, contentType, ok }. Disabled unless FLYTOWN_TOOLS_HTTP=1.",
     schema: { type: "object", properties: { url: { type: "string" } }, required: ["url"] },
     async invoke(args) {
-      if (process.env.GOBLINTOWN_TOOLS_HTTP !== "1") {
-        return { ok: false, error: "http.head disabled (set GOBLINTOWN_TOOLS_HTTP=1 to enable)" };
+      if (process.env.FLYTOWN_TOOLS_HTTP !== "1") {
+        return { ok: false, error: "http.head disabled (set FLYTOWN_TOOLS_HTTP=1 to enable)" };
       }
       const url = String(args.url ?? "");
       try {
@@ -149,7 +149,7 @@ export function createWebFetchTool(fetchImpl: typeof fetch = fetch): ToolDefinit
           redirect: "follow",
           signal: ctrl.signal,
           headers: {
-            "User-Agent": "Goblintown/0.6 (+local chat web.fetch)",
+            "User-Agent": "FLYTOWN/0.6 (+local chat web.fetch)",
             Accept: "text/html,text/plain,application/json;q=0.9,*/*;q=0.2",
           },
         });
@@ -250,7 +250,7 @@ export async function runToolCalls(
 }
 
 /**
- * Render tool results as a compact block to feed back to the troll.
+ * Render tool results as a compact block to feed back to the guard.
  */
 export function renderToolResults(results: ToolResult[]): string {
   if (results.length === 0) return "(no tools were called)";

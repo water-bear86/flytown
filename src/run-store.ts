@@ -2,7 +2,7 @@ import { open, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promise
 import { join } from "node:path";
 import type { Personality } from "./types.js";
 
-export type RunMode = "rite" | "plan";
+export type RunMode = "flight" | "plan";
 export type RunStatus = "running" | "done" | "error" | "interrupted";
 
 export interface RunEvent {
@@ -21,9 +21,9 @@ export interface RunCheckpoint {
   planNodeIds?: string[];
   completedNodeIds?: string[];
   failedNodeIds?: string[];
-  lootIds?: string[];
+  morselIds?: string[];
   artifactIds?: string[];
-  finalRiteId?: string;
+  finalFlightId?: string;
 }
 
 export interface RunStartRequest {
@@ -35,7 +35,7 @@ export interface RunRecord {
   runId: string;
   task: string;
   originalTask?: string;
-  packSize: number;
+  swarmSize: number;
   scanGlobs: string[];
   personality?: Personality;
   noFallback?: boolean;
@@ -51,15 +51,15 @@ export interface RunRecord {
   eventsCompacted?: boolean;
   events: RunEvent[];
   done: boolean;
-  finalRiteId?: string;
+  finalFlightId?: string;
   outcome?: string;
   error?: string;
   startedAt: number;
   finishedAt?: number;
 }
 
-export async function ensureRunDir(warrenRoot: string): Promise<string> {
-  const dir = join(warrenRoot, ".goblintown", "runs");
+export async function ensureRunDir(terrariumRoot: string): Promise<string> {
+  const dir = join(terrariumRoot, ".flytown", "runs");
   await mkdir(dir, { recursive: true });
   return dir;
 }
@@ -155,7 +155,7 @@ export function markRunFinished(
 }
 
 export function buildResumePrompt(rec: RunRecord): string {
-  const mode = rec.mode ?? rec.request?.mode ?? "rite";
+  const mode = rec.mode ?? rec.request?.mode ?? "flight";
   const checkpoint = rec.checkpoint;
   const originalTask = originalTaskForResume(rec);
   const lines = [
@@ -174,13 +174,13 @@ export function buildResumePrompt(rec: RunRecord): string {
     if (checkpoint.failedNodeIds?.length) {
       lines.push(`Failed plan nodes: ${checkpoint.failedNodeIds.join(", ")}.`);
     }
-    if (checkpoint.lootIds?.length) {
-      lines.push(`Known loot IDs: ${checkpoint.lootIds.slice(-8).join(", ")}.`);
+    if (checkpoint.morselIds?.length) {
+      lines.push(`Known morsel IDs: ${checkpoint.morselIds.slice(-8).join(", ")}.`);
     }
     if (checkpoint.artifactIds?.length) {
       lines.push(`Known artifact IDs: ${checkpoint.artifactIds.slice(-8).join(", ")}.`);
     }
-    if (checkpoint.finalRiteId) lines.push(`Last rite ID: ${checkpoint.finalRiteId}.`);
+    if (checkpoint.finalFlightId) lines.push(`Last flight ID: ${checkpoint.finalFlightId}.`);
   }
   lines.push(
     "Resume from the next useful checkpoint. Do not replay already completed work unless it is needed to recover context. Produce a final user-observable result.",
@@ -278,9 +278,9 @@ function updateCheckpointFromEvent(rec: RunRecord, ev: RunEvent, now: number): v
     planNodeIds: mergeIds(prev?.planNodeIds, info.planNodeIds),
     completedNodeIds: mergeIds(prev?.completedNodeIds, info.completedNodeIds),
     failedNodeIds: mergeIds(prev?.failedNodeIds, info.failedNodeIds),
-    lootIds: mergeIds(prev?.lootIds, info.lootIds),
+    morselIds: mergeIds(prev?.morselIds, info.morselIds),
     artifactIds: mergeIds(prev?.artifactIds, info.artifactIds),
-    finalRiteId: info.finalRiteId ?? prev?.finalRiteId,
+    finalFlightId: info.finalFlightId ?? prev?.finalFlightId,
   };
   rec.checkpoint = dropEmptyCheckpointArrays(checkpoint);
 }
@@ -292,9 +292,9 @@ function eventCheckpointInfo(ev: RunEvent): {
   planNodeIds?: string[];
   completedNodeIds?: string[];
   failedNodeIds?: string[];
-  lootIds?: string[];
+  morselIds?: string[];
   artifactIds?: string[];
-  finalRiteId?: string;
+  finalFlightId?: string;
 } | null {
   if (ev.kind === "step" && isRecord(ev.data)) {
     if (isRecord(ev.data.step)) {
@@ -326,7 +326,7 @@ function eventCheckpointInfo(ev: RunEvent): {
       lastEventKind: ev.kind,
       nodeId: stringValue(ev.data.nodeId),
       completedNodeIds: maybeOne(stringValue(ev.data.nodeId)),
-      finalRiteId: stringValue(ev.data.riteId),
+      finalFlightId: stringValue(ev.data.flightId),
     };
   }
   if (ev.kind === "plan:node:failed" && isRecord(ev.data)) {
@@ -341,8 +341,8 @@ function eventCheckpointInfo(ev: RunEvent): {
     return {
       phase: "done",
       lastEventKind: ev.kind,
-      finalRiteId: stringValue(ev.data.riteId),
-      lootIds: maybeOne(stringValue(ev.data.winnerLootId) ?? stringValue(ev.data.finalLootId)),
+      finalFlightId: stringValue(ev.data.flightId),
+      morselIds: maybeOne(stringValue(ev.data.winnerMorselId) ?? stringValue(ev.data.finalMorselId)),
       artifactIds: maybeOne(stringValue(ev.data.finalArtifactId)),
     };
   }
@@ -359,14 +359,14 @@ function stepCheckpointInfo(step: Record<string, unknown>, nodeId?: string): Ret
     phase: kind,
     lastEventKind: `step:${kind}`,
     nodeId,
-    lootIds: [
-      stringValue(step.lootId),
-      stringValue(step.winnerLootId),
-      stringValue(step.gremlinId),
-      stringValue(step.finalLootId),
+    morselIds: [
+      stringValue(step.morselId),
+      stringValue(step.winnerMorselId),
+      stringValue(step.waspId),
+      stringValue(step.finalMorselId),
     ].filter((id): id is string => !!id),
     artifactIds: maybeOne(stringValue(step.artifactId) ?? stringValue(step.finalArtifactId)),
-    finalRiteId: stringValue(step.riteId),
+    finalFlightId: stringValue(step.flightId),
   };
 }
 
@@ -375,10 +375,10 @@ function dropEmptyCheckpointArrays(checkpoint: RunCheckpoint): RunCheckpoint {
   if (!out.planNodeIds?.length) delete out.planNodeIds;
   if (!out.completedNodeIds?.length) delete out.completedNodeIds;
   if (!out.failedNodeIds?.length) delete out.failedNodeIds;
-  if (!out.lootIds?.length) delete out.lootIds;
+  if (!out.morselIds?.length) delete out.morselIds;
   if (!out.artifactIds?.length) delete out.artifactIds;
   if (!out.nodeId) delete out.nodeId;
-  if (!out.finalRiteId) delete out.finalRiteId;
+  if (!out.finalFlightId) delete out.finalFlightId;
   return out;
 }
 
@@ -438,7 +438,7 @@ async function readLargeLegacyRun(path: string, size: number): Promise<RunRecord
     const rec: RunRecord = {
       runId,
       task,
-      packSize: numberField(headText, "packSize") ?? 0,
+      swarmSize: numberField(headText, "swarmSize") ?? 0,
       scanGlobs: stringArrayField(headText, "scanGlobs") ?? [],
       personality: stringField(headText, "personality") as Personality | undefined,
       noFallback: booleanField(headText, "noFallback"),
@@ -447,7 +447,7 @@ async function readLargeLegacyRun(path: string, size: number): Promise<RunRecord
       events: [],
       eventsCompacted: true,
       done: booleanField(tailText, "done") ?? true,
-      finalRiteId: stringField(tailText, "finalRiteId"),
+      finalFlightId: stringField(tailText, "finalFlightId"),
       outcome: stringField(tailText, "outcome"),
       error: stringField(tailText, "error"),
       startedAt: numberField(joined, "startedAt") ?? 0,

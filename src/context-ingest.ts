@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { extractKeywords } from "./artifact.js";
-import type { Hoard } from "./hoard.js";
+import type { Compost } from "./compost.js";
 import type { Artifact } from "./types.js";
 
 export interface ContextIngestFile {
@@ -31,7 +31,7 @@ export interface ContextArtifactInput {
 
 export interface ContextIngestOptions {
   root: string;
-  hoard: Hoard;
+  compost: Compost;
   inputPath: string;
   limit?: number;
   maxFileBytes?: number;
@@ -76,7 +76,7 @@ const INGESTIBLE_EXTENSIONS = new Set([
 
 const SKIPPED_DIR_NAMES = new Set([
   ".git",
-  ".goblintown",
+  ".flytown",
   ".next",
   "coverage",
   "dist",
@@ -103,7 +103,7 @@ export function buildContextArtifact(input: ContextArtifactInput): Artifact {
 
   return {
     id,
-    riteId: `context:${hash}`,
+    flightId: `context:${hash}`,
     task: `Imported context: ${ref}`,
     outcome: "winner",
     claims: [
@@ -161,7 +161,7 @@ export async function ingestContextPath(
         timestamp: opts.timestamp,
         parentArtifactIds: opts.parentArtifactIds,
       });
-      await opts.hoard.stashArtifact(artifact);
+      await opts.compost.stashArtifact(artifact);
       artifacts.push(artifact);
     } catch (err) {
       skipped.push({

@@ -1,190 +1,221 @@
-# The Rite Pipeline
+# The Flight Pipeline
 
-The Rite is Goblintown's full multi-agent path. It is a sequence of small,
+A **flight** is FLYTOWN's full multi-agent path. It is a sequence of small,
 named responsibilities rather than one large "agent" that does whatever the
-prompt implies this week.
+prompt implies this week. Each responsibility belongs to a **caste**; a
+model-backed worker is an **insect**.
 
 ## Flow
 
 ```text
-Planner, optional
-  emits a DAG of sub-Rites
+Planner
+  emits a Plan: a DAG of flights
+  or halts: blocked, needs approval, already done
   replans after node failure
 
-Raccoon
-  scans files and prior Artifacts
+Scout
+  scans requested files and prior Artifacts
   returns only task-relevant facts
 
-Goblin pack
-  drafts N candidate answers in parallel
+Swarm
+  N foragers draft candidate answers in parallel
   varies prompts and personalities
 
 Debate, optional
-  lets Goblins inspect peer drafts
+  lets foragers inspect peer drafts
   asks for one revision round
 
-Gremlin
-  attacks each candidate
+Wasp
+  sting pass: attacks each candidate
   produces failure pressure
 
-Troll
-  reviews candidates
+Guard
+  reviews every candidate
   can call verifier tools
   default posture is rejection
 
 Specialists
-  spawn only when the pack fails
+  spawn only when the whole swarm fails
   each repairs one clustered failure mode
 
-Ogre
-  heavyweight fallback
+Soldier
+  heavyweight escalation
   called only when cheaper recovery fails
 
-Pigeon-Scribe
-  distills the completed Rite into a typed Artifact
+Messenger, in Scribe mode
+  distils the finished flight into a typed Artifact
 ```
 
 ## Core Terms
 
 | Term | Meaning |
 | --- | --- |
-| Loot | One model/tool invocation, stored with prompt, output, model, usage, drift, and parent links. |
-| Quest | Lightweight Goblin pack plus Troll arbitration. |
-| Rite | Full pipeline: Raccoon, pack, optional debate, Gremlin, Troll, Specialists, Ogre, Scribe. |
-| Artifact | Typed memory summary of a completed Rite: claims, evidence, open questions, next steps, keywords, parent links. |
-| Hoard | Local file-backed store under `.goblintown/hoard/`. |
-| Warren | A project root with `.goblintown/` state. |
-| Plan | DAG of sub-Rites emitted by the Planner. |
-| FailureCluster | A dominant failure mode found across failed Goblin candidates and Gremlin attacks. |
+| Morsel | One model invocation, content-addressed, stored with prompt, output, model, usage, drift, and parent links. |
+| Foray | Lightweight run: a swarm plus guard review, no full pipeline. |
+| Flight | Full pipeline: scout, swarm, optional debate, wasps, guard, specialists, soldier, scribe. |
+| Artifact | Typed memory summary of a finished flight: claims, evidence, open questions, next steps, keywords, parent links. |
+| Compost | Local file-backed record store under `.flytown/compost/`. |
+| Terrarium | A project root with `.flytown/` state and its `terrarium.json` manifest. |
+| Sugar | The reward that picks the winning candidate. |
+| Plan | DAG of flights emitted by the planner. |
+| FailureCluster | A dominant failure mode found across failed forager candidates and wasp attacks. |
 | Trace | Exported run record compatible with the LLM-MAS orchestration trace schema. |
 
 ## Planner
 
-The Planner turns a complex task into a DAG. Each node is a sub-Rite with a
-narrow task, optional inputs, a pack size, and a suggested personality. The
-executor walks the DAG topologically. Dependent nodes receive Artifacts from
-their parents.
+The planner turns a task into a `Plan`. Which backend decides is configurable:
+`rules` by default, the conventional `llm` planner, the `random` and `learned`
+baselines, or a connectome-driven `fly` planner (see the README's planner
+table). A backend can also halt instead of emitting nodes — blocked, needs
+approval, or already done — so "don't run this" is a first-class answer.
 
-On node failure, the Planner can be invoked again with failure context and the
-partial plan. Replanning is capped so the town does not chew its own tail.
+Each node is a flight with a narrow task, optional inputs, a swarm size, and a
+suggested personality. The executor walks the DAG topologically. Dependent
+nodes receive Artifacts from their parents.
+
+On node failure, the planner can be invoked again with failure context and the
+partial plan. Replanning is capped (default 2) so a failing plan cannot loop
+forever.
 
 Relevant files:
 
 - `src/planner.ts`
 - `src/plan-executor.ts`
+- `src/flytown/registry.ts`
 
-## Raccoon
+## Scout
 
-The Raccoon is the context scavenger. It scans requested globs and produces a
-compact facts block rather than dumping entire files into every prompt. When
-memory is enabled, prior Artifacts are rendered as context before the pack
-writes.
+The scout gathers context. It scans requested globs and produces a compact
+facts block rather than dumping entire files into every prompt. When memory is
+enabled, prior Artifacts are rendered as context before the swarm drafts.
 
 Relevant files:
 
-- `src/scavenge.ts`
+- `src/scout.ts`
 - `src/context-ingest.ts`
 - `src/artifact.ts`
 
-## Goblin Pack
+## Swarm
 
-The pack drafts answers in parallel. Each Goblin receives a prompt variant, and
-the pack can vary personality across `nerdy`, `cynical`, `chipper`, `stoic`,
-`feral`, and `goblin_mode`.
+The swarm drafts answers in parallel. Each forager receives a prompt variant,
+and the swarm can vary personality across `nerdy`, `cynical`, `chipper`,
+`stoic`, `feral`, and `frenzied`.
 
-The pack is not consensus. It is variance. The Troll decides whether any
+The swarm is not consensus. It is variance. The guard decides whether any
 candidate survives.
 
 Relevant files:
 
-- `src/rite.ts`
-- `src/quest.ts`
-- `src/pack-prompt.ts`
-- `src/creatures.ts`
+- `src/flight.ts`
+- `src/foray.ts`
+- `src/swarm-prompt.ts`
+- `src/castes.ts`
 
 ## Debate
 
-Debate is opt-in with `--debate`. After the first pack draft, each Goblin can
-see peer outputs and revise once before Gremlin/Troll review. This is not a
-chat room. It is a single structured revision pass.
+Debate is opt-in with `--debate`. After the first draft, each forager can see
+peer outputs and revise once before wasp and guard review. This is not a chat
+room. It is a single structured revision pass.
 
 Relevant file:
 
 - `src/debate.ts`
 
-## Gremlin
+## Wasp
 
-The Gremlin attacks each candidate. Its job is to reveal failure modes, not to
-produce the final answer. The Gremlin's critique is later useful for clustering
-Specialist recovery.
+The wasp attacks each candidate in a sting pass. Its job is to reveal failure
+modes, not to produce the final answer. Its critiques are later used to
+cluster failures for specialist recovery.
 
 Relevant file:
 
-- `src/chaos.ts`
+- `src/sting.ts`
 
-## Troll
+## Guard
 
-The Troll reviews candidate answers and emits structured verdicts. It can run
-pure LLM review, or when `--troll-tools` is enabled it can call verifier tools
-before scoring.
+The guard reviews candidate answers and emits a structured verdict for each
+one: pass or fail, a 0–1 score, and a critique. It can run pure LLM review, or
+when `--guard-tools` is enabled it can call verifier tools before scoring.
 
 Built-in tools include:
 
 - `json.parse`
 - `regex.match`
-- `http.head`, gated by `GOBLINTOWN_TOOLS_HTTP=1`
+- `http.head`, gated by `FLYTOWN_TOOLS_HTTP=1`
 - `web.fetch` for public URL context in chat
 
 Relevant files:
 
-- `src/troll-review.ts`
+- `src/guard-review.ts`
 - `src/tools.ts`
 
 ## Specialists
 
-If every candidate fails Troll review, Goblintown clusters the dominant failure
-modes and spawns one to three Specialist Goblins. Each Specialist receives one
-focused repair target and the best failed seed.
+If every candidate fails guard review, the flight clusters the dominant
+failure modes and spawns one to three specialist foragers. Each specialist
+receives one focused repair target and the best failed seed.
 
-Specialists are still Goblins. They keep the roster invariant while narrowing
-the prompt.
+Specialists are still foragers: same caste, narrower prompt.
 
 Relevant file:
 
 - `src/specialist.ts`
 
-## Ogre
+## Soldier
 
-The Ogre is the expensive fallback. It runs only when the pack and Specialist
-layer cannot produce an acceptable answer. The Ogre is not the default because
+The soldier is the expensive escalation. It runs only when the swarm and the
+specialist layer cannot produce an acceptable answer; a flight that ends there
+records the outcome `soldier_fallback`. The soldier is not the default because
 defaulting to the heavyweight model destroys the point of orchestration.
 
 Relevant file:
 
 - `src/fallback.ts`
 
-## Pigeon-Scribe
+## Messenger and Scribe Mode
 
-The Pigeon-Scribe writes the durable memory object. A completed Rite can be
-reconstructed from Loot, but the Artifact is what future Rites can actually use:
-claims, evidence, open questions, next steps, keywords, and parent links.
+The messenger carries and compresses artifacts. In Scribe mode it writes the
+durable memory object. A finished flight can be reconstructed from its
+morsels, but the Artifact is what future flights can actually use: claims,
+evidence, open questions, next steps, keywords, and parent links.
 
 Relevant files:
 
 - `src/artifact.ts`
-- `src/hoard.ts`
+- `src/compost.ts`
+
+## Sugar and Drift
+
+Each candidate morsel is scored with Sugar — the guard's score plus a 0.1 pass
+bonus, clamped to 0..1 — and the highest-scoring candidate wins. A terrarium
+can replace Sugar with a reward plugin (see
+[Extensions](../extensions/overview.md#reward-plugins)).
+
+Drift is the rate at which an output mentions the caste names. It is measured
+on every morsel and reported by `flytown drift` and `flytown audit`, because
+it is the instrument that detects the themed worker prompts leaking into
+outputs. It is not subtracted from Sugar: the caste names are ordinary English
+words, and a penalty would punish correct answers.
+
+Relevant files:
+
+- `src/reward.ts`
+- `src/drift.ts`
 
 ## Observability
 
 Useful commands:
 
 ```bash
-goblintown audit <riteId>
-goblintown graph <riteId|lootId>
-goblintown export <riteId> --out rite.md
-goblintown export-trace <runId> --out trace.json
-goblintown drift
+flytown audit <flightId>
+flytown graph <flightId|morselId>
+flytown export <flightId> --out flight.md
+flytown export-trace <runId> --out trace.json
+flytown drift
+flytown fly trace <runId>
 ```
 
-Run state is persisted under `.goblintown/runs/<runId>.json`, so the browser UI
-can replay history after restart and mark interrupted work honestly.
+Run state is persisted under `.flytown/runs/<runId>.json`, so the server can
+replay history after a restart and mark interrupted work honestly. Every
+planner backend except `llm` also writes its decision trace to
+`.flytown/traces/<runId>.json`.

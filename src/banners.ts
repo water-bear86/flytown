@@ -1,102 +1,26 @@
-import type { CreatureKind } from "./types.js";
+import type { Caste } from "./types.js";
 
-const GOBLIN = String.raw`
-   ▄█▄        ▄█▄
-   ███        ███
-    ▀████████████▀
-     █  ▀▄  ▄▀  █
-     █   ●  ●   █
-     █    ▾▾    █
-     █▄▄▄▄▄▄▄▄▄▄█
-      █▌ █  █ ▐█
-      ▀▀ ▀  ▀ ▀▀
-`;
+const WORDMARK = [
+  " ___  _    __   __ _____   ___  __      __ _  _",
+  "| __|| |   \\ \\ / /|_   _| / _ \\ \\ \\    / /| \\| |",
+  "| _| | |__  \\ V /   | |  | (_) | \\ \\/\\/ / | .` |",
+  "|_|  |____|  |_|    |_|   \\___/   \\_/\\_/  |_|\\_|",
+].join("\n");
 
-const GREMLIN = String.raw`
-   ▀▄ ▄▀ ▀▄ ▄▀
-     ▀█▄▄█▄▄█▀
-      █████████
-      █ ◉   ◉ █
-      █   ╳   █
-      █ ╲╱╲╱╲ █
-       ▀█████▀
-         █ █
-        ▀▀ ▀▀
-`;
-
-const RACCOON = String.raw`
-    ▄█▄          ▄█▄
-    ███          ███
-     ▀████████████▀
-     █▌ ●▔     ▔● ▐█
-     █      ▾      █
-     █▄▄▄▄▄▄▄▄▄▄▄▄█
-     █▌█        █▐█
-     ▀▀▀        ▀▀▀
-`;
-
-const TROLL = String.raw`
-       ▄ ▄    ▄ ▄
-       █ █    █ █
-     ▄████████████▄
-     █  ●        ●  █
-     █     ▾▾▾▾    █
-     █  ──────────  █
-     ████████████████
-    █▌                ▐█
-    █▌                ▐█
-    ████          ████
-    ████          ████
-`;
-
-const OGRE = String.raw`
-        ▄▄▄▄▄▄▄▄▄▄
-       ████████████
-      ██  ▀▀    ▀▀  ██
-      █     ●    ●    █
-      █        ▽       █
-      █▄  ▼▼▼▼▼▼▼▼  ▄█
-       ████████████
-      ██████████████
-      ██          ██
-      ██          ██
-      ▀▀          ▀▀
-`;
-
-const PIGEON = String.raw`
-       ▄██▄
-      ██  ●█
-      █▌    █▶▶▶
-      ██████████
-      █▀▀▀▀▀▀▀▀█
-       ████████
-          █ █
-          █ █
-         ▀▀ ▀▀
-`;
-
-export const BANNERS: Record<CreatureKind, string> = {
-  goblin: GOBLIN,
-  gremlin: GREMLIN,
-  raccoon: RACCOON,
-  troll: TROLL,
-  ogre: OGRE,
-  pigeon: PIGEON,
-};
-
-export function bannerFor(kind: CreatureKind): string {
-  return BANNERS[kind];
+/** The banner printed before a single `ask` call: the FLYTOWN wordmark and the caste answering. */
+export function bannerFor(caste: Caste): string {
+  return `${WORDMARK}\n${caste}\n`;
 }
 
 /**
- * Print a creature banner. Defaults to stderr so piping `summon` output to a
+ * Print the FLYTOWN banner. Defaults to stderr so piping `ask` output to a
  * file or another command keeps the actual response clean.
- * Suppress with GOBLINTOWN_NO_BANNER=1.
+ * Suppress with FLYTOWN_NO_BANNER=1.
  */
 export function printBanner(
-  kind: CreatureKind,
+  caste: Caste,
   out: NodeJS.WritableStream = process.stderr,
 ): void {
-  if (process.env.GOBLINTOWN_NO_BANNER === "1") return;
-  out.write(BANNERS[kind] + "\n");
+  if (process.env.FLYTOWN_NO_BANNER === "1") return;
+  out.write(bannerFor(caste) + "\n");
 }

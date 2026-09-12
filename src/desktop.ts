@@ -2,31 +2,31 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { app, BrowserWindow, shell } from "electron";
 import { serve, type ServeHandle } from "./server.js";
-import { initWarren, loadWarren } from "./warren.js";
+import { initTerrarium, loadTerrarium } from "./terrarium.js";
 
 let mainWindow: BrowserWindow | null = null;
 let serverHandle: ServeHandle | null = null;
 
-async function ensureDesktopWarren(root: string): Promise<void> {
+async function ensureDesktopTerrarium(root: string): Promise<void> {
   await mkdir(root, { recursive: true });
   try {
-    await loadWarren(root);
+    await loadTerrarium(root);
   } catch {
-    await initWarren(root);
+    await initTerrarium(root);
   }
 }
 
 async function createWindow(): Promise<void> {
-  const root = process.env.GOBLINTOWN_DESKTOP_ROOT ?? join(app.getPath("userData"), "warren");
-  await ensureDesktopWarren(root);
-  serverHandle = await serve({ cwd: root, port: 0, autopilot: true });
+  const root = process.env.FLYTOWN_DESKTOP_ROOT ?? join(app.getPath("userData"), "terrarium");
+  await ensureDesktopTerrarium(root);
+  serverHandle = await serve({ cwd: root, port: 0 });
 
   mainWindow = new BrowserWindow({
     width: 1120,
     height: 760,
     minWidth: 760,
     minHeight: 560,
-    title: "Goblintown",
+    title: "FLYTOWN",
     backgroundColor: "#120f08",
     webPreferences: {
       contextIsolation: true,

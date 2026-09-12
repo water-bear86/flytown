@@ -30,13 +30,13 @@ import { rulesScores } from "./rules.js";
 import { FlyMemory, type RecallResult } from "../memory.js";
 
 /** Actions to amplify when experience says "tasks like this go badly". */
-const CAUTION: readonly string[] = ["request_artifact_investigation", "search_memory", "invoke_reviewer", "increase_pack_size", "surface_uncertainty", "run_tests", "retry_new_approach"];
+const CAUTION: readonly string[] = ["request_artifact_investigation", "search_memory", "invoke_reviewer", "increase_swarm_size", "surface_uncertainty", "run_tests", "retry_new_approach"];
 /**
  * Actions to amplify when experience says "tasks like this go fine": just do
  * the work. Deliberately NOT terminate_success — a memory that similar tasks
  * went well is no reason to declare this one already done.
  */
-const DIRECTNESS: readonly string[] = ["spawn_subrite"];
+const DIRECTNESS: readonly string[] = ["spawn_flight"];
 
 /**
  * Calibration: retrieved valence shifts on the real larval graph are small

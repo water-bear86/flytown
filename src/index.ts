@@ -1,9 +1,9 @@
 export { serve, type ServeOptions } from "./server.js";
-export { performRite, type RiteStep } from "./rite.js";
-export { dispatchQuest } from "./quest.js";
-export { initWarren, loadWarren, resetWarren, saveWarrenManifest, type Warren } from "./warren.js";
+export { performFlight, type FlightStep } from "./flight.js";
+export { dispatchForay } from "./foray.js";
+export { initTerrarium, loadTerrarium, resetTerrarium, saveTerrariumManifest, type Terrarium } from "./terrarium.js";
 export * from "./types.js";
-export { executePlan, type PlanExecOptions, type PlanExecResult, type RiteRunner } from "./plan-executor.js";
+export { executePlan, type PlanExecOptions, type PlanExecResult, type FlightRunner } from "./plan-executor.js";
 export { type PlannerBackend, type PlanRequest, type PlanResponse, llmPlannerBackend, withFallback } from "./flytown/planner-backend.js";
 export { resolvePlannerBackend, KNOWN_PLANNER_SPECS } from "./flytown/registry.js";
 export { FlyPlannerBackend } from "./flytown/fly-planner.js";

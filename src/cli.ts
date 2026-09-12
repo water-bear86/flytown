@@ -7,9 +7,9 @@ try {
 
 import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { auditRite } from "./audit.js";
+import { auditFlight } from "./audit.js";
 import { printBanner } from "./banners.js";
-import { compareRites } from "./compare.js";
+import { compareFlights } from "./compare.js";
 import {
   chatRecordPreview,
   importChatRecords,
@@ -18,35 +18,35 @@ import {
   vectorizeStoredArtifacts,
 } from "./chat-import.js";
 import { ingestContextPath } from "./context-ingest.js";
-import { makeCreature } from "./creatures.js";
+import { makeInsect } from "./castes.js";
 import { measureDrift } from "./drift.js";
-import { exportRiteMarkdown } from "./export.js";
-import { renderLootAncestry, renderRiteGraph } from "./graph.js";
-import { callCreatureStream } from "./openai-client.js";
-import { dispatchQuest } from "./quest.js";
+import { exportFlightMarkdown } from "./export.js";
+import { renderMorselAncestry, renderFlightGraph } from "./graph.js";
+import { callInsectStream } from "./openai-client.js";
+import { dispatchForay } from "./foray.js";
 import { reroll } from "./reroll.js";
-import { performRite, type RiteStep } from "./rite.js";
+import { performFlight, type FlightStep } from "./flight.js";
 import { loadRewardPlugin } from "./reward-plugin.js";
 import { ensureRunDir, loadAllRuns, loadRun } from "./run-store.js";
-import { previewScan, scavenge } from "./scavenge.js";
+import { previewScan, scout } from "./scout.js";
 import { serve } from "./server.js";
-import { commandToCliArgs, parseGoblinCommand } from "./slash-commands.js";
+import { commandToCliArgs, parseSlashCommand } from "./slash-commands.js";
 import { exportRunAsMasTrace } from "./trace-export.js";
 import { MODEL_SLOTS, PROVIDER_PRESETS } from "./providers.js";
 import {
-  CREATURE_KINDS,
+  CASTES,
   type Artifact,
-  type CreatureKind,
-  type Loot,
+  type Caste,
+  type Morsel,
   type Personality,
   type ModelSlot,
 } from "./types.js";
-import { initWarren, loadWarren, saveWarrenManifest } from "./warren.js";
+import { initTerrarium, loadTerrarium, saveTerrariumManifest } from "./terrarium.js";
 import { normalizeOutputFormat } from "./formatting.js";
 import { buildCliHelp } from "./cli-help.js";
 import { builtinTools } from "./tools.js";
 
-const HELP = buildCliHelp(CREATURE_KINDS);
+const HELP = buildCliHelp(CASTES);
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
@@ -64,14 +64,14 @@ async function main(): Promise<void> {
   switch (cmd) {
     case "init":
       return cmdInit();
-    case "summon":
-      return cmdSummon(argv.slice(1));
-    case "scavenge":
-      return cmdScavenge(argv.slice(1));
-    case "quest":
-      return cmdQuest(argv.slice(1));
-    case "rite":
-      return cmdRite(argv.slice(1));
+    case "ask":
+      return cmdAsk(argv.slice(1));
+    case "scout":
+      return cmdScout(argv.slice(1));
+    case "foray":
+      return cmdForay(argv.slice(1));
+    case "flight":
+      return cmdFlight(argv.slice(1));
     case "reroll":
       return cmdReroll(argv.slice(1));
     case "export":
@@ -84,12 +84,10 @@ async function main(): Promise<void> {
       return cmdGraph(argv.slice(1));
     case "drift":
       return cmdDrift();
-    case "hoard":
-      return cmdHoard(argv.slice(1));
+    case "compost":
+      return cmdCompost(argv.slice(1));
     case "route":
       return cmdRoute(argv.slice(1));
-    case "cloud":
-      return cmdCloud(argv.slice(1));
     case "serve":
       return cmdServe(argv.slice(1));
     case "ancestry":
@@ -117,14 +115,13 @@ async function main(): Promise<void> {
 }
 
 async function cmdSlash(args: string[]): Promise<void> {
-  const parsed = parseGoblinCommand(shellArgsToSlashLine(args));
+  const parsed = parseSlashCommand(shellArgsToSlashLine(args));
   if (parsed.kind === "help") {
     process.stdout.write(
-      `Goblin Mode slash commands:\n\n` +
-        `  /ask <task>       Single Goblin: one worker, one answer.\n` +
+      `FLYTOWN slash commands:\n\n` +
+        `  /ask <task>       Single mode: one forager, one answer.\n` +
         `  /run <task>       Use the selected/default mode.\n` +
-        `  /town <task>      Goblintown: planner DAG and multi-agent execution.\n` +
-        `  /tank <task>      Goblintown run intended for the visual Tank.\n` +
+        `  /swarm <task>     Swarm mode: planner DAG and multi-agent flights.\n` +
         `  /history          Recent persisted runs.\n` +
         `  /context ingest <path>    Import old conversations/projects as artifacts.\n` +
         `  /context search <query>   Search imported context and prior artifacts.\n` +
@@ -136,12 +133,12 @@ async function cmdSlash(args: string[]): Promise<void> {
     const runDir = await ensureRunDir(process.cwd());
     const runs = (await loadAllRuns(runDir)).sort((a, b) => b.startedAt - a.startedAt);
     if (runs.length === 0) {
-      process.stdout.write("No Goblintown runs yet.\n");
+      process.stdout.write("No FLYTOWN runs yet.\n");
       return;
     }
     for (const r of runs.slice(0, 20)) {
       process.stdout.write(
-        `${r.runId}  ${r.mode ?? "rite"}  ${r.status ?? (r.done ? "done" : "running")}  ${truncate(r.task, 90)}\n`,
+        `${r.runId}  ${r.mode ?? "flight"}  ${r.status ?? (r.done ? "done" : "running")}  ${truncate(r.task, 90)}\n`,
       );
     }
     return;
@@ -150,15 +147,15 @@ async function cmdSlash(args: string[]): Promise<void> {
     return cmdContext(parsed.args);
   }
   if (!parsed.task) {
-    process.stderr.write(`usage: goblintown /ask "<task>" or goblintown /town "<task>"\n`);
+    process.stderr.write(`usage: flytown /ask "<task>" or flytown /swarm "<task>"\n`);
     process.exitCode = 1;
     return;
   }
   const mapped = commandToCliArgs(parsed);
   const target = mapped[0];
-  if (target === "summon") return cmdSummon(mapped.slice(1));
+  if (target === "ask") return cmdAsk(mapped.slice(1));
   if (target === "plan") return cmdPlan(mapped.slice(1));
-  process.stderr.write(`Unsupported Goblin Mode command: /${parsed.kind}\n`);
+  process.stderr.write(`Unsupported slash command: /${parsed.kind}\n`);
   process.exitCode = 1;
 }
 
@@ -183,14 +180,14 @@ async function cmdContext(args: string[]): Promise<void> {
   if (action === "ingest") {
     const inputPath = positionals[1];
     if (!inputPath) {
-      process.stderr.write(`usage: goblintown context ingest <path> [--limit N]\n`);
+      process.stderr.write(`usage: flytown context ingest <path> [--limit N]\n`);
       process.exitCode = 1;
       return;
     }
-    const w = await loadWarren(process.cwd());
+    const w = await loadTerrarium(process.cwd());
     const result = await ingestContextPath({
       root: w.root,
-      hoard: w.hoard,
+      compost: w.compost,
       inputPath,
       limit: clampCliLimit(flags.limit, 80, 1, 500),
     });
@@ -211,25 +208,25 @@ async function cmdContext(args: string[]): Promise<void> {
   if (action === "search") {
     const query = positionals.slice(1).join(" ").trim();
     if (!query) {
-      process.stderr.write(`usage: goblintown context search "<query>" [--limit N]\n`);
+      process.stderr.write(`usage: flytown context search "<query>" [--limit N]\n`);
       process.exitCode = 1;
       return;
     }
-    const w = await loadWarren(process.cwd());
-    const all = await w.hoard.allArtifacts();
+    const w = await loadTerrarium(process.cwd());
+    const all = await w.compost.allArtifacts();
     const { findRelevantArtifactsEmbedded } = await import("./embeddings.js");
     const matches = await findRelevantArtifactsEmbedded({
       artifacts: all,
       queryText: query,
       limit,
-      hoard: w.hoard,
+      compost: w.compost,
     });
     if (matches.length === 0) {
       process.stdout.write("No matching context artifacts found.\n");
       return;
     }
     for (const artifact of matches) {
-      const ref = artifact.evidence.find((e) => e.kind === "file")?.ref ?? artifact.riteId;
+      const ref = artifact.evidence.find((e) => e.kind === "file")?.ref ?? artifact.flightId;
       const claim = artifact.claims[0]?.text ?? artifact.task;
       process.stdout.write(`${artifact.id}  ${ref}\n  ${truncate(claim, 140)}\n`);
     }
@@ -237,11 +234,11 @@ async function cmdContext(args: string[]): Promise<void> {
   }
 
   process.stderr.write(
-    `usage: goblintown context ingest <path> [--limit N]\n` +
-      `   or: goblintown context search "<query>" [--limit N]\n` +
-      `   or: goblintown context scan chats [--source codex|chatgpt|folder]\n` +
-      `   or: goblintown context import chats [--all|--ids <id,...>]\n` +
-      `   or: goblintown context vectorize [--missing-only]\n`,
+    `usage: flytown context ingest <path> [--limit N]\n` +
+      `   or: flytown context search "<query>" [--limit N]\n` +
+      `   or: flytown context scan chats [--source codex|chatgpt|folder]\n` +
+      `   or: flytown context import chats [--all|--ids <id,...>]\n` +
+      `   or: flytown context vectorize [--missing-only]\n`,
   );
   process.exitCode = 1;
 }
@@ -279,13 +276,13 @@ async function cmdContextImportChats(args: string[]): Promise<void> {
   const importAll = flags.all === "true";
   if (!importAll && ids.length === 0) {
     process.stderr.write(
-      `usage: goblintown context import chats --all [--source codex|chatgpt|folder] [--path <path>]\n` +
-        `   or: goblintown context import chats --ids <id,...> [--source codex|chatgpt|folder]\n`,
+      `usage: flytown context import chats --all [--source codex|chatgpt|folder] [--path <path>]\n` +
+        `   or: flytown context import chats --ids <id,...> [--source codex|chatgpt|folder]\n`,
     );
     process.exitCode = 1;
     return;
   }
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const scan = await scanChatImports({
     source: normalizeChatSource(flags.source),
     path: flags.path,
@@ -294,7 +291,7 @@ async function cmdContextImportChats(args: string[]): Promise<void> {
     limit: clampCliLimit(flags.limit, 50, 1, 500),
   });
   const result = await importChatRecords({
-    hoard: w.hoard,
+    compost: w.compost,
     records: scan.records,
     ids: importAll ? undefined : ids,
     vectorize: flags["no-vectorize"] !== "true",
@@ -313,9 +310,9 @@ async function cmdContextImportChats(args: string[]): Promise<void> {
 
 async function cmdContextVectorize(args: string[]): Promise<void> {
   const flags = parseFlags(args);
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const result = await vectorizeStoredArtifacts({
-    hoard: w.hoard,
+    compost: w.compost,
     missingOnly: flags["missing-only"] === "true",
     limit: flags.limit ? clampCliLimit(flags.limit, 100, 1, 500) : undefined,
   });
@@ -328,18 +325,18 @@ async function cmdContextVectorize(args: string[]): Promise<void> {
 }
 
 async function cmdInit(): Promise<void> {
-  const w = await initWarren(process.cwd());
+  const w = await initTerrarium(process.cwd());
   process.stdout.write(
-    `Warren "${w.manifest.name}" initialized at ${w.root}.\n` +
-      `Hoard is empty. Summon something.\n`,
+    `Terrarium "${w.manifest.name}" initialized at ${w.root}.\n` +
+      `Compost is empty. Ask something.\n`,
   );
 }
 
-async function cmdSummon(args: string[]): Promise<void> {
-  const kind = args[0] as CreatureKind | undefined;
-  if (!kind || !CREATURE_KINDS.includes(kind)) {
+async function cmdAsk(args: string[]): Promise<void> {
+  const caste = args[0] as Caste | undefined;
+  if (!caste || !CASTES.includes(caste)) {
     process.stderr.write(
-      `usage: goblintown summon <${CREATURE_KINDS.join("|")}> --task "..." [--personality <p>]\n`,
+      `usage: flytown ask <${CASTES.join("|")}> --task "..." [--personality <p>]\n`,
     );
     process.exitCode = 1;
     return;
@@ -353,11 +350,11 @@ async function cmdSummon(args: string[]): Promise<void> {
   }
   const personality = flags.personality as Personality | undefined;
   const outputFormat = normalizeOutputFormat(flags.format);
-  const creature = makeCreature(kind, personality);
+  const insect = makeInsect(caste, personality);
 
-  printBanner(kind);
+  printBanner(caste);
 
-  const { text, usage } = await callCreatureStream(creature, task, (chunk) => {
+  const { text, usage } = await callInsectStream(insect, task, (chunk) => {
     process.stdout.write(chunk);
   }, {
     outputFormat,
@@ -365,52 +362,52 @@ async function cmdSummon(args: string[]): Promise<void> {
   process.stdout.write("\n");
 
   try {
-    const w = await loadWarren(process.cwd());
+    const w = await loadTerrarium(process.cwd());
     const drift = measureDrift(text);
-    const loot: Loot = {
+    const morsel: Morsel = {
       id: "",
-      creatureKind: kind,
-      personality: creature.personality,
-      model: creature.model,
+      caste,
+      personality: insect.personality,
+      model: insect.model,
       prompt: task,
       output: text,
       timestamp: Date.now(),
       drift,
       usage,
     };
-    await w.hoard.stash(loot);
+    await w.compost.stash(morsel);
     process.stdout.write(
       `\n— drift —\n` +
-        `  cross-creature words: ${drift.totalCreatureWords} / ${drift.outputWordCount}` +
+        `  caste-name words: ${drift.totalCasteWords} / ${drift.outputWordCount}` +
         `  rate=${drift.driftRate.toFixed(4)}\n` +
-        `  ${formatMentions(drift.creatureMentions)}\n` +
-        `  loot: ${loot.id}  tokens: ${usage.totalTokens}\n`,
+        `  ${formatMentions(drift.casteMentions)}\n` +
+        `  morsel: ${morsel.id}  tokens: ${usage.totalTokens}\n`,
     );
   } catch {
-    // No Warren — print the drift report anyway, just don't stash.
+    // No Terrarium — print the drift report anyway, just don't stash.
     const drift = measureDrift(text);
     process.stdout.write(
       `\n— drift —\n` +
-        `  cross-creature words: ${drift.totalCreatureWords} / ${drift.outputWordCount}` +
+        `  caste-name words: ${drift.totalCasteWords} / ${drift.outputWordCount}` +
         `  rate=${drift.driftRate.toFixed(4)}\n` +
-        `  ${formatMentions(drift.creatureMentions)}\n` +
-        `  (no Warren — loot not stashed; tokens=${usage.totalTokens})\n`,
+        `  ${formatMentions(drift.casteMentions)}\n` +
+        `  (no Terrarium — morsel not stashed; tokens=${usage.totalTokens})\n`,
     );
   }
 }
 
-async function cmdScavenge(args: string[]): Promise<void> {
+async function cmdScout(args: string[]): Promise<void> {
   const flags = parseFlags(args);
   const scanGlobs = collectFlag(args, "scan");
   const task = flags.task;
   if (!task || scanGlobs.length === 0) {
     process.stderr.write(
-      `usage: goblintown scavenge --task "..." --scan "<glob>" [--scan "<glob>"]...\n`,
+      `usage: flytown scout --task "..." --scan "<glob>" [--scan "<glob>"]...\n`,
     );
     process.exitCode = 1;
     return;
   }
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   if (flags.preview === "true") {
     const paths = await previewScan(w.root, scanGlobs);
     process.stdout.write(
@@ -418,73 +415,73 @@ async function cmdScavenge(args: string[]): Promise<void> {
     );
     return;
   }
-  const result = await scavenge({
+  const result = await scout({
     task,
     scanGlobs,
     cwd: w.root,
-    hoard: w.hoard,
+    compost: w.compost,
     personality: flags.personality as Personality | undefined,
   });
   process.stdout.write(
-    `Raccoon scavenged ${result.files.length} file(s). Loot: ${result.loot.id}\n\n` +
+    `Scout read ${result.files.length} file(s). Morsel: ${result.morsel.id}\n\n` +
       `${result.facts}\n`,
   );
 }
 
-async function cmdQuest(args: string[]): Promise<void> {
+async function cmdForay(args: string[]): Promise<void> {
   const positional = args.filter((a) => !a.startsWith("--"));
   const task = positional[0];
   if (!task) {
     process.stderr.write(
-      `usage: goblintown quest "<task>" [--pack <N>] [--personality <p>]\n`,
+      `usage: flytown foray "<task>" [--swarm <N>] [--personality <p>]\n`,
     );
     process.exitCode = 1;
     return;
   }
   const flags = parseFlags(args);
-  const packSize = flags.pack ? Number(flags.pack) : 3;
+  const swarmSize = flags.swarm ? Number(flags.swarm) : 3;
   const personality = flags.personality as Personality | undefined;
 
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const outputFormat = normalizeOutputFormat(
     flags.format ?? w.manifest.provider?.outputFormat,
   );
 
   process.stdout.write(
-    `Dispatching ${packSize} goblin(s) on quest "${truncate(task, 60)}"...\n`,
+    `Dispatching ${swarmSize} forager(s) on foray "${truncate(task, 60)}"...\n`,
   );
   const t0 = Date.now();
-  const result = await dispatchQuest({
+  const result = await dispatchForay({
     task,
-    packSize,
-    hoard: w.hoard,
+    swarmSize,
+    compost: w.compost,
     personality,
     outputFormat,
   });
   const dt = ((Date.now() - t0) / 1000).toFixed(1);
 
   process.stdout.write(
-    `\nQuest ${result.quest.id} finished in ${dt}s.\n\n`,
+    `\nForay ${result.foray.id} finished in ${dt}s.\n\n`,
   );
-  for (const l of result.loot) {
-    const v = result.quest.trollVerdicts[l.id];
+  for (const l of result.morsels) {
+    const v = result.foray.guardVerdicts[l.id];
     const tag = l.id === result.winner.id ? "  <-- WINNER" : "";
     process.stdout.write(
-      `  ${l.id}  shinies=${(l.reward ?? 0).toFixed(3)}  ` +
-        `troll=${v.score.toFixed(2)} ${v.passed ? "PASS" : "FAIL"}  ` +
+      `  ${l.id}  sugar=${(l.reward ?? 0).toFixed(3)}  ` +
+        `guard=${v.score.toFixed(2)} ${v.passed ? "PASS" : "FAIL"}  ` +
         `drift=${l.drift.driftRate.toFixed(4)}${tag}\n`,
     );
     process.stdout.write(`     critique: ${truncate(v.critique, 120)}\n`);
   }
-  process.stdout.write(`\n— winning loot —\n\n${result.winner.output}\n`);
+  process.stdout.write(`\n— winning morsel —\n\n${result.winner.output}\n`);
 }
 
-async function cmdRite(args: string[]): Promise<void> {
+async function cmdFlight(args: string[]): Promise<void> {
   const positional = args.filter((a) => !a.startsWith("--"));
   const task = positional[0];
   if (!task) {
     process.stderr.write(
-      `usage: goblintown rite "<task>" [--pack <N>] [--scan <glob>]... [--personality <p>] [--no-fallback] [--budget <tokens>] [--max-output <tokens>] [--cite <riteId>]... [--remember]\n`,
+      `usage: flytown flight "<task>" [--swarm <N>] [--scan <glob>]... [--personality <p>] [--no-fallback] [--budget <tokens>] [--max-output <tokens>] [--cite <flightId>]... [--remember]\n`,
     );
     process.exitCode = 1;
     return;
@@ -493,7 +490,7 @@ async function cmdRite(args: string[]): Promise<void> {
   const scanGlobs = collectFlag(args, "scan");
   const cites = collectFlag(args, "cite");
   const remember = flags.remember === "true";
-  const packSize = flags.pack ? Number(flags.pack) : 3;
+  const swarmSize = flags.swarm ? Number(flags.swarm) : 3;
   const personality = flags.personality as Personality | undefined;
   const noFallback = flags["no-fallback"] === "true";
   const noSpecialist = flags["no-specialist"] === "true";
@@ -501,13 +498,13 @@ async function cmdRite(args: string[]): Promise<void> {
     ? Number(flags["specialist-cap"])
     : undefined;
   const debate = flags.debate === "true";
-  const trollTools = flags["troll-tools"] === "true";
+  const guardTools = flags["guard-tools"] === "true";
   const budgetTokens = flags.budget ? Number(flags.budget) : undefined;
   const maxOutputTokensPerCall = flags["max-output"]
     ? Number(flags["max-output"])
     : undefined;
 
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const outputFormat = normalizeOutputFormat(
     flags.format ?? w.manifest.provider?.outputFormat,
   );
@@ -518,19 +515,19 @@ async function cmdRite(args: string[]): Promise<void> {
 
   // Memory context: load any --cite'd or --remember'd artifacts.
   const parentArtifacts: Artifact[] = [];
-  for (const riteId of cites) {
-    const a = await w.hoard.getArtifactByRiteId(riteId);
+  for (const flightId of cites) {
+    const a = await w.compost.getArtifactByFlightId(flightId);
     if (a) parentArtifacts.push(a);
-    else process.stderr.write(`(warning: no artifact found for rite ${riteId})\n`);
+    else process.stderr.write(`(warning: no artifact found for flight ${flightId})\n`);
   }
   if (remember) {
-    const all = await w.hoard.allArtifacts();
+    const all = await w.compost.allArtifacts();
     const { findRelevantArtifactsEmbedded } = await import("./embeddings.js");
     const auto = (await findRelevantArtifactsEmbedded({
       artifacts: all,
       queryText: task,
       limit: 3,
-      hoard: w.hoard,
+      compost: w.compost,
     })).filter((a) => !parentArtifacts.some((p) => p.id === a.id));
     parentArtifacts.push(...auto);
   }
@@ -541,86 +538,86 @@ async function cmdRite(args: string[]): Promise<void> {
   }
 
   process.stdout.write(
-    `Beginning rite (pack=${packSize}, scan=${scanGlobs.length} glob(s)` +
+    `Beginning flight (swarm=${swarmSize}, scan=${scanGlobs.length} glob(s)` +
       `${budgetTokens ? `, budget=${budgetTokens}` : ""})...\n`,
   );
 
   const t0 = Date.now();
-  const result = await performRite({
+  const result = await performFlight({
     task,
-    packSize,
+    swarmSize,
     scanGlobs,
     cwd: w.root,
-    hoard: w.hoard,
+    compost: w.compost,
     personality,
     rewardFn: rewardPlugin.fn,
     noFallback,
     noSpecialist,
     specialistCap,
     debate,
-    trollTools,
-    tools: trollTools ? builtinTools : undefined,
+    guardTools,
+    tools: guardTools ? builtinTools : undefined,
     budgetTokens,
     maxOutputTokensPerCall,
     outputFormat,
     parentArtifacts,
-    onStep: (s) => process.stdout.write(formatRiteStep(s) + "\n"),
+    onStep: (s) => process.stdout.write(formatFlightStep(s) + "\n"),
   });
   const dt = ((Date.now() - t0) / 1000).toFixed(1);
 
-  process.stdout.write(`\nRite ${result.rite.id} finished in ${dt}s — ${result.rite.outcome}.\n\n`);
+  process.stdout.write(`\nFlight ${result.flight.id} finished in ${dt}s — ${result.flight.outcome}.\n\n`);
 
-  for (const gid of result.rite.goblinLootIds) {
-    const v = result.rite.trollVerdicts[gid];
-    const tag = gid === result.rite.winnerLootId ? "  <-- WINNER" : "";
+  for (const gid of result.flight.foragerMorselIds) {
+    const v = result.flight.guardVerdicts[gid];
+    const tag = gid === result.flight.winnerMorselId ? "  <-- WINNER" : "";
     const tline =
       v
-        ? `troll=${v.score.toFixed(2)} ${v.passed ? "PASS" : "FAIL"}`
-        : "troll=—";
-    process.stdout.write(`  goblin ${gid}  ${tline}${tag}\n`);
+        ? `guard=${v.score.toFixed(2)} ${v.passed ? "PASS" : "FAIL"}`
+        : "guard=—";
+    process.stdout.write(`  forager ${gid}  ${tline}${tag}\n`);
     if (v?.critique) {
       process.stdout.write(`    critique: ${truncate(v.critique, 120)}\n`);
     }
   }
-  if (result.rite.ogreLootId) {
-    process.stdout.write(`  ogre   ${result.rite.ogreLootId}  (fallback)\n`);
+  if (result.flight.soldierMorselId) {
+    process.stdout.write(`  soldier ${result.flight.soldierMorselId}  (fallback)\n`);
   }
 
-  process.stdout.write(`\n— winning loot —\n\n${result.winnerLoot.output}\n`);
+  process.stdout.write(`\n— winning morsel —\n\n${result.winnerMorsel.output}\n`);
 }
 
-function formatRiteStep(s: RiteStep): string {
+function formatFlightStep(s: FlightStep): string {
   switch (s.kind) {
-    case "scavenge:start":
-      return `  raccoon scavenging (${s.globs.length} glob(s))...`;
-    case "scavenge:done":
-      return `  raccoon stashed ${s.lootId} (${s.fileCount} file(s))`;
+    case "scout:start":
+      return `  scout reading (${s.globs.length} glob(s))...`;
+    case "scout:done":
+      return `  scout stashed ${s.morselId} (${s.fileCount} file(s))`;
     case "artifacts:loaded":
-      return `  raccoon loaded ${s.count} prior artifact(s): ${s.artifactIds.join(", ")}`;
-    case "pack:start":
-      return `  dispatching pack of ${s.size}...`;
-    case "pack:goblin":
-      return `    goblin ${s.index + 1}${s.personality ? ` [${s.personality}]` : ""} → ${s.lootId}`;
+      return `  scout loaded ${s.count} prior artifact(s): ${s.artifactIds.join(", ")}`;
+    case "swarm:start":
+      return `  dispatching swarm of ${s.size}...`;
+    case "swarm:forager":
+      return `    forager ${s.index + 1}${s.personality ? ` [${s.personality}]` : ""} → ${s.morselId}`;
     case "debate:start":
       return `  debate round ${s.round} (size ${s.size})...`;
-    case "debate:goblin":
-      return `    debate goblin ${s.index + 1} → ${s.lootId}`;
+    case "debate:forager":
+      return `    debate forager ${s.index + 1} → ${s.morselId}`;
     case "debate:done":
       return `  debate round ${s.round} done`;
-    case "chaos:start":
-      return `  gremlins running chaos pass...`;
-    case "chaos:done":
-      return `    gremlin → ${s.gremlinId} (on goblin ${s.goblinId})`;
+    case "sting:start":
+      return `  wasps running sting pass...`;
+    case "sting:done":
+      return `    wasp → ${s.waspId} (on forager ${s.foragerId})`;
     case "review:start":
-      return `  troll reviewing...`;
+      return `  guard reviewing...`;
     case "tool:calls":
-      return `    troll invoking tools: ${s.calls.map((c) => c.name).join(", ")}`;
+      return `    guard invoking tools: ${s.calls.map((c) => c.name).join(", ")}`;
     case "tool:results":
       return `    tool results: ${s.results.map((r) => `${r.name}=${r.ok ? "ok" : "err"}`).join(", ")}`;
     case "review:verdict":
-      return `    troll: ${s.verdict.passed ? "PASS" : "FAIL"} score=${s.verdict.score.toFixed(2)} (${s.verdict.lootId})`;
+      return `    guard: ${s.verdict.passed ? "PASS" : "FAIL"} score=${s.verdict.score.toFixed(2)} (${s.verdict.morselId})`;
     case "specialist:cluster:start":
-      return `  pack failed; clustering failure modes...`;
+      return `  swarm failed; clustering failure modes...`;
     case "specialist:cluster:done":
       return `  identified ${s.clusters.length} cluster(s): ${s.clusters.map((c) => `${c.name}[${c.severity}]`).join(", ")}`;
     case "specialist:cluster:empty":
@@ -630,15 +627,15 @@ function formatRiteStep(s: RiteStep): string {
     case "specialist:spawn":
       return `    specialist #${s.index + 1} → focus: "${truncate(s.focus, 80)}"`;
     case "specialist:done":
-      return `    specialist #${s.index + 1} delivered ${s.lootId}`;
+      return `    specialist #${s.index + 1} delivered ${s.morselId}`;
     case "specialist:verdict":
-      return `    specialist #${s.index + 1} troll: ${s.verdict.passed ? "PASS" : "FAIL"} score=${s.verdict.score.toFixed(2)}`;
+      return `    specialist #${s.index + 1} guard: ${s.verdict.passed ? "PASS" : "FAIL"} score=${s.verdict.score.toFixed(2)}`;
     case "fallback:start":
-      return `  specialists insufficient; summoning ogre...`;
+      return `  specialists insufficient; escalating to the soldier...`;
     case "fallback:done":
-      return `  ogre delivered ${s.lootId}`;
+      return `  soldier delivered ${s.morselId}`;
     case "scribe:start":
-      return `  pigeon-scribe writing artifact...`;
+      return `  messenger-scribe writing artifact...`;
     case "scribe:done":
       return `  artifact ${s.artifactId} stashed`;
     case "scribe:error":
@@ -647,65 +644,65 @@ function formatRiteStep(s: RiteStep): string {
       return `    [${s.slot}] thinking… ${s.text.length} chars`;
     case "budget:exceeded":
       return `  ⚠ budget exceeded at ${s.phase}: used ${s.used} / cap ${s.cap}`;
-    case "rite:done":
-      return `  rite outcome: ${s.outcome}`;
+    case "flight:done":
+      return `  flight outcome: ${s.outcome}`;
   }
 }
 
 async function cmdReroll(args: string[]): Promise<void> {
-  const riteId = args.find((a) => !a.startsWith("--"));
-  if (!riteId) {
+  const flightId = args.find((a) => !a.startsWith("--"));
+  if (!flightId) {
     process.stderr.write(
-      `usage: goblintown reroll <riteId> [--no-fallback] [--budget <tokens>]\n`,
+      `usage: flytown reroll <flightId> [--no-fallback] [--budget <tokens>]\n`,
     );
     process.exitCode = 1;
     return;
   }
   const flags = parseFlags(args);
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const rewardPlugin = await loadRewardPlugin(w.root);
-  const original = await w.hoard.getRite(riteId);
+  const original = await w.compost.getFlight(flightId);
   if (!original) {
-    process.stderr.write(`Rite ${riteId} not found.\n`);
+    process.stderr.write(`Flight ${flightId} not found.\n`);
     process.exitCode = 1;
     return;
   }
   process.stdout.write(
-    `Rerolling rite ${riteId}\n` +
+    `Rerolling flight ${flightId}\n` +
       `  task: "${truncate(original.task, 80)}"\n` +
-      `  pack=${original.packSize}  personality=${original.personality}\n`,
+      `  swarm=${original.swarmSize}  personality=${original.personality}\n`,
   );
   const t0 = Date.now();
   const result = await reroll({
-    riteId,
+    flightId,
     cwd: w.root,
-    hoard: w.hoard,
+    compost: w.compost,
     rewardFn: rewardPlugin.fn,
     noFallback: flags["no-fallback"] === "true",
     budgetTokens: flags.budget ? Number(flags.budget) : undefined,
-    onStep: (s) => process.stdout.write(formatRiteStep(s) + "\n"),
+    onStep: (s) => process.stdout.write(formatFlightStep(s) + "\n"),
   });
   const dt = ((Date.now() - t0) / 1000).toFixed(1);
   process.stdout.write(
-    `\nNew rite ${result.rite.id} (${result.rite.outcome}) in ${dt}s.\n` +
-      `Compare: goblintown compare ${riteId} ${result.rite.id}\n`,
+    `\nNew flight ${result.flight.id} (${result.flight.outcome}) in ${dt}s.\n` +
+      `Compare: flytown compare ${flightId} ${result.flight.id}\n`,
   );
 }
 
 async function cmdExport(args: string[]): Promise<void> {
-  const riteId = args.find((a) => !a.startsWith("--"));
-  if (!riteId) {
+  const flightId = args.find((a) => !a.startsWith("--"));
+  if (!flightId) {
     process.stderr.write(
-      `usage: goblintown export <riteId> [--out <path.md>]\n`,
+      `usage: flytown export <flightId> [--out <path.md>]\n`,
     );
     process.exitCode = 1;
     return;
   }
   const flags = parseFlags(args);
-  const w = await loadWarren(process.cwd());
-  const md = await exportRiteMarkdown(w.hoard, riteId);
+  const w = await loadTerrarium(process.cwd());
+  const md = await exportFlightMarkdown(w.compost, flightId);
   if (!md) {
-    process.stderr.write(`Rite ${riteId} not found.\n`);
+    process.stderr.write(`Flight ${flightId} not found.\n`);
     process.exitCode = 1;
     return;
   }
@@ -722,23 +719,23 @@ async function cmdCompare(args: string[]): Promise<void> {
   const positional = args.filter((a) => !a.startsWith("--"));
   const [a, b] = positional;
   if (!a || !b) {
-    process.stderr.write(`usage: goblintown compare <riteA> <riteB>\n`);
+    process.stderr.write(`usage: flytown compare <flightA> <flightB>\n`);
     process.exitCode = 1;
     return;
   }
-  const w = await loadWarren(process.cwd());
-  const report = await compareRites(w.hoard, a, b);
+  const w = await loadTerrarium(process.cwd());
+  const report = await compareFlights(w.compost, a, b);
   if (!report) {
-    process.stderr.write(`One or both rites not found (${a}, ${b}).\n`);
+    process.stderr.write(`One or both flights not found (${a}, ${b}).\n`);
     process.exitCode = 1;
     return;
   }
   const fmt = (label: string, x: typeof report.a) =>
-    `${label} ${x.rite.id}\n` +
-    `  outcome:        ${x.rite.outcome}\n` +
-    `  pack:           ${x.rite.packSize}\n` +
-    `  personality:    ${x.rite.personality}\n` +
-    `  total loot:     ${x.totalLoot}\n` +
+    `${label} ${x.flight.id}\n` +
+    `  outcome:        ${x.flight.outcome}\n` +
+    `  swarm:          ${x.flight.swarmSize}\n` +
+    `  personality:    ${x.flight.personality}\n` +
+    `  total morsels:  ${x.totalMorsels}\n` +
     `  total tokens:   ${x.totalTokens}\n` +
     `  avg drift rate: ${x.avgDriftRate.toFixed(4)}\n` +
     `  pass rate:      ${(x.passRate * 100).toFixed(0)}%\n`;
@@ -761,39 +758,39 @@ async function cmdCompare(args: string[]): Promise<void> {
 }
 
 async function cmdAudit(args: string[]): Promise<void> {
-  const riteId = args[0];
-  if (!riteId) {
-    process.stderr.write(`usage: goblintown audit <riteId>\n`);
+  const flightId = args[0];
+  if (!flightId) {
+    process.stderr.write(`usage: flytown audit <flightId>\n`);
     process.exitCode = 1;
     return;
   }
-  const w = await loadWarren(process.cwd());
-  const report = await auditRite(w.hoard, riteId);
+  const w = await loadTerrarium(process.cwd());
+  const report = await auditFlight(w.compost, flightId);
   if (!report) {
-    process.stderr.write(`Rite ${riteId} not found.\n`);
+    process.stderr.write(`Flight ${flightId} not found.\n`);
     process.exitCode = 1;
     return;
   }
-  const r = report.rite;
+  const r = report.flight;
   process.stdout.write(
-    `Audit of rite ${r.id}\n` +
+    `Audit of flight ${r.id}\n` +
       `  outcome:        ${r.outcome}\n` +
       `  task:           "${truncate(r.task, 80)}"\n` +
-      `  total loot:     ${report.totalLoot}\n` +
+      `  total morsels:  ${report.totalMorsels}\n` +
       `  tokens:         total=${report.totalTokens} prompt=${report.promptTokens} completion=${report.completionTokens}\n` +
-      `  longest chain:  depth=${report.longestChain.length}  ${report.longestChain.lootIds.join(" → ")}\n` +
+      `  longest chain:  depth=${report.longestChain.length}  ${report.longestChain.morselIds.join(" → ")}\n` +
       `  highest drift:  ${
         report.highestDrift
-          ? `${report.highestDrift.kind} ${report.highestDrift.lootId} rate=${report.highestDrift.rate.toFixed(4)}`
+          ? `${report.highestDrift.caste} ${report.highestDrift.morselId} rate=${report.highestDrift.rate.toFixed(4)}`
           : "(none)"
       }\n\n`,
   );
-  process.stdout.write(`By creature kind:\n`);
-  for (const [kind, stats] of Object.entries(report.byKind)) {
+  process.stdout.write(`By caste:\n`);
+  for (const [caste, stats] of Object.entries(report.byCaste)) {
     if (stats.count === 0) continue;
     process.stdout.write(
-      `  ${kind.padEnd(8)} n=${stats.count}  tokens=${stats.totalTokens}  ` +
-        `avg drift=${stats.avgDriftRate.toFixed(4)}  avg shinies=${stats.avgRewardOrZero.toFixed(3)}\n`,
+      `  ${caste.padEnd(9)} n=${stats.count}  tokens=${stats.totalTokens}  ` +
+        `avg drift=${stats.avgDriftRate.toFixed(4)}  avg sugar=${stats.avgRewardOrZero.toFixed(3)}\n`,
     );
   }
   if (report.warnings.length > 0) {
@@ -811,9 +808,9 @@ async function cmdAudit(args: string[]): Promise<void> {
   } else {
     process.stdout.write(`\nArtifact memory: none (scribe failed or skipped)\n`);
   }
-  if ((r.specialistLootIds?.length ?? 0) > 0) {
-    process.stdout.write(`\nSpecialist recovery: ${r.specialistLootIds!.length} specialist(s)\n`);
-    for (const sid of r.specialistLootIds!) {
+  if ((r.specialistMorselIds?.length ?? 0) > 0) {
+    process.stdout.write(`\nSpecialist recovery: ${r.specialistMorselIds!.length} specialist(s)\n`);
+    for (const sid of r.specialistMorselIds!) {
       const v = r.specialistVerdicts?.[sid];
       process.stdout.write(`  ${sid}  ${v ? `${v.passed ? "PASS" : "FAIL"} score=${v.score.toFixed(2)}` : "(no verdict)"}\n`);
     }
@@ -823,117 +820,118 @@ async function cmdAudit(args: string[]): Promise<void> {
 async function cmdGraph(args: string[]): Promise<void> {
   const id = args[0];
   if (!id) {
-    process.stderr.write(`usage: goblintown graph <riteId|lootId>\n`);
+    process.stderr.write(`usage: flytown graph <flightId|morselId>\n`);
     process.exitCode = 1;
     return;
   }
-  const w = await loadWarren(process.cwd());
-  const riteRendered = await renderRiteGraph(w.hoard, id);
-  if (riteRendered) {
-    process.stdout.write(riteRendered + "\n");
+  const w = await loadTerrarium(process.cwd());
+  const flightRendered = await renderFlightGraph(w.compost, id);
+  if (flightRendered) {
+    process.stdout.write(flightRendered + "\n");
     return;
   }
-  const lootRendered = await renderLootAncestry(w.hoard, id);
-  if (lootRendered) {
-    process.stdout.write(lootRendered + "\n");
+  const morselRendered = await renderMorselAncestry(w.compost, id);
+  if (morselRendered) {
+    process.stdout.write(morselRendered + "\n");
     return;
   }
-  process.stderr.write(`No rite or loot found with id ${id}.\n`);
+  process.stderr.write(`No flight or morsel found with id ${id}.\n`);
   process.exitCode = 1;
 }
 
 async function cmdDrift(): Promise<void> {
-  const w = await loadWarren(process.cwd());
-  const all = await w.hoard.allLoot();
+  const w = await loadTerrarium(process.cwd());
+  const all = await w.compost.allMorsels();
   if (all.length === 0) {
-    process.stdout.write(`Hoard is empty.\n`);
+    process.stdout.write(`Compost is empty.\n`);
     return;
   }
-  process.stdout.write(`Hoard contains ${all.length} loot drop(s).\n\n`);
+  process.stdout.write(`Compost contains ${all.length} morsel(s).\n\n`);
 
-  const byKind = new Map<CreatureKind, number[]>();
-  for (const k of CREATURE_KINDS) byKind.set(k, []);
-  for (const l of all) byKind.get(l.creatureKind)?.push(l.drift.driftRate);
+  const byCaste = new Map<Caste, number[]>();
+  for (const k of CASTES) byCaste.set(k, []);
+  for (const l of all) byCaste.get(l.caste)?.push(l.drift.driftRate);
 
   process.stdout.write(
-    `Drift rate by creature kind (cross-creature mentions / total words):\n`,
+    `Drift rate by caste (caste-name mentions / total words):\n`,
   );
-  for (const k of CREATURE_KINDS) {
-    const rates = byKind.get(k) ?? [];
+  for (const k of CASTES) {
+    const rates = byCaste.get(k) ?? [];
     if (rates.length === 0) {
-      process.stdout.write(`  ${k.padEnd(8)} (n=0)\n`);
+      process.stdout.write(`  ${k.padEnd(9)} (n=0)\n`);
       continue;
     }
     const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
     process.stdout.write(
-      `  ${k.padEnd(8)} avg=${avg.toFixed(4)}  n=${rates.length}\n`,
+      `  ${k.padEnd(9)} avg=${avg.toFixed(4)}  n=${rates.length}\n`,
     );
   }
   process.stdout.write(
-    `\nReminder: high cross-creature drift means your reward signal is leaking.\n` +
-      `That is the exact bug from the Incident. Tune accordingly.\n`,
+    `\nNote: drift is reported, not penalised by sugar. High drift can mean the themed\n` +
+      `worker prompts are leaking into outputs, or just ordinary use of words such as\n` +
+      `"guard" and "scout". Read the morsels before changing prompts.\n`,
   );
 }
 
-async function cmdHoard(args: string[]): Promise<void> {
+async function cmdCompost(args: string[]): Promise<void> {
   const flags = parseFlags(args);
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const limit = flags.limit ? Math.max(1, Number(flags.limit)) : Infinity;
   const since = flags.since ? parseTimestamp(flags.since) : null;
-  const kind = flags.kind as CreatureKind | undefined;
-  const filterRite = flags.rite;
-  const filterQuest = flags.quest;
+  const caste = flags.caste as Caste | undefined;
+  const filterFlight = flags.flight;
+  const filterForay = flags.foray;
 
-  if (kind && !CREATURE_KINDS.includes(kind)) {
-    process.stderr.write(`unknown --kind: ${kind}\n`);
+  if (caste && !CASTES.includes(caste)) {
+    process.stderr.write(`unknown --caste: ${caste}\n`);
     process.exitCode = 1;
     return;
   }
 
-  let loot = await w.hoard.allLoot();
-  if (kind) loot = loot.filter((l) => l.creatureKind === kind);
-  if (since !== null) loot = loot.filter((l) => l.timestamp >= since);
-  if (filterRite) loot = loot.filter((l) => l.riteId === filterRite);
-  if (filterQuest) loot = loot.filter((l) => l.questId === filterQuest);
-  loot.sort((a, b) => b.timestamp - a.timestamp);
-  if (Number.isFinite(limit)) loot = loot.slice(0, limit);
+  let morsels = await w.compost.allMorsels();
+  if (caste) morsels = morsels.filter((l) => l.caste === caste);
+  if (since !== null) morsels = morsels.filter((l) => l.timestamp >= since);
+  if (filterFlight) morsels = morsels.filter((l) => l.flightId === filterFlight);
+  if (filterForay) morsels = morsels.filter((l) => l.forayId === filterForay);
+  morsels.sort((a, b) => b.timestamp - a.timestamp);
+  if (Number.isFinite(limit)) morsels = morsels.slice(0, limit);
 
-  let rites = await w.hoard.allRites();
-  if (since !== null) rites = rites.filter((r) => r.startedAt >= since);
-  rites.sort((a, b) => b.startedAt - a.startedAt);
+  let flights = await w.compost.allFlights();
+  if (since !== null) flights = flights.filter((r) => r.startedAt >= since);
+  flights.sort((a, b) => b.startedAt - a.startedAt);
 
-  let quests = await w.hoard.allQuests();
-  if (since !== null) quests = quests.filter((q) => q.startedAt >= since);
-  quests.sort((a, b) => b.startedAt - a.startedAt);
+  let forays = await w.compost.allForays();
+  if (since !== null) forays = forays.filter((q) => q.startedAt >= since);
+  forays.sort((a, b) => b.startedAt - a.startedAt);
 
   process.stdout.write(
-    `Hoard at ${w.root}\n` +
-      `  loot:   ${loot.length}${kind ? ` (kind=${kind})` : ""}` +
+    `Compost at ${w.root}\n` +
+      `  morsels: ${morsels.length}${caste ? ` (caste=${caste})` : ""}` +
       `${since !== null ? ` (since=${new Date(since).toISOString()})` : ""}\n` +
-      `  quests: ${quests.length}\n` +
-      `  rites:  ${rites.length}\n\n`,
+      `  forays:  ${forays.length}\n` +
+      `  flights: ${flights.length}\n\n`,
   );
 
-  if (kind || filterRite || filterQuest || since !== null) {
-    for (const l of loot) {
+  if (caste || filterFlight || filterForay || since !== null) {
+    for (const l of morsels) {
       const tokens = l.usage ? `tokens=${l.usage.totalTokens} ` : "";
       process.stdout.write(
-        `  ${l.creatureKind.padEnd(8)} ${l.id}  ${tokens}drift=${l.drift.driftRate.toFixed(4)}` +
+        `  ${l.caste.padEnd(9)} ${l.id}  ${tokens}drift=${l.drift.driftRate.toFixed(4)}` +
           ` ${new Date(l.timestamp).toISOString()}\n`,
       );
     }
     return;
   }
 
-  for (const r of rites) {
+  for (const r of flights) {
     process.stdout.write(
-      `  rite  ${r.id}  ${r.outcome.padEnd(15)}  pack=${r.packSize}\n` +
+      `  flight ${r.id}  ${r.outcome.padEnd(16)}  swarm=${r.swarmSize}\n` +
         `    "${truncate(r.task, 80)}"\n`,
     );
   }
-  for (const q of quests) {
+  for (const q of forays) {
     process.stdout.write(
-      `  quest ${q.id}  pack=${q.packSize}  winner=${q.winnerLootId ?? "—"}\n` +
+      `  foray  ${q.id}  swarm=${q.swarmSize}  winner=${q.winnerMorselId ?? "—"}\n` +
         `    "${truncate(q.task, 80)}"\n`,
     );
   }
@@ -953,10 +951,10 @@ function parseTimestamp(raw: string): number {
 
 async function cmdRoute(args: string[]): Promise<void> {
   const sub = args[0];
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const routes = w.manifest.provider?.routes ?? {};
   if (!sub || sub === "ls" || sub === "list") {
-    process.stdout.write(`Per-creature routes:\n`);
+    process.stdout.write(`Per-caste routes:\n`);
     for (const slot of MODEL_SLOTS) {
       const route = routes[slot];
       if (!route) {
@@ -982,13 +980,13 @@ async function cmdRoute(args: string[]): Promise<void> {
         ...(w.manifest.provider ?? { preset: "openai" }),
         routes: {},
       };
-      await saveWarrenManifest(w);
+      await saveTerrariumManifest(w);
       process.stdout.write(`Cleared all route overrides.\n`);
       return;
     }
     if (!slotRaw || !isModelSlot(slotRaw)) {
       process.stderr.write(
-        `usage: goblintown route clear <${MODEL_SLOTS.join("|")}> | --all\n`,
+        `usage: flytown route clear <${MODEL_SLOTS.join("|")}> | --all\n`,
       );
       process.exitCode = 1;
       return;
@@ -999,7 +997,7 @@ async function cmdRoute(args: string[]): Promise<void> {
       ...(w.manifest.provider ?? { preset: "openai" }),
       routes: next,
     };
-    await saveWarrenManifest(w);
+    await saveTerrariumManifest(w);
     process.stdout.write(`Cleared route for ${slotRaw}.\n`);
     return;
   }
@@ -1009,7 +1007,7 @@ async function cmdRoute(args: string[]): Promise<void> {
     const flags = parseFlags(rest);
     if (!slotRaw || !isModelSlot(slotRaw)) {
       process.stderr.write(
-        `usage: goblintown route set <${MODEL_SLOTS.join("|")}> --preset <${Object.keys(PROVIDER_PRESETS).join("|")}> [--model <name>] [--base-url <url>] [--api-key-env <ENV>] [--format freeform|markdown|json]\n`,
+        `usage: flytown route set <${MODEL_SLOTS.join("|")}> --preset <${Object.keys(PROVIDER_PRESETS).join("|")}> [--model <name>] [--base-url <url>] [--api-key-env <ENV>] [--format freeform|markdown|json]\n`,
       );
       process.exitCode = 1;
       return;
@@ -1038,14 +1036,14 @@ async function cmdRoute(args: string[]): Promise<void> {
         [slotRaw]: route,
       },
     };
-    await saveWarrenManifest(w);
+    await saveTerrariumManifest(w);
     process.stdout.write(`Route set for ${slotRaw}: preset=${preset}\n`);
     return;
   }
   process.stderr.write(
-    `usage: goblintown route [list|set|clear]\n` +
-      `  set:   goblintown route set <slot> --preset <id> [--model <name>] [--base-url <url>] [--api-key-env <ENV>] [--format freeform|markdown|json]\n` +
-      `  clear: goblintown route clear <slot>|--all\n`,
+    `usage: flytown route [list|set|clear]\n` +
+      `  set:   flytown route set <slot> --preset <id> [--model <name>] [--base-url <url>] [--api-key-env <ENV>] [--format freeform|markdown|json]\n` +
+      `  clear: flytown route clear <slot>|--all\n`,
   );
   process.exitCode = 1;
 }
@@ -1053,43 +1051,14 @@ async function cmdRoute(args: string[]): Promise<void> {
 async function cmdServe(args: string[]): Promise<void> {
   const flags = parseFlags(args);
   const port = flags.port ? Number(flags.port) : 7777;
-  await serve({ cwd: process.cwd(), port });
-}
-
-async function cmdCloud(args: string[]): Promise<void> {
-  const help = args[0] === "--help" || args[0] === "-h" || args[0] === "help";
-  if (help) {
-    process.stdout.write(
-      `usage: goblintown cloud\n\n` +
-        `Show Goblintown Cloud setup, local/cloud mode behavior, and optional Firebase overrides.\n`,
-    );
-    return;
-  }
-
-  process.stdout.write(
-    `Goblintown Cloud:\n` +
-      `  bundled project: goblintown-88fd6\n` +
-      `  normal flow:     goblintown serve -> first-run Local Only vs Goblintown Cloud choice\n` +
-      `  menu:            Settings -> Account -> Cloud Mode\n` +
-      `  local mode:      town memory stays local; cloud sign-in, discovery, mail, and country metadata stay off\n` +
-      `  cloud mode:      Use Goblintown Cloud for SSO, friend codes, discovery, mail, and country metadata\n` +
-      `  reset:           Settings -> Reset -> Asteroid Mode handles destructive local/cloud reset\n\n` +
-      `Optional Firebase overrides for forks:\n` +
-      `  FIREBASE_API_KEY\n` +
-      `  FIREBASE_AUTH_DOMAIN\n` +
-      `  FIREBASE_PROJECT_ID\n` +
-      `  FIREBASE_APP_ID\n` +
-      `  FIREBASE_STORAGE_BUCKET\n` +
-      `  FIREBASE_MESSAGING_SENDER_ID\n` +
-      `  FIREBASE_MEASUREMENT_ID\n`,
-  );
+  await serve({ cwd: process.cwd(), port, ...(flags.host ? { host: flags.host } : {}) });
 }
 
 async function cmdPlan(args: string[]): Promise<void> {
   const positional = args.filter((a) => !a.startsWith("--"));
   const task = positional[0];
   if (!task) {
-    process.stderr.write(`usage: goblintown plan "<task>" [--max-nodes N] [--max-replan N] [--budget tokens] [--cite <riteId>]... [--remember]\n`);
+    process.stderr.write(`usage: flytown plan "<task>" [--max-nodes N] [--max-replan N] [--budget tokens] [--cite <flightId>]... [--remember]\n`);
     process.exitCode = 1;
     return;
   }
@@ -1101,7 +1070,7 @@ async function cmdPlan(args: string[]): Promise<void> {
   const budgetTokens = flags.budget ? Number(flags.budget) : undefined;
   const maxOutputTokensPerCall = flags["max-output"] ? Number(flags["max-output"]) : undefined;
 
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const outputFormat = normalizeOutputFormat(
     flags.format ?? w.manifest.provider?.outputFormat,
   );
@@ -1109,17 +1078,17 @@ async function cmdPlan(args: string[]): Promise<void> {
 
   const parents: Artifact[] = [];
   for (const r of cites) {
-    const a = await w.hoard.getArtifactByRiteId(r);
+    const a = await w.compost.getArtifactByFlightId(r);
     if (a) parents.push(a);
   }
   if (remember) {
-    const all = await w.hoard.allArtifacts();
+    const all = await w.compost.allArtifacts();
     const { findRelevantArtifactsEmbedded } = await import("./embeddings.js");
     const auto = (await findRelevantArtifactsEmbedded({
       artifacts: all,
       queryText: task,
       limit: 3,
-      hoard: w.hoard,
+      compost: w.compost,
     })).filter(
       (a) => !parents.some((p) => p.id === a.id),
     );
@@ -1157,7 +1126,7 @@ async function cmdPlan(args: string[]): Promise<void> {
   process.stdout.write(`Plan ${plan.id}: ${plan.nodes.length} node(s)\n`);
   for (const n of plan.nodes) {
     const inputs = n.inputs.length > 0 ? ` ← [${n.inputs.join(",")}]` : "";
-    process.stdout.write(`  ${n.id} (${n.kind}, pack=${n.packSize ?? 3}, ${n.personality ?? "?"}): ${truncate(n.task, 80)}${inputs}\n`);
+    process.stdout.write(`  ${n.id} (${n.kind}, swarm=${n.swarmSize ?? 3}, ${n.personality ?? "?"}): ${truncate(n.task, 80)}${inputs}\n`);
   }
   process.stdout.write(`Executing...\n\n`);
 
@@ -1166,7 +1135,7 @@ async function cmdPlan(args: string[]): Promise<void> {
   const result = await executePlan({
     plan,
     cwd: w.root,
-    hoard: w.hoard,
+    compost: w.compost,
     rewardFn: rewardPlugin.fn,
     budgetTokens,
     maxOutputTokensPerCall,
@@ -1176,12 +1145,12 @@ async function cmdPlan(args: string[]): Promise<void> {
     planner,
     onPlanEvent: (ev) => {
       if (ev.kind === "plan:node:start") process.stdout.write(`  ▸ node ${ev.nodeId} starting\n`);
-      else if (ev.kind === "plan:node:done") process.stdout.write(`  ✓ node ${ev.nodeId} done — rite=${ev.riteId} outcome=${ev.outcome}${ev.artifactId ? ` artifact=${ev.artifactId}` : ""}\n`);
+      else if (ev.kind === "plan:node:done") process.stdout.write(`  ✓ node ${ev.nodeId} done — flight=${ev.flightId} outcome=${ev.outcome}${ev.artifactId ? ` artifact=${ev.artifactId}` : ""}\n`);
       else if (ev.kind === "plan:node:failed") process.stdout.write(`  ✗ node ${ev.nodeId} failed: ${ev.reason}\n`);
       else if (ev.kind === "plan:replan") process.stdout.write(`  ↻ replanning (depth ${ev.depth}): ${ev.reason}\n`);
       else if (ev.kind === "plan:done") process.stdout.write(`  ${ev.outcome === "success" ? "✓" : "✗"} plan ${ev.outcome}\n`);
     },
-    onStep: (nodeId, step) => process.stdout.write(`    [${nodeId}] ${formatRiteStep(step)}\n`),
+    onStep: (nodeId, step) => process.stdout.write(`    [${nodeId}] ${formatFlightStep(step)}\n`),
   });
   const dt = ((Date.now() - t0) / 1000).toFixed(1);
   process.stdout.write(`\nPlan finished in ${dt}s — ${result.outcome}\n`);
@@ -1191,16 +1160,16 @@ async function cmdPlan(args: string[]): Promise<void> {
 }
 
 /**
- * goblintown secret set <ENV_NAME>    — store a provider API key for this Warren
- *                                        (prompted with echo off on a TTY, or read from stdin)
- * goblintown secret clear <ENV_NAME>  — remove it
- * goblintown secret list              — names only, never values
- * Keys live in .goblintown/provider-secrets.json (mode 0600) and are picked up
- * automatically by the provider resolver for this Warren.
+ * flytown secret set <ENV_NAME>    — store a provider API key for this Terrarium
+ *                                     (prompted with echo off on a TTY, or read from stdin)
+ * flytown secret clear <ENV_NAME>  — remove it
+ * flytown secret list              — names only, never values
+ * Keys live in .flytown/provider-secrets.json (mode 0600) and are picked up
+ * automatically by the provider resolver for this Terrarium.
  */
 async function cmdSecret(args: string[]): Promise<void> {
   const [sub, name] = args;
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const { setProviderSecretForRoot, clearProviderSecretForRoot, readProviderSecretsForRootSync } = await import("./provider-secrets.js");
   if (sub === "list") {
     const names = Object.keys(readProviderSecretsForRootSync(w.root));
@@ -1208,7 +1177,7 @@ async function cmdSecret(args: string[]): Promise<void> {
     return;
   }
   if ((sub !== "set" && sub !== "clear") || !name || !/^[A-Z_][A-Z0-9_]*$/.test(name)) {
-    process.stderr.write(`usage: goblintown secret set|clear <ENV_NAME>   |   goblintown secret list\n`);
+    process.stderr.write(`usage: flytown secret set|clear <ENV_NAME>   |   flytown secret list\n`);
     process.exitCode = 1;
     return;
   }
@@ -1249,22 +1218,22 @@ async function cmdExportTrace(args: string[]): Promise<void> {
   const idArg = positional[0];
   if (!idArg) {
     process.stderr.write(
-      `usage: goblintown export-trace <runId|riteId> [--out <path.json>]\n`,
+      `usage: flytown export-trace <runId|flightId> [--out <path.json>]\n`,
     );
     process.exitCode = 1;
     return;
   }
   const flags = parseFlags(args);
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const runDir = await ensureRunDir(w.root);
   let run = await loadRun(runDir, idArg);
   if (!run) {
-    // Allow lookup by riteId.
+    // Allow lookup by flightId.
     const all = await loadAllRuns(runDir);
-    run = all.find((r) => r.finalRiteId === idArg) ?? null;
+    run = all.find((r) => r.finalFlightId === idArg) ?? null;
   }
   if (!run) {
-    process.stderr.write(`No run or rite found for "${idArg}".\n`);
+    process.stderr.write(`No run or flight found for "${idArg}".\n`);
     process.exitCode = 1;
     return;
   }
@@ -1283,32 +1252,32 @@ async function cmdReset(args: string[]): Promise<void> {
   const yes = flags.yes === "true" || flags.y === "true";
   const onlyArtifacts = flags.artifacts === "true";
   const onlyRuns = flags.runs === "true";
-  const onlyHoard = flags.hoard === "true";
-  // Default = --all: hoard + runs.
-  const all = flags.all === "true" || (!onlyArtifacts && !onlyRuns && !onlyHoard);
+  const onlyCompost = flags.compost === "true";
+  // Default = --all: compost + runs.
+  const all = flags.all === "true" || (!onlyArtifacts && !onlyRuns && !onlyCompost);
 
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const root = w.root;
   const targets: { label: string; path: string }[] = [];
-  if (all || onlyHoard) {
+  if (all || onlyCompost) {
     targets.push(
-      { label: "loot",      path: w.hoard.lootDir },
-      { label: "quests",    path: w.hoard.questDir },
-      { label: "rites",     path: w.hoard.riteDir },
-      { label: "artifacts", path: w.hoard.artifactDir },
-      { label: "inbox",     path: w.hoard.inboxDir },
-      { label: "outbox",    path: w.hoard.outboxDir },
+      { label: "morsels",   path: w.compost.morselDir },
+      { label: "forays",    path: w.compost.forayDir },
+      { label: "flights",   path: w.compost.flightDir },
+      { label: "artifacts", path: w.compost.artifactDir },
+      { label: "inbox",     path: w.compost.inboxDir },
+      { label: "outbox",    path: w.compost.outboxDir },
     );
   }
   if (onlyArtifacts) {
-    targets.push({ label: "artifacts", path: w.hoard.artifactDir });
+    targets.push({ label: "artifacts", path: w.compost.artifactDir });
   }
   if (all || onlyRuns) {
-    targets.push({ label: "runs", path: join(root, ".goblintown", "runs") });
+    targets.push({ label: "runs", path: join(root, ".flytown", "runs") });
   }
 
   // Show what will be deleted.
-  process.stdout.write(`Reset target(s) under ${root}/.goblintown/:\n`);
+  process.stdout.write(`Reset target(s) under ${root}/.flytown/:\n`);
   let totalFiles = 0;
   for (const t of targets) {
     const n = await countFiles(t.path);
@@ -1321,7 +1290,7 @@ async function cmdReset(args: string[]): Promise<void> {
   }
 
   if (!yes) {
-    process.stdout.write(`\nThis will delete ${totalFiles} file(s). warren.json and reward.mjs are preserved.\n`);
+    process.stdout.write(`\nThis will delete ${totalFiles} file(s). terrarium.json and reward.mjs are preserved.\n`);
     process.stdout.write(`Type "RESET" to confirm: `);
     const answer = await readStdinLine();
     if (answer.trim() !== "RESET") {
@@ -1339,7 +1308,7 @@ async function cmdReset(args: string[]): Promise<void> {
       process.stderr.write(`  warning: failed to reset ${t.label}: ${msg}\n`);
     }
   }
-  process.stdout.write(`Town reset (${totalFiles} file(s) cleared).\n`);
+  process.stdout.write(`Terrarium reset (${totalFiles} file(s) cleared).\n`);
 }
 
 async function countFiles(dir: string): Promise<number> {
@@ -1375,10 +1344,10 @@ async function cmdFold(args: string[]): Promise<void> {
   const maxCluster = flags["max-cluster"] ? Number(flags["max-cluster"]) : 6;
   const minAgeDays = flags["min-age-days"] ? Number(flags["min-age-days"]) : 7;
 
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const { foldArtifacts } = await import("./fold.js");
   const { created, foldedInputCount } = await foldArtifacts({
-    hoard: w.hoard,
+    compost: w.compost,
     threshold,
     minOverlap,
     maxClusterSize: maxCluster,
@@ -1392,17 +1361,17 @@ async function cmdFold(args: string[]): Promise<void> {
 }
 
 async function cmdAncestry(args: string[]): Promise<void> {
-  const riteId = args.find((a) => !a.startsWith("--"));
-  if (!riteId) {
-    process.stderr.write(`usage: goblintown ancestry <riteId>\n`);
+  const flightId = args.find((a) => !a.startsWith("--"));
+  if (!flightId) {
+    process.stderr.write(`usage: flytown ancestry <flightId>\n`);
     process.exitCode = 1;
     return;
   }
-  const w = await loadWarren(process.cwd());
-  const all = await w.hoard.allArtifacts();
-  const root = all.find((a) => a.riteId === riteId || a.id === riteId);
+  const w = await loadTerrarium(process.cwd());
+  const all = await w.compost.allArtifacts();
+  const root = all.find((a) => a.flightId === flightId || a.id === flightId);
   if (!root) {
-    process.stderr.write(`No artifact found for rite/id "${riteId}".\n`);
+    process.stderr.write(`No artifact found for flight/id "${flightId}".\n`);
     process.exitCode = 1;
     return;
   }
@@ -1426,14 +1395,14 @@ async function cmdAncestry(args: string[]): Promise<void> {
   const children = all.filter((a) => a.parentArtifactIds.includes(root.id));
 
   const fmt = (a: typeof root): string =>
-    `  ${a.id}  rite=${a.riteId}  outcome=${a.outcome}  task="${truncate(a.task, 70)}"`;
+    `  ${a.id}  flight=${a.flightId}  outcome=${a.outcome}  task="${truncate(a.task, 70)}"`;
 
-  process.stdout.write(`Ancestry for artifact ${root.id} (rite ${root.riteId}):\n\n`);
+  process.stdout.write(`Ancestry for artifact ${root.id} (flight ${root.flightId}):\n\n`);
   if (parents.length > 0) {
     process.stdout.write(`Parents (${parents.length}):\n`);
     for (const p of parents) process.stdout.write(fmt(p) + "\n");
   } else {
-    process.stdout.write(`Parents: (none — root rite)\n`);
+    process.stdout.write(`Parents: (none — root flight)\n`);
   }
   process.stdout.write(`\nThis:\n${fmt(root)}\n`);
   if (children.length > 0) {
@@ -1540,8 +1509,8 @@ function isModelSlot(value: string): value is ModelSlot {
   return MODEL_SLOTS.includes(value as ModelSlot);
 }
 
-function formatMentions(m: Record<CreatureKind, number>): string {
-  return CREATURE_KINDS.map((k) => `${k}:${m[k]}`).join(" ");
+function formatMentions(m: Record<Caste, number>): string {
+  return CASTES.map((k) => `${k}:${m[k]}`).join(" ");
 }
 
 function truncate(s: string, n: number): string {
@@ -1549,6 +1518,6 @@ function truncate(s: string, n: number): string {
 }
 
 main().catch((err) => {
-  process.stderr.write(`\nGoblintown error: ${err?.message ?? err}\n`);
+  process.stderr.write(`\nFLYTOWN error: ${err?.message ?? err}\n`);
   process.exitCode = 1;
 });

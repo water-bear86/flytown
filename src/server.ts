@@ -1,13 +1,10 @@
-import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
 import type { Server } from "node:http";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import express, { type Request, type Response } from "express";
 import {
   normalizeChatMessages,
-  runSingleGoblinChat,
+  runSingleForagerChat,
 } from "./chat.js";
 import {
   chatRecordPreview,
@@ -18,9 +15,9 @@ import {
 } from "./chat-import.js";
 import { ingestContextPath } from "./context-ingest.js";
 import { findRelevantArtifactsEmbedded } from "./embeddings.js";
-import { makeGoblin } from "./creatures.js";
-import { performRite, type RiteStep } from "./rite.js";
-import { callCreature } from "./openai-client.js";
+import { makeForager } from "./castes.js";
+import { performFlight, type FlightStep } from "./flight.js";
+import { callInsect } from "./openai-client.js";
 import { loadRewardPlugin } from "./reward-plugin.js";
 import {
   appendRunEvent,
@@ -35,7 +32,7 @@ import {
 } from "./run-store.js";
 import {
   type Artifact,
-  type Loot,
+  type Morsel,
   type OutputFormat,
   type Personality,
   type ProviderConfig,
@@ -58,14 +55,20 @@ import {
   readProviderSecretsForRootSync,
   setProviderSecretForRoot,
 } from "./provider-secrets.js";
-import { loadWarren, resetWarren, saveWarrenManifest, type Warren } from "./warren.js";
+import { loadTerrarium, saveTerrariumManifest, type Terrarium } from "./terrarium.js";
 import { builtinTools } from "./tools.js";
 import { flyPageHtml, registerFlyRoutes } from "./flytown/web.js";
+import { LOOPBACK_HOSTNAMES, localGuard } from "./local-guard.js";
 
 export interface ServeOptions {
   cwd: string;
   port: number;
-  autopilot?: boolean;
+  /**
+   * Interface to bind. Default 127.0.0.1 — the server can spend API budget,
+   * read files and change provider credentials, so it is reachable only from
+   * this machine unless the user explicitly chooses otherwise.
+   */
+  host?: string;
   quiet?: boolean;
 }
 
@@ -85,31 +88,6 @@ interface StartRunOptions {
   originalTask?: string;
 }
 
-const DISCOVERY_OPEN_MEMBER_LIMIT = 3;
-const ONBOARDING_VERSION = 3;
-const DEFAULT_FIREBASE_CLIENT_CONFIG = {
-  apiKey: "AIzaSyD2px9fRoSh6bwOBDIk2dGioYbxROQ6Leo",
-  authDomain: "goblintown-88fd6.firebaseapp.com",
-  projectId: "goblintown-88fd6",
-  storageBucket: "goblintown-88fd6.firebasestorage.app",
-  messagingSenderId: "904412921746",
-  appId: "1:904412921746:web:a92c6ba51e292b0d858b4b",
-  measurementId: "G-C1TSNGHXYG",
-} as const;
-
-function resolveAssetDir(warrenRoot: string): string | null {
-  const moduleDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    join(warrenRoot, "site", "assets"),
-    join(warrenRoot, "dist", "site", "assets"),
-    join(moduleDir, "..", "site", "assets"),
-  ];
-  for (const dir of candidates) {
-    if (existsSync(join(dir, "pigeon-walk-right.png"))) return dir;
-  }
-  return null;
-}
-
 function runSummary(record: RunRecord): Omit<RunRecord, "events"> & { eventCount: number } {
   const { events, ...rest } = record;
   return {
@@ -121,9 +99,9 @@ function runSummary(record: RunRecord): Omit<RunRecord, "events"> & { eventCount
 function contextArtifactPayload(artifact: Artifact): Record<string, unknown> {
   return {
     id: artifact.id,
-    riteId: artifact.riteId,
+    flightId: artifact.flightId,
     task: artifact.task,
-    ref: artifact.evidence.find((e) => e.kind === "file")?.ref ?? artifact.riteId,
+    ref: artifact.evidence.find((e) => e.kind === "file")?.ref ?? artifact.flightId,
     claim: artifact.claims[0]?.text ?? artifact.task,
     keywords: artifact.keywords,
     timestamp: artifact.timestamp,
@@ -197,12 +175,12 @@ function sanitizeJsonValue(value: unknown): unknown {
   return undefined;
 }
 
-function inferRunRequest(record: RunRecord): { mode: "rite" | "plan"; payload: Record<string, unknown> } {
+function inferRunRequest(record: RunRecord): { mode: "flight" | "plan"; payload: Record<string, unknown> } {
   const mode =
     record.mode ??
-    (record.events.some((e) => e.kind.startsWith("plan:")) || record.packSize === 0
+    (record.events.some((e) => e.kind.startsWith("plan:")) || record.swarmSize === 0
       ? "plan"
-      : "rite");
+      : "flight");
   if (mode === "plan") {
     return {
       mode,
@@ -218,7 +196,7 @@ function inferRunRequest(record: RunRecord): { mode: "rite" | "plan"; payload: R
     mode,
     payload: {
       task: record.task,
-      packSize: record.packSize || 3,
+      swarmSize: record.swarmSize || 3,
       scanGlobs: record.scanGlobs,
       personality: record.personality,
       noFallback: record.noFallback,
@@ -237,9 +215,9 @@ export function resumePayloadForRun(
     remember: true,
   });
   if (isBudgetExceededRun(record)) {
-    next.packSize = 1;
+    next.swarmSize = 1;
     next.debate = false;
-    next.trollTools = false;
+    next.guardTools = false;
     next.noSpecialist = true;
     next.maxOutputTokens = 800;
     const currentBudget =
@@ -251,8 +229,8 @@ export function resumePayloadForRun(
   const cite = Array.isArray(payload.cite)
     ? payload.cite.filter((v): v is string => typeof v === "string")
     : [];
-  if (record.finalRiteId) {
-    next.cite = [...new Set([...cite, record.finalRiteId])];
+  if (record.finalFlightId) {
+    next.cite = [...new Set([...cite, record.finalFlightId])];
   } else if (cite.length) {
     next.cite = cite;
   }
@@ -268,25 +246,6 @@ function cspHeaderForRequest(): string {
     "'self'",
     "'unsafe-inline'",
     "'unsafe-eval'",
-    "https://www.gstatic.com",
-    "https://apis.google.com",
-    "https://www.googleapis.com",
-  ].join(" ");
-  const connectSrc = [
-    "'self'",
-    "https://identitytoolkit.googleapis.com",
-    "https://securetoken.googleapis.com",
-    "https://firestore.googleapis.com",
-    "https://www.googleapis.com",
-    "https://*.googleapis.com",
-    "https://*.firebaseio.com",
-    "wss://*.firebaseio.com",
-  ].join(" ");
-  const frameSrc = [
-    "'self'",
-    "https://accounts.google.com",
-    "https://*.google.com",
-    "https://*.firebaseapp.com",
   ].join(" ");
   return [
     "default-src 'self'",
@@ -294,21 +253,20 @@ function cspHeaderForRequest(): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src ${connectSrc}`,
-    `frame-src ${frameSrc}`,
+    "connect-src 'self'",
+    "frame-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
   ].join("; ");
 }
 
 export async function serve(opts: ServeOptions): Promise<ServeHandle> {
-  const autopilot = opts.autopilot !== false;
-  let warren = await loadWarren(opts.cwd);
-  await saveWarrenManifest(warren);
-  const assetDir = resolveAssetDir(warren.root);
+  const host = opts.host ?? "127.0.0.1";
+  let terrarium = await loadTerrarium(opts.cwd);
+  await saveTerrariumManifest(terrarium);
   const app = express();
   const runs = new Map<string, RunState>();
-  let runDir = await ensureRunDir(warren.root);
+  let runDir = await ensureRunDir(terrarium.root);
 
   // Recover persisted runs. Anything still flagged in-progress when we boot is
   // terminal for that process, but remains resumable from its last checkpoint.
@@ -323,36 +281,27 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
     runs.set(rec.runId, { record: rec, subscribers: new Set() });
   }
 
+  app.use(localGuard({ allowHosts: LOOPBACK_HOSTNAMES.has(host) || host === "0.0.0.0" || host === "::" ? [] : [host] }));
   app.use(express.json({ limit: "1mb" }));
-  app.use("/assets", express.static(join(warren.root, "site/assets")));
   app.use((_req, res, next) => {
-    res.setHeader("X-Goblintown-Warren", warren.manifest.name);
+    res.setHeader("X-Flytown-Terrarium", terrarium.manifest.name);
     res.setHeader("Content-Security-Policy", cspHeaderForRequest());
     next();
   });
-  if (assetDir) {
-    app.use(
-      "/assets",
-      express.static(assetDir, {
-        fallthrough: true,
-        maxAge: "1h",
-      }),
-    );
-  }
   app.get("/", (_req, res) => {
-    res.type("html").send(flyPageHtml(warren.manifest.name));
+    res.type("html").send(flyPageHtml(terrarium.manifest.name));
   });
 
-  app.post("/api/rite", async (req, res) =>
-    startRiteRun(warren, runs, runDir, req, res),
+  app.post("/api/flight", async (req, res) =>
+    startFlightRun(terrarium, runs, runDir, req, res),
   );
-  app.post("/api/goblin/single", async (req, res) =>
-    startSingleGoblinRun(warren, req, res),
+  app.post("/api/ask", async (req, res) =>
+    startAskRun(terrarium, req, res),
   );
   app.post("/api/plan", async (req, res) =>
-    startPlanRun(warren, runs, runDir, req, res),
+    startPlanRun(terrarium, runs, runDir, req, res),
   );
-  registerFlyRoutes(app, warren);
+  registerFlyRoutes(app, terrarium);
   app.post("/api/chat", async (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const messages = normalizeChatMessages(body.messages);
@@ -369,43 +318,24 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
       ? Math.max(64, Math.min(4000, Math.floor(rawMaxOutputTokens)))
       : 900;
     const modelSlot =
-      body.modelSlot === "goblin" || body.modelSlot === "ogre"
+      body.modelSlot === "forager" || body.modelSlot === "soldier"
         ? body.modelSlot
         : undefined;
     try {
-      const result = await runSingleGoblinChat({
+      const result = await runSingleForagerChat({
         messages,
         personality,
         modelSlot,
         maxOutputTokens,
-        hoard: warren.hoard,
+        compost: terrarium.compost,
       });
       res.json(result);
     } catch (err) {
       res.status(502).json({ error: err instanceof Error ? err.message : String(err) });
     }
   });
-  app.get("/api/onboarding", (_req, res) => {
-    res.json(onboardingPayload(warren));
-  });
-  app.get("/api/identity", (_req, res) => {
-    res.json(tankIdentityPayload(warren, autopilot));
-  });
-  app.post("/api/onboarding", async (req, res) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    if (body.done !== true) {
-      res.status(400).json({ error: "done=true is required" });
-      return;
-    }
-    warren.manifest.onboarding = {
-      version: ONBOARDING_VERSION,
-      dismissedAt: new Date().toISOString(),
-    };
-    await saveWarrenManifest(warren);
-    res.json(onboardingPayload(warren));
-  });
-  app.get("/api/rite/:runId/stream", (req, res) =>
-    streamRiteRun(runs, req, res),
+  app.get("/api/flight/:runId/stream", (req, res) =>
+    streamFlightRun(runs, req, res),
   );
   app.get("/api/runs", (_req, res) =>
     res.json(
@@ -424,80 +354,49 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
     res.json(includeEvents ? state.record : runSummary(state.record));
   });
   app.post("/api/runs/:runId/resume", async (req, res) =>
-    resumeRun(warren, runs, runDir, req, res),
+    resumeRun(terrarium, runs, runDir, req, res),
   );
-  app.post("/api/asteroid", async (req, res) => {
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    const confirm = typeof body.confirm === "string" ? body.confirm : "";
-    if (confirm !== "ASTEROID") {
-      res.status(400).json({ error: "ASTEROID confirmation required" });
-      return;
-    }
-    try {
-      const root = warren.root;
-      for (const state of runs.values()) {
-        for (const subscriber of state.subscribers) {
-          try {
-            subscriber.end();
-          } catch {
-            // Subscriber may already be closed.
-          }
-        }
-      }
-      runs.clear();
-      warren = await resetWarren(root);
-      await saveWarrenManifest(warren);
-      runDir = await ensureRunDir(warren.root);
-      res.json({
-        ok: true,
-        warren: warren.manifest.name,
-        createdAt: warren.manifest.createdAt,
-      });
-    } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
-    }
-  });
   app.get("/api/trace/:runId", (req, res) => {
     const state = runs.get(req.params.runId);
     if (!state) {
-      // try by finalRiteId
-      const byRite = [...runs.values()].find((r) => r.record.finalRiteId === req.params.runId);
-      if (!byRite) {
-        res.status(404).json({ error: "no run/rite for that id" });
+      // try by finalFlightId
+      const byFlight = [...runs.values()].find((r) => r.record.finalFlightId === req.params.runId);
+      if (!byFlight) {
+        res.status(404).json({ error: "no run/flight for that id" });
         return;
       }
-      res.json(exportRunAsMasTrace(byRite.record, warren.manifest.name));
+      res.json(exportRunAsMasTrace(byFlight.record, terrarium.manifest.name));
       return;
     }
-    res.json(exportRunAsMasTrace(state.record, warren.manifest.name));
+    res.json(exportRunAsMasTrace(state.record, terrarium.manifest.name));
   });
-  app.get("/api/loot/:id", async (req, res) => {
-    const loot = await warren.hoard.getLoot(req.params.id);
-    if (!loot) {
-      res.status(404).json({ error: "loot not found" });
+  app.get("/api/morsel/:id", async (req, res) => {
+    const morsel = await terrarium.compost.getMorsel(req.params.id);
+    if (!morsel) {
+      res.status(404).json({ error: "morsel not found" });
       return;
     }
-    res.json(loot);
+    res.json(morsel);
   });
   app.get("/api/artifact/:id", async (req, res) => {
-    const art = await warren.hoard.getArtifact(req.params.id);
+    const art = await terrarium.compost.getArtifact(req.params.id);
     if (!art) {
       res.status(404).json({ error: "artifact not found" });
       return;
     }
     res.json(art);
   });
-  app.get("/api/rite/:id/artifact", async (req, res) => {
-    const art = await warren.hoard.getArtifactByRiteId(req.params.id);
+  app.get("/api/flight/:id/artifact", async (req, res) => {
+    const art = await terrarium.compost.getArtifactByFlightId(req.params.id);
     if (!art) {
-      res.status(404).json({ error: "no artifact for that rite" });
+      res.status(404).json({ error: "no artifact for that flight" });
       return;
     }
     res.json(art);
   });
   app.get("/api/artifacts", async (req, res) => {
     const limit = Number(req.query.limit ?? 50);
-    const all = (await warren.hoard.allArtifacts()).sort((a, b) => b.timestamp - a.timestamp);
+    const all = (await terrarium.compost.allArtifacts()).sort((a, b) => b.timestamp - a.timestamp);
     res.json(all.slice(0, Math.max(1, Math.min(500, limit))));
   });
   app.post("/api/context/ingest", async (req, res) => {
@@ -509,8 +408,8 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
     }
     try {
       const result = await ingestContextPath({
-        root: warren.root,
-        hoard: warren.hoard,
+        root: terrarium.root,
+        compost: terrarium.compost,
         inputPath,
         limit: apiLimit(body.limit, 80, 1, 500),
       });
@@ -530,12 +429,12 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
       return;
     }
     try {
-      const all = await warren.hoard.allArtifacts();
+      const all = await terrarium.compost.allArtifacts();
       const matches = await findRelevantArtifactsEmbedded({
         artifacts: all,
         queryText: query,
         limit: apiLimit(body.limit, 10, 1, 100),
-        hoard: warren.hoard,
+        compost: terrarium.compost,
       });
       res.json({
         artifacts: matches.map(contextArtifactPayload),
@@ -579,7 +478,7 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
         limit: apiLimit(body.limit, 50, 1, 500),
       });
       const result = await importChatRecords({
-        hoard: warren.hoard,
+        compost: terrarium.compost,
         records: scan.records,
         ids: importAll ? undefined : ids,
         vectorize: body.noVectorize !== true && body.noVectorize !== "true",
@@ -599,7 +498,7 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
     const body = (req.body ?? {}) as Record<string, unknown>;
     try {
       const result = await vectorizeStoredArtifacts({
-        hoard: warren.hoard,
+        compost: terrarium.compost,
         missingOnly: body.missingOnly === true || body.missingOnly === "true",
         limit: body.limit === undefined ? undefined : apiLimit(body.limit, 100, 1, 500),
       });
@@ -608,17 +507,17 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
     }
   });
-  app.get("/api/warren/stats", async (_req, res) => {
-    const [loot, rites] = await Promise.all([
-      warren.hoard.allLoot(),
-      warren.hoard.allRites(),
+  app.get("/api/terrarium/stats", async (_req, res) => {
+    const [morsels, flights] = await Promise.all([
+      terrarium.compost.allMorsels(),
+      terrarium.compost.allFlights(),
     ]);
-    const driftSum = loot.reduce((s, l) => s + l.drift.driftRate, 0);
-    const drift = loot.length ? driftSum / loot.length : 0;
+    const driftSum = morsels.reduce((s, l) => s + l.drift.driftRate, 0);
+    const drift = morsels.length ? driftSum / morsels.length : 0;
     res.json({
-      warren: warren.manifest.name,
-      loot: loot.length,
-      rites: rites.length,
+      terrarium: terrarium.manifest.name,
+      morsels: morsels.length,
+      flights: flights.length,
       drift,
     });
   });
@@ -637,55 +536,33 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
     });
   });
   app.get("/api/provider", (_req, res) => {
-    res.json(providerPayload(warren));
-  });
-  app.get("/api/firebase/config", (_req, res) => {
-    res.json(firebaseClientConfigPayload());
+    res.json(providerPayload(terrarium));
   });
   app.post("/api/provider", async (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const config = normalizeProviderConfig(body);
-    warren.manifest.provider = config;
+    terrarium.manifest.provider = config;
     const apiKey = typeof body.apiKey === "string" ? body.apiKey.trim() : undefined;
     const clearApiKey = body.clearApiKey === true;
     const apiKeyEnv = config.apiKeyEnv ?? "OPENAI_API_KEY";
     if (apiKey !== undefined) {
       if (apiKey.length > 0) {
-        await setProviderSecretForRoot(warren.root, apiKeyEnv, apiKey);
+        await setProviderSecretForRoot(terrarium.root, apiKeyEnv, apiKey);
       } else {
-        await clearProviderSecretForRoot(warren.root, apiKeyEnv);
+        await clearProviderSecretForRoot(terrarium.root, apiKeyEnv);
       }
     } else if (clearApiKey) {
-      await clearProviderSecretForRoot(warren.root, apiKeyEnv);
+      await clearProviderSecretForRoot(terrarium.root, apiKeyEnv);
     }
-    await saveWarrenManifest(warren);
-    res.json(providerPayload(warren));
+    await saveTerrariumManifest(terrarium);
+    res.json(providerPayload(terrarium));
   });
-  app.post("/api/cli", async (req, res) => {
-    const body = (req.body ?? {}) as { line?: unknown };
-    if (typeof body.line !== "string" || body.line.trim().length === 0) {
-      res.status(400).json({ error: "line is required" });
-      return;
-    }
-    const args = parseCliLine(body.line.trim());
-    if (args.length === 0) {
-      res.status(400).json({ error: "empty command" });
-      return;
-    }
-    if (args[0] === "serve") {
-      res.status(400).json({ error: "`serve` is already running in this UI session." });
-      return;
-    }
-    const result = await runCliLine(warren.root, args);
-    res.json(result);
-  });
-
   app.use((_req, res) =>
     res.status(404).type("html").send("<!doctype html><title>404</title><h1>404</h1>"),
   );
 
   const server = await new Promise<Server>((resolve, reject) => {
-    const listening = app.listen(opts.port);
+    const listening = app.listen(opts.port, host);
     const cleanup = () => {
       listening.off("error", onError);
       listening.off("listening", onListening);
@@ -700,9 +577,11 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
       const actualPort =
         typeof address === "object" && address ? address.port : opts.port;
       if (!opts.quiet) {
+        const exposed = !LOOPBACK_HOSTNAMES.has(host);
         process.stdout.write(
-          `Hoard UI listening on http://localhost:${actualPort}/\n` +
-            `Warren: ${warren.manifest.name}  (${warren.root})\n`,
+          `FLYTOWN listening on http://${exposed ? host : "localhost"}:${actualPort}/\n` +
+            (exposed ? `WARNING: bound to ${host}, not loopback — anyone who can reach this address can spend your API budget and read files through this server.\n` : "") +
+            `Terrarium: ${terrarium.manifest.name}  (${terrarium.root})\n`,
         );
       }
       resolve(listening);
@@ -722,8 +601,8 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
   };
 }
 
-async function startSingleGoblinRun(
-  warren: Warren,
+async function startAskRun(
+  terrarium: Terrarium,
   req: Request,
   res: Response,
 ): Promise<void> {
@@ -740,7 +619,7 @@ async function startSingleGoblinRun(
   const task = body.task.trim();
   const remember = body.remember !== false;
   const outputFormat = normalizeOutputFormat(
-    body.outputFormat ?? warren.manifest.provider?.outputFormat,
+    body.outputFormat ?? terrarium.manifest.provider?.outputFormat,
   );
   const maxOutputTokens =
     typeof body.maxOutputTokens === "number" && body.maxOutputTokens > 0
@@ -748,38 +627,38 @@ async function startSingleGoblinRun(
       : undefined;
   const parentArtifacts = remember
     ? await findRelevantArtifactsEmbedded({
-        artifacts: await warren.hoard.allArtifacts(),
+        artifacts: await terrarium.compost.allArtifacts(),
         queryText: task,
         limit: 3,
-        hoard: warren.hoard,
+        compost: terrarium.compost,
       })
     : [];
   const prompt = parentArtifacts.length
     ? `${parentArtifacts.map(renderArtifactContext).join("\n\n")}\n\nTask:\n${task}`
     : task;
   try {
-    const creature = makeGoblin();
-    const { text, usage } = await callCreature(creature, prompt, {
+    const insect = makeForager();
+    const { text, usage } = await callInsect(insect, prompt, {
       outputFormat,
       maxOutputTokens,
     });
     const drift = measureDrift(text);
-    const loot: Loot = {
+    const morsel: Morsel = {
       id: "",
-      creatureKind: "goblin",
-      personality: creature.personality,
-      model: creature.model,
+      caste: "forager",
+      personality: insect.personality,
+      model: insect.model,
       prompt,
       output: text,
       timestamp: Date.now(),
       drift,
       usage,
     };
-    const lootId = await warren.hoard.stash(loot);
+    const morselId = await terrarium.compost.stash(morsel);
     res.json({
       mode: "single",
       output: text,
-      lootId,
+      morselId,
       usage,
       parentArtifactIds: parentArtifacts.map((a) => a.id),
     });
@@ -788,8 +667,8 @@ async function startSingleGoblinRun(
   }
 }
 
-async function startRiteRun(
-  warren: Warren,
+async function startFlightRun(
+  terrarium: Terrarium,
   runs: Map<string, RunState>,
   runDir: string,
   req: Request,
@@ -798,14 +677,14 @@ async function startRiteRun(
 ): Promise<string | undefined> {
   const body = (options.bodyOverride ?? req.body ?? {}) as {
     task?: unknown;
-    packSize?: unknown;
+    swarmSize?: unknown;
     scanGlobs?: unknown;
     personality?: unknown;
     noFallback?: unknown;
     noSpecialist?: unknown;
     specialistCap?: unknown;
     debate?: unknown;
-    trollTools?: unknown;
+    guardTools?: unknown;
     budgetTokens?: unknown;
     maxOutputTokens?: unknown;
     cite?: unknown;
@@ -824,7 +703,7 @@ async function startRiteRun(
   const scanGlobs = Array.isArray(body.scanGlobs)
     ? (body.scanGlobs.filter((g) => typeof g === "string") as string[])
     : [];
-  const packSize = typeof body.packSize === "number" ? body.packSize : 3;
+  const swarmSize = typeof body.swarmSize === "number" ? body.swarmSize : 3;
   const noFallback = !!body.noFallback;
   const noSpecialist = !!body.noSpecialist;
   const specialistCap =
@@ -832,7 +711,7 @@ async function startRiteRun(
       ? body.specialistCap
       : undefined;
   const debate = !!body.debate;
-  const trollTools = !!body.trollTools;
+  const guardTools = !!body.guardTools;
   const budgetTokens =
     typeof body.budgetTokens === "number" && body.budgetTokens > 0
       ? body.budgetTokens
@@ -841,26 +720,26 @@ async function startRiteRun(
     typeof body.maxOutputTokens === "number" && body.maxOutputTokens > 0
       ? body.maxOutputTokens
       : undefined;
-  const citeRiteIds = Array.isArray(body.cite)
+  const citeFlightIds = Array.isArray(body.cite)
     ? (body.cite.filter((c) => typeof c === "string") as string[])
     : [];
   const remember = !!body.remember;
   const outputFormat = normalizeOutputFormat(
-    body.outputFormat ?? warren.manifest.provider?.outputFormat,
+    body.outputFormat ?? terrarium.manifest.provider?.outputFormat,
   );
 
   const record: RunRecord = {
     runId,
     task: body.task,
     originalTask: options.originalTask,
-    packSize,
+    swarmSize,
     scanGlobs,
     personality,
     noFallback,
-    mode: "rite",
+    mode: "flight",
     status: "running",
     request: {
-      mode: "rite",
+      mode: "flight",
       payload: sanitizeRunPayload(body),
     },
     resumedFromRunId: options.resumedFromRunId,
@@ -873,7 +752,7 @@ async function startRiteRun(
   const state: RunState = { record, subscribers: new Set() };
   runs.set(runId, state);
 
-  // coalesce disk writes during bursty pack steps
+  // coalesce disk writes during bursty swarm steps
   let pendingSave: NodeJS.Timeout | null = null;
   const persist = () => {
     if (pendingSave) return;
@@ -908,57 +787,57 @@ async function startRiteRun(
     }
   };
 
-  const rewardPlugin = await loadRewardPlugin(warren.root);
+  const rewardPlugin = await loadRewardPlugin(terrarium.root);
   if (rewardPlugin.source !== "builtin") {
     emit("reward-plugin", { source: rewardPlugin.source });
   }
 
-  // Optional Phase 1 memory hookup from the rite form too.
+  // Optional Phase 1 memory hookup from the flight form too.
   const parentArtifacts: Artifact[] = [];
-  for (const r of citeRiteIds) {
-    const a = await warren.hoard.getArtifactByRiteId(r);
+  for (const r of citeFlightIds) {
+    const a = await terrarium.compost.getArtifactByFlightId(r);
     if (a) parentArtifacts.push(a);
   }
   if (remember) {
-    const all = await warren.hoard.allArtifacts();
+    const all = await terrarium.compost.allArtifacts();
     const auto = (await findRelevantArtifactsEmbedded({
       artifacts: all,
       queryText: body.task,
       limit: 3,
-      hoard: warren.hoard,
+      compost: terrarium.compost,
     })).filter(
       (a) => !parentArtifacts.some((p) => p.id === a.id),
     );
     parentArtifacts.push(...auto);
   }
 
-  performRite({
+  performFlight({
     task: body.task,
-    packSize,
+    swarmSize,
     scanGlobs,
-    cwd: warren.root,
-    hoard: warren.hoard,
+    cwd: terrarium.root,
+    compost: terrarium.compost,
     personality,
     rewardFn: rewardPlugin.fn,
     noFallback,
     noSpecialist,
     specialistCap,
     debate,
-    trollTools,
-    tools: trollTools ? builtinTools : undefined,
+    guardTools,
+    tools: guardTools ? builtinTools : undefined,
     budgetTokens,
     maxOutputTokensPerCall: maxOutputTokens,
     outputFormat,
     parentArtifacts,
-    onStep: (step: RiteStep) => emit("step", step),
+    onStep: (step: FlightStep) => emit("step", step),
   })
     .then(async (result) => {
-      state.record.finalRiteId = result.rite.id;
-      state.record.outcome = result.rite.outcome;
+      state.record.finalFlightId = result.flight.id;
+      state.record.outcome = result.flight.outcome;
       emit("done", {
-        riteId: result.rite.id,
-        outcome: result.rite.outcome,
-        winnerLootId: result.rite.winnerLootId,
+        flightId: result.flight.id,
+        outcome: result.flight.outcome,
+        winnerMorselId: result.flight.winnerMorselId,
       });
       await finish("done");
     })
@@ -975,7 +854,7 @@ async function startRiteRun(
 }
 
 async function startPlanRun(
-  warren: Warren,
+  terrarium: Terrarium,
   runs: Map<string, RunState>,
   runDir: string,
   req: Request,
@@ -997,12 +876,12 @@ async function startPlanRun(
     return undefined;
   }
   const runId = randomUUID().slice(0, 12);
-  const plannerSpec = typeof body.planner === "string" && body.planner.trim() ? body.planner.trim() : (warren.manifest.flytown?.planner ?? DEFAULT_PLANNER);
+  const plannerSpec = typeof body.planner === "string" && body.planner.trim() ? body.planner.trim() : (terrarium.manifest.flytown?.planner ?? DEFAULT_PLANNER);
   const maxNodes = typeof body.maxNodes === "number" ? body.maxNodes : 6;
   const maxReplan = typeof body.maxReplan === "number" ? body.maxReplan : 2;
   const budgetTokens = typeof body.budgetTokens === "number" ? body.budgetTokens : undefined;
   const outputFormat = normalizeOutputFormat(
-    body.outputFormat ?? warren.manifest.provider?.outputFormat,
+    body.outputFormat ?? terrarium.manifest.provider?.outputFormat,
   );
   const cites = Array.isArray(body.cite) ? (body.cite.filter((c) => typeof c === "string") as string[]) : [];
   const remember = !!body.remember;
@@ -1011,7 +890,7 @@ async function startPlanRun(
     runId,
     task: body.task,
     originalTask: options.originalTask,
-    packSize: 0, // not directly meaningful for plans
+    swarmSize: 0, // not directly meaningful for plans
     scanGlobs: [],
     mode: "plan",
     status: "running",
@@ -1053,21 +932,21 @@ async function startPlanRun(
     }
   };
 
-  const rewardPlugin = await loadRewardPlugin(warren.root);
+  const rewardPlugin = await loadRewardPlugin(terrarium.root);
 
   // Memory load
   const parents: Artifact[] = [];
   for (const r of cites) {
-    const a = await warren.hoard.getArtifactByRiteId(r);
+    const a = await terrarium.compost.getArtifactByFlightId(r);
     if (a) parents.push(a);
   }
   if (remember) {
-    const all = await warren.hoard.allArtifacts();
+    const all = await terrarium.compost.allArtifacts();
     const auto = (await findRelevantArtifactsEmbedded({
       artifacts: all,
       queryText: body.task,
       limit: 3,
-      hoard: warren.hoard,
+      compost: terrarium.compost,
     })).filter(
       (a) => !parents.some((p) => p.id === a.id),
     );
@@ -1079,13 +958,13 @@ async function startPlanRun(
     try {
       emit("plan:planning", { task: body.task, parents: parents.length, planner: plannerSpec });
       const planner = resolvePlannerBackend(plannerSpec, {
-        root: warren.root, seed: warren.manifest.flytown?.seed, connectome: warren.manifest.flytown?.connectome,
-        learning: warren.manifest.flytown?.learning, fallback: warren.manifest.flytown?.fallbackToLlm !== false,
+        root: terrarium.root, seed: terrarium.manifest.flytown?.seed, connectome: terrarium.manifest.flytown?.connectome,
+        learning: terrarium.manifest.flytown?.learning, fallback: terrarium.manifest.flytown?.fallbackToLlm !== false,
         onFallback: (err) => emit("plan:fallback", { from: plannerSpec, to: "llm", error: err instanceof Error ? err.message : String(err) }),
       });
       const planned = await planner.plan({
         task: body.task as string,
-        cwd: warren.root,
+        cwd: terrarium.root,
         parentArtifacts: parents,
         maxNodes,
         budgetTokens,
@@ -1093,14 +972,14 @@ async function startPlanRun(
       });
       const { plan } = planned;
       if (planned.trace) {
-        await writeTrace(warren.root, planned.trace);
+        await writeTrace(terrarium.root, planned.trace);
         emit("plan:trace", { runId: planned.trace.runId, plannerId: planned.trace.plannerId, primary: planned.trace.decision.primary, included: planned.trace.decision.included, brain: planned.trace.brain ? { connectomeId: planned.trace.brain.connectomeId, variant: planned.trace.brain.variant, stats: planned.trace.brain.stats } : undefined });
       }
       emit("plan:built", { plan });
       const result = await executePlan({
         plan,
-        cwd: warren.root,
-        hoard: warren.hoard,
+        cwd: terrarium.root,
+        compost: terrarium.compost,
         rewardFn: rewardPlugin.fn,
         budgetTokens,
         outputFormat,
@@ -1111,13 +990,13 @@ async function startPlanRun(
         onStep: (nodeId, step) => emit("step", { nodeId, step }),
       });
       state.record.outcome = result.outcome === "success" ? "winner" : "all_failed";
-      state.record.finalRiteId = result.finalRiteId;
+      state.record.finalFlightId = result.finalFlightId;
       emit("done", {
-        riteId: result.finalRiteId,
+        flightId: result.finalFlightId,
         outcome: result.outcome,
         finalArtifactId: result.finalArtifact?.id,
-        finalLootId: result.finalLootId,
-        winnerLootId: result.finalLootId,
+        finalMorselId: result.finalMorselId,
+        winnerMorselId: result.finalMorselId,
       });
       await finish("done");
     } catch (err) {
@@ -1133,7 +1012,7 @@ async function startPlanRun(
 }
 
 async function resumeRun(
-  warren: Warren,
+  terrarium: Terrarium,
   runs: Map<string, RunState>,
   runDir: string,
   req: Request,
@@ -1158,12 +1037,12 @@ async function resumeRun(
   const payload = resumePayloadForRun(source, request.payload);
   const nextRunId =
     request.mode === "plan"
-      ? await startPlanRun(warren, runs, runDir, req, res, {
+      ? await startPlanRun(terrarium, runs, runDir, req, res, {
           bodyOverride: payload,
           resumedFromRunId: source.runId,
           originalTask: originalTaskForResume(source),
         })
-      : await startRiteRun(warren, runs, runDir, req, res, {
+      : await startFlightRun(terrarium, runs, runDir, req, res, {
           bodyOverride: payload,
           resumedFromRunId: source.runId,
           originalTask: originalTaskForResume(source),
@@ -1176,7 +1055,7 @@ async function resumeRun(
   }
 }
 
-function streamRiteRun(
+function streamFlightRun(
   runs: Map<string, RunState>,
   req: Request,
   res: Response,
@@ -1207,7 +1086,7 @@ function writeSse(res: Response, ev: { seq: number; kind: string; data: unknown 
   res.write(`data: ${JSON.stringify(ev.data)}\n\n`);
 }
 
-function providerPayload(warren: Warren): {
+function providerPayload(terrarium: Terrarium): {
   config: ProviderConfig;
   runtime: {
     id: string;
@@ -1222,8 +1101,8 @@ function providerPayload(warren: Warren): {
     models: Record<string, string>;
   };
 } {
-  const config = normalizeProviderConfig(warren.manifest.provider);
-  const storedSecrets = readProviderSecretsForRootSync(warren.root);
+  const config = normalizeProviderConfig(terrarium.manifest.provider);
+  const storedSecrets = readProviderSecretsForRootSync(terrarium.root);
   const runtime = resolveProviderRuntime(config, process.env, storedSecrets);
   return {
     config,
@@ -1242,123 +1121,3 @@ function providerPayload(warren: Warren): {
   };
 }
 
-function onboardingPayload(warren: Warren): {
-  done: boolean;
-  version: number;
-  dismissedAt?: string;
-} {
-  const onboarding = warren.manifest.onboarding ?? {};
-  const dismissedAt = typeof onboarding.dismissedAt === "string" ? onboarding.dismissedAt : undefined;
-  const done = onboarding.version === ONBOARDING_VERSION && !!dismissedAt;
-  return {
-    done,
-    version: ONBOARDING_VERSION,
-    ...(dismissedAt ? { dismissedAt } : {}),
-  };
-}
-
-function tankIdentityPayload(warren: Warren, autopilot: boolean): Record<string, unknown> {
-  return {
-    ok: true,
-    name: warren.manifest.name,
-    root: warren.root,
-    scope: warren.scope,
-    manifestPath: warren.manifestPath,
-    autopilot,
-  };
-}
-
-function firebaseClientConfigPayload(): {
-  enabled: boolean;
-  config: {
-    apiKey: string;
-    authDomain: string;
-    projectId: string;
-    appId: string;
-    storageBucket?: string;
-    messagingSenderId?: string;
-    measurementId?: string;
-  } | null;
-} {
-  const apiKey = trimmedEnv("FIREBASE_API_KEY") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.apiKey;
-  const authDomain = trimmedEnv("FIREBASE_AUTH_DOMAIN") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.authDomain;
-  const projectId = trimmedEnv("FIREBASE_PROJECT_ID") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.projectId;
-  const appId = trimmedEnv("FIREBASE_APP_ID") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.appId;
-  const enabled = !!(apiKey && authDomain && projectId && appId);
-  if (!enabled) return { enabled: false, config: null };
-  return {
-    enabled: true,
-    config: {
-      apiKey,
-      authDomain,
-      projectId,
-      appId,
-      ...(trimmedEnv("FIREBASE_STORAGE_BUCKET") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.storageBucket
-        ? { storageBucket: (trimmedEnv("FIREBASE_STORAGE_BUCKET") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.storageBucket) as string }
-        : {}),
-      ...(trimmedEnv("FIREBASE_MESSAGING_SENDER_ID") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.messagingSenderId
-        ? { messagingSenderId: (trimmedEnv("FIREBASE_MESSAGING_SENDER_ID") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.messagingSenderId) as string }
-        : {}),
-      ...(trimmedEnv("FIREBASE_MEASUREMENT_ID") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.measurementId
-        ? { measurementId: (trimmedEnv("FIREBASE_MEASUREMENT_ID") ?? DEFAULT_FIREBASE_CLIENT_CONFIG.measurementId) as string }
-        : {}),
-    },
-  };
-}
-
-function trimmedEnv(name: string): string | null {
-  const v = process.env[name];
-  if (typeof v !== "string") return null;
-  const t = v.trim();
-  return t.length > 0 ? t : null;
-}
-
-function parseCliLine(line: string): string[] {
-  const out: string[] = [];
-  const re = /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'|`([^`\\]*(?:\\.[^`\\]*)*)`|(\S+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(line))) {
-    const raw = m[1] ?? m[2] ?? m[3] ?? m[4] ?? "";
-    out.push(raw.replace(/\\(["'`\\])/g, "$1"));
-  }
-  return out;
-}
-
-async function runCliLine(
-  cwd: string,
-  args: string[],
-): Promise<{ ok: boolean; code: number; stdout: string; stderr: string; command: string }> {
-  const cliPath = join(cwd, "dist", "cli.js");
-  const command = ["node", cliPath, ...args].join(" ");
-  return await new Promise((resolve) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd,
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk: Buffer | string) => {
-      stdout += chunk.toString();
-      if (stdout.length > 500_000) stdout = stdout.slice(-500_000);
-    });
-    child.stderr.on("data", (chunk: Buffer | string) => {
-      stderr += chunk.toString();
-      if (stderr.length > 200_000) stderr = stderr.slice(-200_000);
-    });
-    const timeout = setTimeout(() => {
-      child.kill("SIGTERM");
-    }, 8 * 60_000);
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      const exitCode = typeof code === "number" ? code : 1;
-      resolve({
-        ok: exitCode === 0,
-        code: exitCode,
-        stdout,
-        stderr,
-        command,
-      });
-    });
-  });
-}

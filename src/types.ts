@@ -1,18 +1,25 @@
-export type CreatureKind =
-  | "goblin"
-  | "gremlin"
-  | "raccoon"
-  | "troll"
-  | "ogre"
-  | "pigeon";
+/**
+ * The role a model-backed worker plays (see docs/flytown/VOCABULARY.md):
+ * forager (parallel candidate answers), wasp (adversarial attack on a
+ * candidate), scout (context gathering), guard (default-reject review),
+ * soldier (expensive escalation), messenger (compression; in Scribe mode it
+ * distils a finished flight into an Artifact).
+ */
+export type Caste =
+  | "forager"
+  | "wasp"
+  | "scout"
+  | "guard"
+  | "soldier"
+  | "messenger";
 
-export const CREATURE_KINDS: CreatureKind[] = [
-  "goblin",
-  "gremlin",
-  "raccoon",
-  "troll",
-  "ogre",
-  "pigeon",
+export const CASTES: Caste[] = [
+  "forager",
+  "wasp",
+  "scout",
+  "guard",
+  "soldier",
+  "messenger",
 ];
 
 export type Personality =
@@ -21,10 +28,11 @@ export type Personality =
   | "chipper"
   | "stoic"
   | "feral"
-  | "goblin_mode";
+  | "frenzied";
 
-export interface Creature {
-  kind: CreatureKind;
+/** A model-backed worker: one caste, one model, one system prompt. */
+export interface Insect {
+  caste: Caste;
   modelSlot?: ModelSlot;
   model: string;
   temperature: number;
@@ -32,9 +40,10 @@ export interface Creature {
   systemPrompt: string;
 }
 
+/** How often an output mentions the caste names (detects the themed prompts leaking into outputs). */
 export interface DriftReport {
-  creatureMentions: Record<CreatureKind, number>;
-  totalCreatureWords: number;
+  casteMentions: Record<Caste, number>;
+  totalCasteWords: number;
   outputWordCount: number;
   driftRate: number;
 }
@@ -46,78 +55,82 @@ export interface TokenUsage {
   model: string;
 }
 
-export interface Loot {
+/** One model invocation (prompt, output, usage), content-addressed in the Compost. */
+export interface Morsel {
   id: string;
-  questId?: string;
-  riteId?: string;
-  creatureKind: CreatureKind;
+  forayId?: string;
+  flightId?: string;
+  caste: Caste;
   personality: Personality;
   model: string;
   prompt: string;
   output: string;
   reward?: number;
-  parentLootIds?: string[];
+  parentMorselIds?: string[];
   timestamp: number;
   drift: DriftReport;
   usage?: TokenUsage;
 }
 
-export interface TrollVerdict {
-  lootId: string;
+/** The guard's pass/fail verdict and 0-1 score for one candidate morsel. */
+export interface GuardVerdict {
+  morselId: string;
   passed: boolean;
   score: number;
   critique: string;
 }
 
-export interface Quest {
+/** Lightweight run: a forager swarm plus guard review, without the full flight pipeline. */
+export interface Foray {
   id: string;
   task: string;
-  packSize: number;
+  swarmSize: number;
   personality: Personality;
-  lootIds: string[];
-  trollVerdicts: Record<string, TrollVerdict>;
-  winnerLootId?: string;
+  morselIds: string[];
+  guardVerdicts: Record<string, GuardVerdict>;
+  winnerMorselId?: string;
   startedAt: number;
   finishedAt?: number;
 }
 
-export interface Rite {
+/** The full pipeline: scout → forager swarm → wasps → guard → specialists → soldier → scribe. */
+export interface Flight {
   id: string;
   task: string;
   scanGlobs: string[];
-  packSize: number;
+  swarmSize: number;
   personality: Personality;
-  contextLootId?: string;
-  goblinLootIds: string[];
-  chaosLootIds: Record<string, string>;
-  trollVerdicts: Record<string, TrollVerdict>;
-  ogreLootId?: string;
-  winnerLootId?: string;
-  /** Specialist-recovery loot ids (Phase 2). */
-  specialistLootIds?: string[];
-  /** Verdicts for specialist outputs (keyed by specialist loot id). */
-  specialistVerdicts?: Record<string, TrollVerdict>;
-  outcome: "winner" | "specialist_recovery" | "ogre_fallback" | "all_failed";
+  contextMorselId?: string;
+  foragerMorselIds: string[];
+  stingMorselIds: Record<string, string>;
+  guardVerdicts: Record<string, GuardVerdict>;
+  soldierMorselId?: string;
+  winnerMorselId?: string;
+  /** Specialist-recovery morsel ids (Phase 2). */
+  specialistMorselIds?: string[];
+  /** Verdicts for specialist outputs (keyed by specialist morsel id). */
+  specialistVerdicts?: Record<string, GuardVerdict>;
+  outcome: "winner" | "specialist_recovery" | "soldier_fallback" | "all_failed";
   startedAt: number;
   finishedAt?: number;
 }
 
 export interface InboxMessage {
   id: string;
-  fromWarren: string;
+  fromTerrarium: string;
   audience: string;
   body: string;
   signature: string;
-  sourceLootId: string;
+  sourceMorselId: string;
   receivedAt: number;
 }
 
 export interface OutboxRecord {
   id: string;
-  toWarren: string;
+  toTerrarium: string;
   audience: string;
-  sourceLootId: string;
-  pigeonLootId: string;
+  sourceMorselId: string;
+  messengerMorselId: string;
   signature: string;
   sentAt: number;
 }
@@ -165,29 +178,29 @@ export interface DirectMessageThread {
 }
 
 /**
- * An Artifact is a typed, structured summary of what a Rite established.
- * Stored separately from raw Loot so that future rites can load just the
+ * An Artifact is a typed, structured summary of what a Flight established.
+ * Stored separately from raw morsels so that future flights can load just the
  * distilled findings without re-reading every prompt/output.
  */
 export interface Artifact {
-  /** Stable id derived from rite id + content hash. */
+  /** Stable id derived from flight id + content hash. */
   id: string;
-  riteId: string;
+  flightId: string;
   task: string;
-  outcome: Rite["outcome"];
-  /** Pointer to the winning loot (whose output the artifact distills). */
-  winnerLootId?: string;
+  outcome: Flight["outcome"];
+  /** Pointer to the winning morsel (whose output the artifact distills). */
+  winnerMorselId?: string;
 
-  /** Things this rite established. */
+  /** Things this flight established. */
   claims: ArtifactClaim[];
   /** Pointers to evidence backing the claims. */
   evidence: ArtifactEvidence[];
-  /** Things the rite identified but didn't resolve. */
+  /** Things the flight identified but didn't resolve. */
   openQuestions: string[];
-  /** Suggested follow-up rites. */
+  /** Suggested follow-up flights. */
   nextSteps: string[];
 
-  /** Other artifacts this rite built on (parent → child memory chain). */
+  /** Other artifacts this flight built on (parent → child memory chain). */
   parentArtifactIds: string[];
 
   /** Keywords for v1 retrieval. */
@@ -206,13 +219,13 @@ export interface ArtifactClaim {
 }
 
 export interface ArtifactEvidence {
-  kind: "loot" | "file" | "url" | "external";
+  kind: "morsel" | "file" | "url" | "external";
   ref: string;
   snippet?: string;
 }
 
 /**
- * A Plan is a DAG of sub-rites the Planner emits for complex tasks.
+ * A Plan is a DAG of flights the Planner emits for complex tasks.
  * Topologically executed; failed nodes can trigger recursive replan.
  */
 export interface Plan {
@@ -227,7 +240,7 @@ export interface Plan {
    * Optional: the planner decided not to run any nodes. The executor honours
    * this before validation and returns a "halted" result. Lets a planner
    * backend express "stop", "blocked" or "needs approval" without inventing
-   * a fake sub-rite.
+   * a fake flight.
    */
   halt?: PlanHalt;
   /** Which planner backend produced this plan (e.g. "llm", "rules", "fly"). */
@@ -244,13 +257,13 @@ export interface PlanNode {
   task: string;
   /** ids of nodes whose artifacts must be available before this node runs. */
   inputs: string[];
-  kind: "sub_rite" | "synthesize";
-  /** Suggested pack size from dynamic spawning; defaults to 1 if absent. */
-  packSize?: number;
-  /** Suggested lead personality for the goblin pack on this node. */
+  kind: "flight" | "synthesize";
+  /** Suggested swarm size from dynamic spawning; defaults to 1 if absent. */
+  swarmSize?: number;
+  /** Suggested lead personality for the forager swarm on this node. */
   personality?: Personality;
   status: "pending" | "running" | "done" | "failed" | "skipped";
-  riteId?: string;
+  flightId?: string;
   artifactId?: string;
   failureReason?: string;
   /** Optional planner hints (orchestration action that produced this node, etc). */
@@ -260,9 +273,9 @@ export interface PlanNode {
 export interface PlanNodeHints {
   /** Orchestration action this node was compiled from. */
   action?: string;
-  /** Ask the troll to use verifier tools while reviewing this node. */
-  trollTools?: boolean;
-  /** Run an inter-goblin debate round on this node. */
+  /** Ask the guard to use verifier tools while reviewing this node. */
+  guardTools?: boolean;
+  /** Run an inter-forager debate round on this node. */
   debate?: boolean;
 }
 
@@ -272,22 +285,22 @@ export interface PlanEdge {
 }
 
 /**
- * Identified failure mode across a pack of failed goblin attempts.
- * Used to spawn focused Specialist goblins in the recovery layer.
+ * Identified failure mode across a swarm of failed forager attempts.
+ * Used to spawn focused Specialist foragers in the recovery layer.
  */
 export interface FailureCluster {
   /** Short identifier, e.g. "null-handling". */
   name: string;
   /** 1-2 sentence description of what's wrong. */
   description: string;
-  /** Indexes into the goblin pack that exhibit this failure. */
-  affectedGoblinIndexes: number[];
-  /** Concise instruction for the specialist goblin telling it what to fix. */
+  /** Indexes into the forager swarm that exhibit this failure. */
+  affectedForagerIndexes: number[];
+  /** Concise instruction for the specialist forager telling it what to fix. */
   specialistFocus: string;
   severity: "high" | "medium" | "low";
 }
 
-export type ModelSlot = CreatureKind | "scribe" | "embedding";
+export type ModelSlot = Caste | "scribe" | "embedding";
 
 export type ProviderPresetId =
   | "openai"
@@ -332,13 +345,14 @@ export interface OnboardingConfig {
   dismissedAt?: string;
 }
 
-export interface WarrenManifest {
+/** The project manifest, stored at <root>/.flytown/terrarium.json. */
+export interface TerrariumManifest {
   name: string;
   version: number;
   createdAt: string;
-  defaultModelGoblin: string;
-  defaultModelOgre: string;
-  defaultModelTroll: string;
+  defaultModelForager: string;
+  defaultModelSoldier: string;
+  defaultModelGuard: string;
   provider?: ProviderConfig;
   onboarding?: OnboardingConfig;
   /** FLYTOWN planner configuration. Absent = conventional LLM planner. */

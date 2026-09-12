@@ -48,6 +48,7 @@ const H = homedir();
 const R = {
   blockmmo: join(H, "blockmmo"),
   flurry: join(H, "flurry"),
+  // An external repository checked out on this machine; the path is that checkout's real directory name.
   sherwood: join(H, "goblintown-work", "goblintown-chatgpt-app"),
   flytown: join(H, "flytown"),
 };

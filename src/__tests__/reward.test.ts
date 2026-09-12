@@ -1,75 +1,71 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
-import { shinies } from "../reward.js";
-import type { Loot, TrollVerdict } from "../types.js";
+import { sugar } from "../reward.js";
+import type { Morsel, GuardVerdict } from "../types.js";
 
-function loot(output: string, kind: Loot["creatureKind"] = "goblin"): Loot {
+function morsel(output: string, caste: Morsel["caste"] = "forager"): Morsel {
   return {
     id: "x",
-    creatureKind: kind,
+    caste,
     personality: "nerdy",
     model: "test",
     prompt: "p",
     output,
     timestamp: 0,
     drift: {
-      // drift gets recomputed by shinies via crossCreatureDrift; this is unused
-      creatureMentions: {
-        goblin: 0,
-        gremlin: 0,
-        raccoon: 0,
-        troll: 0,
-        ogre: 0,
-        pigeon: 0,
+      casteMentions: {
+        forager: 0,
+        wasp: 0,
+        scout: 0,
+        guard: 0,
+        soldier: 0,
+        messenger: 0,
       },
-      totalCreatureWords: 0,
+      totalCasteWords: 0,
       outputWordCount: 0,
       driftRate: 0,
     },
   };
 }
 
-function verdict(score: number, passed: boolean): TrollVerdict {
-  return { lootId: "x", passed, score, critique: "" };
+function verdict(score: number, passed: boolean): GuardVerdict {
+  return { morselId: "x", passed, score, critique: "" };
 }
 
-describe("shinies", () => {
-  it("clean output passing review hits the pass bonus", () => {
-    const r = shinies(loot("a clean answer with no creatures"), verdict(0.8, true));
+describe("sugar", () => {
+  it("output passing review hits the pass bonus", () => {
+    const r = sugar(morsel("a clean answer"), verdict(0.8, true));
     // 0.8 + 0.1 = 0.9
     assert.equal(r.toFixed(3), "0.900");
   });
 
-  it("clean output failing review gets no pass bonus", () => {
-    const r = shinies(loot("a clean answer"), verdict(0.4, false));
+  it("output failing review gets no pass bonus", () => {
+    const r = sugar(morsel("a clean answer"), verdict(0.4, false));
     assert.equal(r.toFixed(3), "0.400");
   });
 
-  it("cross-creature drift penalises score", () => {
-    // 4 words total, 1 raccoon (cross), goblin self-kind
-    const drifty = shinies(
-      loot("answer mentions a raccoon here", "goblin"),
+  it("does not penalise caste-name mentions (they are ordinary English words)", () => {
+    const mentions = sugar(
+      morsel("add a guard clause, then scout the codebase for other callers", "forager"),
       verdict(0.9, true),
     );
-    const clean = shinies(
-      loot("answer mentions zero creatures here", "goblin"),
+    const none = sugar(
+      morsel("add an early return, then search the codebase for other callers", "forager"),
       verdict(0.9, true),
     );
-    assert.ok(drifty < clean, "drifty output should score lower than clean");
+    assert.equal(mentions, none);
+    assert.equal(mentions.toFixed(3), "1.000");
+  });
+
+  it("a wall of caste names still scores guardScore + passBonus", () => {
+    const wall = "scout wasp soldier ".repeat(100);
+    assert.equal(sugar(morsel(wall, "forager"), verdict(0.5, true)).toFixed(3), "0.600");
   });
 
   it("clamps to [0, 1]", () => {
-    const r1 = shinies(loot("clean"), verdict(2, true));
-    const r2 = shinies(loot("clean"), verdict(-1, false));
-    assert.ok(r1 <= 1);
-    assert.ok(r2 >= 0);
-  });
-
-  it("drift penalty is bounded", () => {
-    // Wall of cross-creature words shouldn't drive shinies negative.
-    const wall = "raccoon ".repeat(100);
-    const r = shinies(loot(wall, "goblin"), verdict(0.5, true));
-    assert.ok(r >= 0);
-    assert.ok(r <= 1);
+    const r1 = sugar(morsel("clean"), verdict(2, true));
+    const r2 = sugar(morsel("clean"), verdict(-1, false));
+    assert.equal(r1, 1);
+    assert.equal(r2, 0);
   });
 });

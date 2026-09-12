@@ -1,8 +1,8 @@
 /**
- * Export a Goblintown rite as an LLM-MAS Orchestration Trace
+ * Export a FLYTOWN flight as an LLM-MAS Orchestration Trace
  * (https://github.com/xxzcc/awesome-llm-mas-rl/blob/main/trace-schema/trace_schema.json).
  *
- * Maps Goblintown SSE step events onto the academic schema's 10 event types:
+ * Maps FLYTOWN SSE step events onto the academic schema's 10 event types:
  *   orchestrator_decision, spawn, despawn, message, tool_call, tool_result,
  *   return, aggregate, human_intervention, safety_event
  *
@@ -11,7 +11,7 @@
  *   safety_flow
  */
 import type { RunRecord } from "./run-store.js";
-import type { RiteStep } from "./rite.js";
+import type { FlightStep } from "./flight.js";
 
 export type MasEventType =
   | "orchestrator_decision"
@@ -76,31 +76,31 @@ export interface MasTrace {
 }
 
 /**
- * Convert a goblintown RunRecord into the academic LLM-MAS trace schema.
+ * Convert a FLYTOWN RunRecord into the academic LLM-MAS trace schema.
  * Pure function: deterministic given the same input.
  */
-export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasTrace {
+export function exportRunAsMasTrace(run: RunRecord, system = "flytown"): MasTrace {
   const events: MasEvent[] = [];
   const edges: MasEdge[] = [];
-  const goblinIdByIndex = new Map<number, string>();
-  const goblinAgentByLootId = new Map<string, string>();
+  const foragerIdByIndex = new Map<number, string>();
+  const foragerAgentByMorselId = new Map<string, string>();
   const specialistAgentByIndex = new Map<number, string>();
   let totalTokens = 0;
   let prevEventId: string | null = null;
-  let raccoonEventId: string | null = null;
-  let trollEventId: string | null = null;
+  let scoutEventId: string | null = null;
+  let guardEventId: string | null = null;
   let lastClusterEventId: string | null = null;
 
-  // Initial orchestrator_decision: starting the rite.
+  // Initial orchestrator_decision: starting the flight.
   pushEvent({
     id: "ev-0000",
     t: 0,
     type: "orchestrator_decision",
     agent: "orchestrator",
-    role: "rite-controller",
-    decision: "start_rite",
+    role: "flight-controller",
+    decision: "start_flight",
     task: run.task,
-    pack_size: run.packSize,
+    swarm_size: run.swarmSize,
   });
 
   let n = 1;
@@ -146,17 +146,17 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
       const data = wrap.data as { nodeId?: string };
       pushEvent({
         id, t: tOf(), type: "spawn", agent: `node:${data.nodeId ?? "?"}`,
-        role: "sub-rite",
+        role: "flight",
       });
       continue;
     }
     if (wrap.kind === "plan:node:done") {
       const id = evId();
-      const data = wrap.data as { nodeId?: string; outcome?: string; riteId?: string; artifactId?: string };
+      const data = wrap.data as { nodeId?: string; outcome?: string; flightId?: string; artifactId?: string };
       pushEvent({
         id, t: tOf(), type: "return", agent: `node:${data.nodeId ?? "?"}`,
         outcome: data.outcome,
-        rite_id: data.riteId,
+        flight_id: data.flightId,
         content_ref: data.artifactId,
       });
       continue;
@@ -189,50 +189,50 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
       continue;
     }
     if (wrap.kind !== "step") continue;
-    // Plan-mode runs wrap each sub-rite step as { nodeId, step }; unwrap.
-    const raw = wrap.data as RiteStep | { nodeId: string; step: RiteStep };
-    const step = (raw as { step?: RiteStep }).step
-      ? (raw as { nodeId: string; step: RiteStep }).step
-      : (raw as RiteStep);
+    // Plan-mode runs wrap each flight step as { nodeId, step }; unwrap.
+    const raw = wrap.data as FlightStep | { nodeId: string; step: FlightStep };
+    const step = (raw as { step?: FlightStep }).step
+      ? (raw as { nodeId: string; step: FlightStep }).step
+      : (raw as FlightStep);
     switch (step.kind) {
-      case "scavenge:start": {
+      case "scout:start": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "spawn", agent: "raccoon", role: "scavenger",
+          id, t: tOf(), type: "spawn", agent: "scout", role: "context-gatherer",
           globs: step.globs,
         });
-        raccoonEventId = id;
+        scoutEventId = id;
         edges.push({ src: "ev-0000", dst: id, type: "spawn" });
         break;
       }
-      case "scavenge:done": {
+      case "scout:done": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "return", agent: "raccoon",
-          content_ref: step.lootId, file_count: step.fileCount,
+          id, t: tOf(), type: "return", agent: "scout",
+          content_ref: step.morselId, file_count: step.fileCount,
         });
-        if (raccoonEventId) pushCausal(raccoonEventId, id, "return");
+        if (scoutEventId) pushCausal(scoutEventId, id, "return");
         break;
       }
       case "artifacts:loaded": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "message", agent: "orchestrator", to: "raccoon",
+          id, t: tOf(), type: "message", agent: "orchestrator", to: "scout",
           message_kind: "memory_load",
           artifact_ids: step.artifactIds,
         });
         break;
       }
-      case "pack:start": {
+      case "swarm:start": {
         const id = evId();
         pushEvent({
           id, t: tOf(), type: "orchestrator_decision", agent: "orchestrator",
-          decision: "dispatch_pack", pack_size: step.size,
+          decision: "dispatch_swarm", swarm_size: step.size,
         });
         for (let i = 0; i < step.size; i++) {
           const sid = evId();
-          const agent = `goblin#${i}`;
-          goblinIdByIndex.set(i, sid);
+          const agent = `forager#${i}`;
+          foragerIdByIndex.set(i, sid);
           pushEvent({
             id: sid, t: tOf(), type: "spawn", agent, role: "worker",
             parent_decision: id,
@@ -241,55 +241,55 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
         }
         break;
       }
-      case "pack:goblin": {
+      case "swarm:forager": {
         const id = evId();
-        const agent = `goblin#${step.index}`;
-        goblinAgentByLootId.set(step.lootId, agent);
+        const agent = `forager#${step.index}`;
+        foragerAgentByMorselId.set(step.morselId, agent);
         pushEvent({
           id, t: tOf(), type: "return", agent,
-          content_ref: step.lootId, personality: step.personality,
+          content_ref: step.morselId, personality: step.personality,
         });
-        const spawnId = goblinIdByIndex.get(step.index);
+        const spawnId = foragerIdByIndex.get(step.index);
         if (spawnId) pushCausal(spawnId, id, "return");
         break;
       }
-      case "chaos:start": {
+      case "sting:start": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "spawn", agent: "gremlin", role: "adversary",
+          id, t: tOf(), type: "spawn", agent: "wasp", role: "adversary",
         });
         break;
       }
-      case "chaos:done": {
+      case "sting:done": {
         const id = evId();
-        const targetAgent = goblinAgentByLootId.get(step.goblinId) ?? "goblin#?";
+        const targetAgent = foragerAgentByMorselId.get(step.foragerId) ?? "forager#?";
         pushEvent({
-          id, t: tOf(), type: "message", agent: "gremlin",
+          id, t: tOf(), type: "message", agent: "wasp",
           to: targetAgent, message_kind: "attack",
-          content_ref: step.gremlinId,
+          content_ref: step.waspId,
         });
         break;
       }
       case "review:start": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "spawn", agent: "troll", role: "critic",
+          id, t: tOf(), type: "spawn", agent: "guard", role: "critic",
         });
-        trollEventId = id;
+        guardEventId = id;
         break;
       }
       case "review:verdict": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "aggregate", agent: "troll",
-          content_ref: step.verdict.lootId,
+          id, t: tOf(), type: "aggregate", agent: "guard",
+          content_ref: step.verdict.morselId,
           passed: step.verdict.passed,
           score: step.verdict.score,
         });
-        if (trollEventId) pushCausal(trollEventId, id, "aggregate");
-        const goblinAgent = goblinAgentByLootId.get(step.verdict.lootId);
-        if (goblinAgent) {
-          edges.push({ src: goblinAgent, dst: id, type: "aggregate" });
+        if (guardEventId) pushCausal(guardEventId, id, "aggregate");
+        const foragerAgent = foragerAgentByMorselId.get(step.verdict.morselId);
+        if (foragerAgent) {
+          edges.push({ src: foragerAgent, dst: id, type: "aggregate" });
         }
         break;
       }
@@ -326,15 +326,15 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
         const agent = specialistAgentByIndex.get(step.index) ?? `specialist#${step.index}`;
         pushEvent({
           id, t: tOf(), type: "return", agent,
-          content_ref: step.lootId,
+          content_ref: step.morselId,
         });
         break;
       }
       case "specialist:verdict": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "aggregate", agent: "troll",
-          content_ref: step.verdict.lootId,
+          id, t: tOf(), type: "aggregate", agent: "guard",
+          content_ref: step.verdict.morselId,
           passed: step.verdict.passed,
           score: step.verdict.score,
           phase: "specialist_review",
@@ -344,29 +344,29 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
       case "fallback:start": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "spawn", agent: "ogre", role: "heavyweight-fallback",
+          id, t: tOf(), type: "spawn", agent: "soldier", role: "heavyweight-fallback",
         });
         break;
       }
       case "fallback:done": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "return", agent: "ogre",
-          content_ref: step.lootId,
+          id, t: tOf(), type: "return", agent: "soldier",
+          content_ref: step.morselId,
         });
         break;
       }
       case "scribe:start": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "spawn", agent: "pigeon-scribe", role: "memory-distiller",
+          id, t: tOf(), type: "spawn", agent: "messenger-scribe", role: "memory-distiller",
         });
         break;
       }
       case "scribe:done": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "return", agent: "pigeon-scribe",
+          id, t: tOf(), type: "return", agent: "messenger-scribe",
           content_ref: step.artifactId,
         });
         break;
@@ -374,7 +374,7 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
       case "scribe:error": {
         const id = evId();
         pushEvent({
-          id, t: tOf(), type: "safety_event", agent: "pigeon-scribe",
+          id, t: tOf(), type: "safety_event", agent: "messenger-scribe",
           severity: "warning", message: step.message,
         });
         break;
@@ -392,11 +392,11 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
         });
         break;
       }
-      case "rite:done": {
+      case "flight:done": {
         const id = evId();
         pushEvent({
           id, t: tOf(), type: "orchestrator_decision", agent: "orchestrator",
-          decision: "stop_rite", outcome: step.outcome,
+          decision: "stop_flight", outcome: step.outcome,
         });
         break;
       }
@@ -407,7 +407,7 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
     ? Math.max(0, (run.finishedAt - startedAt) / 1000)
     : 0;
 
-  // Map outcome to a topology classification: rites with a planner subtree
+  // Map outcome to a topology classification: flights with a planner subtree
   // count as planner_executor_critic; specialist recovery alone = mixed;
   // baseline = centralized.
   const hasPlanner = events.some(
@@ -424,7 +424,7 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
 
   return {
     trace_id: run.runId,
-    task_id: run.finalRiteId ?? run.runId,
+    task_id: run.finalFlightId ?? run.runId,
     system,
     topology,
     events,
@@ -436,7 +436,7 @@ export function exportRunAsMasTrace(run: RunRecord, system = "goblintown"): MasT
       messages: events.filter((e) => e.type === "message").length,
     },
     metrics: {
-      pack_size: run.packSize,
+      swarm_size: run.swarmSize,
     },
   };
 }

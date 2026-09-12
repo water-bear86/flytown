@@ -154,7 +154,7 @@ describe("FlyMemory", () => {
 });
 
 describe("memory modulation", () => {
-  const CAUTION_ACTIONS = ["request_artifact_investigation", "search_memory", "invoke_reviewer", "increase_pack_size", "surface_uncertainty", "run_tests", "retry_new_approach"] as const;
+  const CAUTION_ACTIONS = ["request_artifact_investigation", "search_memory", "invoke_reviewer", "increase_swarm_size", "surface_uncertainty", "run_tests", "retry_new_approach"] as const;
   const cautionMass = (s: Record<string, number>) => CAUTION_ACTIONS.reduce((t, a) => t + s[a], 0);
   const ambiguous = "CI fails intermittently with a timeout. Not sure if it is the runner or a race. Figure out what is going on.";
 
@@ -163,7 +163,7 @@ describe("memory modulation", () => {
     const out = applyMemoryModulation(base, { approach: 0, avoid: 0, valenceShift: -0.2, familiarity: 1, codeSize: 14 });
     assert.equal(out.direction, "caution");
     assert.ok(cautionMass(out.scores) > cautionMass(base), "aggregate caution rises");
-    assert.ok(out.scores.spawn_subrite < base.spawn_subrite, "going direct is damped");
+    assert.ok(out.scores.spawn_flight < base.spawn_flight, "going direct is damped");
     // The point of interpolating rather than scaling: an action the router
     // scored at exactly zero can still be introduced by experience.
     assert.equal(base.invoke_reviewer, 0);
@@ -175,7 +175,7 @@ describe("memory modulation", () => {
     const base = rulesScores(await sig(ambiguous));
     const out = applyMemoryModulation(base, { approach: 0, avoid: 0, valenceShift: 0.2, familiarity: 1, codeSize: 14 });
     assert.equal(out.direction, "directness");
-    assert.ok(out.scores.spawn_subrite > base.spawn_subrite);
+    assert.ok(out.scores.spawn_flight > base.spawn_flight);
     assert.ok(cautionMass(out.scores) < cautionMass(base));
     assert.equal(out.scores.terminate_success, base.terminate_success, "memory never pushes toward declaring the task already done");
   });
@@ -191,6 +191,6 @@ describe("memory modulation", () => {
     const out = applyMemoryModulation(base, { approach: 0, avoid: 0, valenceShift: 0.0001, familiarity: 0, codeSize: 0 });
     assert.equal(out.direction, "none");
     assert.deepEqual(out.scores, base);
-    assert.deepEqual(applyMemoryModulation(normalizeScores({ spawn_subrite: 1 }), { approach: 0, avoid: 0, valenceShift: NaN, familiarity: 0, codeSize: 0 }).direction, "none");
+    assert.deepEqual(applyMemoryModulation(normalizeScores({ spawn_flight: 1 }), { approach: 0, avoid: 0, valenceShift: NaN, familiarity: 0, codeSize: 0 }).direction, "none");
   });
 });

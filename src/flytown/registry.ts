@@ -21,7 +21,7 @@ export const DEFAULT_CONNECTOME_ID = "fafb-v783-projectome-1";
 /**
  * Default planner backend.
  *
- * Measured against Goblintown's own LLM planner on the full 20-fixture suite,
+ * Measured against the conventional LLM planner on the full 20-fixture suite,
  * 2 seeds, real workers (docs/flytown/experiments, live run 3, n=37 pairs):
  *
  *   - completable tasks: quality indistinguishable (+0.010, p = 0.89)
@@ -38,7 +38,7 @@ export const DEFAULT_CONNECTOME_ID = "fafb-v783-projectome-1";
 export const DEFAULT_PLANNER = "rules";
 
 export interface ResolveOptions {
-  /** Warren / project root: weights and traces live under <root>/.flytown/. */
+  /** Terrarium / project root: weights and traces live under <root>/.flytown/. */
   root: string;
   seed?: number;
   connectome?: string;

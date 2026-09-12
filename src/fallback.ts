@@ -1,44 +1,49 @@
-import { makeOgre } from "./creatures.js";
+import { makeSoldier } from "./castes.js";
 import { measureDrift } from "./drift.js";
-import { callCreature, callCreatureStream } from "./openai-client.js";
+import { callInsect, callInsectStream } from "./openai-client.js";
 import { makeThinkingRelay } from "./streaming.js";
-import type { Loot, OutputFormat, Personality, TrollVerdict } from "./types.js";
-import type { Hoard } from "./hoard.js";
+import type { Morsel, OutputFormat, Personality, GuardVerdict } from "./types.js";
+import type { Compost } from "./compost.js";
 
-export interface OgreFallbackOptions {
+export interface SoldierFallbackOptions {
   task: string;
-  goblinLoot: Loot[];
-  trollVerdicts: Record<string, TrollVerdict>;
-  chaosByGoblinId?: Record<string, Loot>;
-  hoard: Hoard;
+  foragerMorsels: Morsel[];
+  guardVerdicts: Record<string, GuardVerdict>;
+  stingByForagerId?: Record<string, Morsel>;
+  compost: Compost;
   personality?: Personality;
-  riteId?: string;
+  flightId?: string;
   outputFormat?: OutputFormat;
-  /** Optional live-thinking relay; receives the cumulative ogre text as it streams. */
+  /** Optional live-thinking relay; receives the cumulative soldier text as it streams. */
   onThink?: (cumulativeText: string) => void;
 }
 
-export async function ogreFallback(opts: OgreFallbackOptions): Promise<Loot> {
-  const ogre = makeOgre(opts.personality);
+/**
+ * Soldier escalation: when the forager swarm (and any specialists) failed
+ * guard review, one expensive Soldier call synthesizes a corrected answer
+ * from every attempt, its guard critique and its wasp sting report.
+ */
+export async function soldierFallback(opts: SoldierFallbackOptions): Promise<Morsel> {
+  const soldier = makeSoldier(opts.personality);
 
-  const sections = opts.goblinLoot.map((g, i) => {
-    const v = opts.trollVerdicts[g.id];
-    const chaos = opts.chaosByGoblinId?.[g.id];
+  const sections = opts.foragerMorsels.map((g, i) => {
+    const v = opts.guardVerdicts[g.id];
+    const sting = opts.stingByForagerId?.[g.id];
     return (
-      `--- Attempt ${i + 1} (loot ${g.id}, troll score ${v?.score?.toFixed(2) ?? "?"}, ${v?.passed ? "PASS" : "FAIL"}) ---\n` +
-      `Goblin output:\n${g.output}\n\n` +
-      `Troll critique:\n${v?.critique ?? "(none)"}\n\n` +
-      (chaos
-        ? `Gremlin chaos report:\n${chaos.output}\n`
-        : `Gremlin chaos report: (none)\n`)
+      `--- Attempt ${i + 1} (morsel ${g.id}, guard score ${v?.score?.toFixed(2) ?? "?"}, ${v?.passed ? "PASS" : "FAIL"}) ---\n` +
+      `Forager output:\n${g.output}\n\n` +
+      `Guard critique:\n${v?.critique ?? "(none)"}\n\n` +
+      (sting
+        ? `Wasp sting report:\n${sting.output}\n`
+        : `Wasp sting report: (none)\n`)
     );
   });
 
   const userPrompt =
-    `The Goblin pack failed Troll review on this task:\n\n${opts.task}\n\n` +
-    `Below are all attempts, their critiques, and chaos reports. ` +
+    `The Forager swarm failed Guard review on this task:\n\n${opts.task}\n\n` +
+    `Below are all attempts, their critiques, and sting reports. ` +
     `Synthesize a single correct, complete answer. ` +
-    `You may borrow from any attempt, but you must address every Troll critique and survive every Gremlin attack. ` +
+    `You may borrow from any attempt, but you must address every Guard critique and survive every Wasp attack. ` +
     `Do not narrate your synthesis — just deliver the corrected answer.\n\n` +
     sections.join("\n");
 
@@ -46,14 +51,14 @@ export async function ogreFallback(opts: OgreFallbackOptions): Promise<Loot> {
   let usage;
   if (opts.onThink) {
     const relay = makeThinkingRelay(opts.onThink);
-    const result = await callCreatureStream(ogre, userPrompt, relay.onChunk, {
+    const result = await callInsectStream(soldier, userPrompt, relay.onChunk, {
       outputFormat: opts.outputFormat,
     });
     relay.done();
     output = result.text;
     usage = result.usage;
   } else {
-    const result = await callCreature(ogre, userPrompt, {
+    const result = await callInsect(soldier, userPrompt, {
       outputFormat: opts.outputFormat,
     });
     output = result.text;
@@ -61,19 +66,19 @@ export async function ogreFallback(opts: OgreFallbackOptions): Promise<Loot> {
   }
   const drift = measureDrift(output);
 
-  const loot: Loot = {
+  const morsel: Morsel = {
     id: "",
-    riteId: opts.riteId,
-    creatureKind: "ogre",
-    personality: ogre.personality,
-    model: ogre.model,
+    flightId: opts.flightId,
+    caste: "soldier",
+    personality: soldier.personality,
+    model: soldier.model,
     prompt: userPrompt,
     output,
-    parentLootIds: opts.goblinLoot.map((g) => g.id),
+    parentMorselIds: opts.foragerMorsels.map((g) => g.id),
     timestamp: Date.now(),
     drift,
     usage,
   };
-  await opts.hoard.stash(loot);
-  return loot;
+  await opts.compost.stash(morsel);
+  return morsel;
 }

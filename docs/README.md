@@ -1,30 +1,36 @@
-# Goblintown Docs
+# FLYTOWN Docs
 
-Welcome to the manual wing of the town: more practical than the README, less
-afraid of tables, still willing to name a reviewer Troll if that keeps the
-architecture legible.
+The practical manual: more detail than the README, fewer adjectives. Every
+name, command and path follows [flytown/VOCABULARY.md](flytown/VOCABULARY.md).
 
 ## Start Here
 
 | Need | Read |
 | --- | --- |
-| Install Desktop Beta 0.1 | [install/beta-0.7.md](install/beta-0.7.md) |
-| Understand the pipeline | [architecture/pipeline.md](architecture/pipeline.md) |
-| Use one fast worker | [modes/single-goblin.md](modes/single-goblin.md) |
-| Run the whole town | [modes/goblintown-mode.md](modes/goblintown-mode.md) |
-| Add tools, providers, skills | [extensions/overview.md](extensions/overview.md) |
+| Install from source | [install/from-source.md](install/from-source.md) |
+| Understand the swarm pipeline | [architecture/pipeline.md](architecture/pipeline.md) |
+| Ask one worker | [modes/ask.md](modes/ask.md) |
+| Run the whole swarm | [modes/swarm-mode.md](modes/swarm-mode.md) |
+| Add planners, reward plugins, providers, skills | [extensions/overview.md](extensions/overview.md) |
 | Build or test locally | [development.md](development.md) |
+| Read the research results | [flytown/experiments/README.md](flytown/experiments/README.md) |
 
 ## Product Manual
 
-- [Install Desktop Beta 0.1](install/beta-0.7.md)
-- [Single Goblin mode](modes/single-goblin.md)
-- [Goblintown mode](modes/goblintown-mode.md)
+- [Install from source](install/from-source.md)
+- [Ask mode](modes/ask.md)
+- [Swarm mode](modes/swarm-mode.md)
 
 ## Architecture
 
-- [The Rite pipeline](architecture/pipeline.md)
+- [The Flight pipeline](architecture/pipeline.md)
 - [Research foundations](architecture/research-foundations.md)
+- [Architecture proposal](../PROPOSAL.md)
+
+## FLYTOWN Research
+
+- [Vocabulary](flytown/VOCABULARY.md)
+- [Experiment log](flytown/experiments/README.md)
 
 ## Extensions
 
@@ -37,9 +43,3 @@ architecture legible.
 - [HTTP API](reference/http-api.md)
 - [Provider routing](reference/providers.md)
 - [Storage layout](reference/storage-layout.md)
-
-## Screenshots
-
-README screenshots live under [assets/screenshots](assets/screenshots/).
-They are generated from the local app so the front page shows the real shell,
-not a clean-room fantasy of what the shell would like to become after therapy.

@@ -1,35 +1,35 @@
 /**
- * Topological executor for a Plan. Each node becomes a sub-rite (skipScribe
- * defaults to false so each sub-rite produces its own artifact, which is then
+ * Topological executor for a Plan. Each node becomes a flight (skipScribe
+ * defaults to false so each flight produces its own artifact, which is then
  * fed forward to dependent nodes). On a node failure we may invoke the planner
  * again with the failure context (recursive replan, max depth 2 by default).
  *
  * The executor is planner-agnostic: it consumes a Plan and, on replan, asks
  * an injected PlannerBackend for a new one. The default backend wraps the
- * conventional LLM planner (planTask). Sub-rite execution is likewise injected
- * (riteRunner) so the routing loop can be exercised deterministically without
+ * conventional LLM planner (planTask). Flight execution is likewise injected
+ * (flightRunner) so the routing loop can be exercised deterministically without
  * model calls.
  */
 import { topologicalOrder, validatePlan } from "./planner.js";
-import { performRite, type RiteOptions, type RiteResult, type RiteStep } from "./rite.js";
+import { performFlight, type FlightOptions, type FlightResult, type FlightStep } from "./flight.js";
 import { llmPlannerBackend, type PlannerBackend } from "./flytown/planner-backend.js";
 import type {
   Artifact,
   OutputFormat,
   Plan,
   PlanNode,
-  Rite,
-  WarrenManifest,
+  Flight,
+  TerrariumManifest,
 } from "./types.js";
-import type { Hoard } from "./hoard.js";
+import type { Compost } from "./compost.js";
 
-export type RiteRunner = (opts: RiteOptions) => Promise<RiteResult>;
+export type FlightRunner = (opts: FlightOptions) => Promise<FlightResult>;
 
 export interface PlanExecOptions {
   plan: Plan;
   cwd: string;
-  hoard: Hoard;
-  rewardFn?: RiteOptions["rewardFn"];
+  compost: Compost;
+  rewardFn?: FlightOptions["rewardFn"];
   budgetTokens?: number;
   maxOutputTokensPerCall?: number;
   outputFormat?: OutputFormat;
@@ -38,10 +38,10 @@ export interface PlanExecOptions {
   maxReplanDepth?: number;
   /** Planner backend used for replanning. Default: the conventional LLM planner. */
   planner?: PlannerBackend;
-  /** Sub-rite runner. Default: performRite. Injectable for deterministic evaluation. */
-  riteRunner?: RiteRunner;
-  /** Forwarded to each sub-rite; lets the UI/console see progress. */
-  onStep?: (nodeId: string, step: RiteStep) => void;
+  /** Flight runner. Default: performFlight. Injectable for deterministic evaluation. */
+  flightRunner?: FlightRunner;
+  /** Forwarded to each flight; lets the UI/console see progress. */
+  onStep?: (nodeId: string, step: FlightStep) => void;
   /** Lifecycle hooks for the plan itself. */
   onPlanEvent?: (ev: PlanExecutionEvent) => void;
 }
@@ -50,19 +50,19 @@ export type PlanExecutionEvent =
   | { kind: "plan:start"; plan: Plan }
   | { kind: "plan:halt"; halt: NonNullable<Plan["halt"]> }
   | { kind: "plan:node:start"; nodeId: string }
-  | { kind: "plan:node:done"; nodeId: string; riteId: string; artifactId?: string; outcome: Rite["outcome"] }
+  | { kind: "plan:node:done"; nodeId: string; flightId: string; artifactId?: string; outcome: Flight["outcome"] }
   | { kind: "plan:node:failed"; nodeId: string; reason: string }
   | { kind: "plan:replan"; depth: number; reason: string }
-  | { kind: "plan:done"; outcome: PlanOutcome; finalRiteId?: string; finalArtifactId?: string; finalLootId?: string };
+  | { kind: "plan:done"; outcome: PlanOutcome; finalFlightId?: string; finalArtifactId?: string; finalMorselId?: string };
 
 export type PlanOutcome = "success" | "failed" | "halted";
 
 export interface PlanExecResult {
   plan: Plan;
   finalArtifact?: Artifact;
-  finalRiteId?: string;
-  /** Loot id of the last node's winning loot — survives even when scribe failed. */
-  finalLootId?: string;
+  finalFlightId?: string;
+  /** Morsel id of the last node's winning morsel — survives even when scribe failed. */
+  finalMorselId?: string;
   outcome: PlanOutcome;
   /** Number of replans that actually happened. */
   replans: number;
@@ -73,14 +73,14 @@ export interface PlanExecResult {
 export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult> {
   const maxDepth = opts.maxReplanDepth ?? 2;
   const planner = opts.planner ?? llmPlannerBackend();
-  const runRite = opts.riteRunner ?? performRite;
+  const runFlight = opts.flightRunner ?? performFlight;
   let plan = opts.plan;
   opts.onPlanEvent?.({ kind: "plan:start", plan });
 
   // Map nodeId -> Artifact produced.
   const produced = new Map<string, Artifact>();
-  // Map nodeId -> winnerLootId (independent of whether scribe succeeded).
-  const lootByNode = new Map<string, string>();
+  // Map nodeId -> winnerMorselId (independent of whether scribe succeeded).
+  const morselByNode = new Map<string, string>();
   const parentArtifacts = opts.parentArtifacts ?? [];
   let replans = 0;
 
@@ -116,31 +116,31 @@ export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult
       opts.onPlanEvent?.({ kind: "plan:node:start", nodeId: node.id });
 
       try {
-        const result = await runRite({
+        const result = await runFlight({
           task: node.task,
-          packSize: node.packSize ?? 3,
+          swarmSize: node.swarmSize ?? 3,
           scanGlobs: [],
           cwd: opts.cwd,
-          hoard: opts.hoard,
+          compost: opts.compost,
           personality: node.personality,
           rewardFn: opts.rewardFn,
           budgetTokens: opts.budgetTokens,
           maxOutputTokensPerCall: opts.maxOutputTokensPerCall,
           outputFormat: opts.outputFormat,
           parentArtifacts: inputArtifacts,
-          trollTools: node.hints?.trollTools,
+          guardTools: node.hints?.guardTools,
           debate: node.hints?.debate,
           nodeHints: node.hints,
-          // sub-rites still produce their own artifacts (cheap scribe call)
+          // flights still produce their own artifacts (cheap scribe call)
           skipScribe: false,
           onStep: (step) => opts.onStep?.(node.id, step),
         });
-        node.riteId = result.rite.id;
+        node.flightId = result.flight.id;
         node.status = "done";
-        if (result.rite.winnerLootId) lootByNode.set(node.id, result.rite.winnerLootId);
+        if (result.flight.winnerMorselId) morselByNode.set(node.id, result.flight.winnerMorselId);
 
-        // Pull the just-written artifact back from the hoard if scribe succeeded.
-        const artifact = await opts.hoard.getArtifactByRiteId(result.rite.id);
+        // Pull the just-written artifact back from the compost if scribe succeeded.
+        const artifact = await opts.compost.getArtifactByFlightId(result.flight.id);
         if (artifact) {
           node.artifactId = artifact.id;
           produced.set(node.id, artifact);
@@ -149,15 +149,15 @@ export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult
         opts.onPlanEvent?.({
           kind: "plan:node:done",
           nodeId: node.id,
-          riteId: result.rite.id,
+          flightId: result.flight.id,
           artifactId: artifact?.id,
-          outcome: result.rite.outcome,
+          outcome: result.flight.outcome,
         });
 
         // A node "fails" for the planner's purposes only if it ended in
-        // all_failed. winner / specialist_recovery / ogre_fallback are all
+        // all_failed. winner / specialist_recovery / soldier_fallback are all
         // acceptable resolutions.
-        if (result.rite.outcome === "all_failed") {
+        if (result.flight.outcome === "all_failed") {
           failedNode = node;
           failureReason = `node ${node.id} ended all_failed (no usable output)`;
           break;
@@ -177,19 +177,19 @@ export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult
       // success
       const lastNode = order[order.length - 1];
       const finalArtifact = lastNode ? produced.get(lastNode.id) : undefined;
-      const finalLootId = lastNode ? lootByNode.get(lastNode.id) : undefined;
+      const finalMorselId = lastNode ? morselByNode.get(lastNode.id) : undefined;
       opts.onPlanEvent?.({
         kind: "plan:done",
         outcome: "success",
-        finalRiteId: lastNode?.riteId,
+        finalFlightId: lastNode?.flightId,
         finalArtifactId: finalArtifact?.id,
-        finalLootId,
+        finalMorselId,
       });
       return {
         plan,
         finalArtifact,
-        finalRiteId: lastNode?.riteId,
-        finalLootId,
+        finalFlightId: lastNode?.flightId,
+        finalMorselId,
         outcome: "success",
         replans,
       };
@@ -223,4 +223,4 @@ export async function executePlan(opts: PlanExecOptions): Promise<PlanExecResult
 }
 
 // Re-export for convenient imports.
-export type { WarrenManifest };
+export type { TerrariumManifest };

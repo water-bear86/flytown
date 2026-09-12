@@ -1,12 +1,11 @@
 {
   "name": "flytown-core",
   "version": "0.8.0-beta.1",
-  "description": "Stripped Goblintown orchestration core — FLYTOWN baseline, pre-connectome-integration.",
+  "description": "FLYTOWN \u2014 connectome-derived AI-orchestration research: testing whether a fruit-fly wiring diagram can plan and route a swarm of model-backed workers.",
   "license": "MIT",
   "author": "0XBL33P",
   "type": "module",
   "bin": {
-    "goblintown": "dist/cli.js",
     "flytown": "dist/cli.js"
   },
   "types": "./dist/index.d.ts",
@@ -21,8 +20,6 @@
   "files": [
     "dist",
     "!dist/__tests__",
-    "site/*.html",
-    "site/assets",
     "LICENSE",
     "README.md",
     "NOTICE.md"
@@ -33,7 +30,7 @@
     "desktop": "npm run build && electron dist/desktop.js",
     "start": "node dist/cli.js",
     "serve": "node dist/cli.js serve",
-    "package:mac": "npm run build && electron-packager . Goblintown --platform=darwin --out=release --overwrite --extend-info=build/Info.plist --ignore='^/src($|/)' --ignore='^/dist/__tests__($|/)' --ignore='^/.goblintown($|/)'",
+    "package:mac": "npm run build && electron-packager . FLYTOWN --platform=darwin --out=release --overwrite --extend-info=build/Info.plist --ignore='^/src($|/)' --ignore='^/dist/__tests__($|/)' --ignore='^/.flytown($|/)'",
     "dist:mac": "npm run build && electron-builder --mac dmg --arm64",
     "dist:win": "npm run build && electron-builder --win nsis --x64",
     "dist:linux": "npm run build && electron-builder --linux AppImage --x64",
@@ -42,7 +39,7 @@
     "release:check": "npm run clean && npm run test && npm run pack:check",
     "release:ready": "node scripts/release-readiness.mjs",
     "clean": "rimraf dist",
-    "test": "npm run build && node --test dist/__tests__/artifact.test.js dist/__tests__/asteroid.test.js dist/__tests__/audit.test.js dist/__tests__/ban-list.test.js dist/__tests__/banners.test.js dist/__tests__/budget.test.js dist/__tests__/chat-import.test.js dist/__tests__/chat.test.js dist/__tests__/cloud-mode.test.js dist/__tests__/concurrency.test.js dist/__tests__/context-ingest.test.js dist/__tests__/creatures.test.js dist/__tests__/debate.test.js dist/__tests__/drift.test.js dist/__tests__/embeddings.test.js dist/__tests__/export-compare.test.js dist/__tests__/fold.test.js dist/__tests__/formatting.test.js dist/__tests__/goblin-mode-ui.test.js dist/__tests__/graph.test.js dist/__tests__/hoard.test.js dist/__tests__/openai-client.test.js dist/__tests__/pack-prompt.test.js dist/__tests__/planner.test.js dist/__tests__/providers.test.js dist/__tests__/reward-plugin.test.js dist/__tests__/reward.test.js dist/__tests__/run-store.test.js dist/__tests__/server-resume.test.js dist/__tests__/slash-commands.test.js dist/__tests__/specialist-observability.test.js dist/__tests__/specialist.test.js dist/__tests__/tank-app.test.js dist/__tests__/tools.test.js dist/__tests__/trace-export.test.js dist/__tests__/flytown-actions.test.js dist/__tests__/flytown-signals.test.js dist/__tests__/flytown-connectome.test.js dist/__tests__/flytown-planner.test.js dist/__tests__/flytown-harness.test.js dist/__tests__/flytown-plasticity.test.js dist/__tests__/flytown-judge.test.js dist/__tests__/flytown-memory.test.js",
+    "test": "npm run build && node --test dist/__tests__/app-shell.test.js dist/__tests__/app-smoke.test.js dist/__tests__/artifact.test.js dist/__tests__/asteroid.test.js dist/__tests__/audit.test.js dist/__tests__/banners.test.js dist/__tests__/budget.test.js dist/__tests__/castes.test.js dist/__tests__/chat-import.test.js dist/__tests__/chat.test.js dist/__tests__/compost.test.js dist/__tests__/concurrency.test.js dist/__tests__/context-ingest.test.js dist/__tests__/debate.test.js dist/__tests__/drift.test.js dist/__tests__/embeddings.test.js dist/__tests__/export-compare.test.js dist/__tests__/fold.test.js dist/__tests__/formatting.test.js dist/__tests__/graph.test.js dist/__tests__/openai-client.test.js dist/__tests__/planner.test.js dist/__tests__/providers.test.js dist/__tests__/reward-plugin.test.js dist/__tests__/reward.test.js dist/__tests__/run-store.test.js dist/__tests__/server-resume.test.js dist/__tests__/slash-commands.test.js dist/__tests__/specialist-observability.test.js dist/__tests__/specialist.test.js dist/__tests__/swarm-prompt.test.js dist/__tests__/tools.test.js dist/__tests__/trace-export.test.js dist/__tests__/flytown-actions.test.js dist/__tests__/flytown-signals.test.js dist/__tests__/flytown-connectome.test.js dist/__tests__/flytown-planner.test.js dist/__tests__/flytown-harness.test.js dist/__tests__/flytown-plasticity.test.js dist/__tests__/flytown-judge.test.js dist/__tests__/flytown-memory.test.js dist/__tests__/server-security.test.js",
     "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "publishConfig": {
@@ -62,8 +59,8 @@
     "cli"
   ],
   "build": {
-    "appId": "town.goblin.desktop",
-    "productName": "Goblintown",
+    "appId": "ai.flytown.desktop",
+    "productName": "FLYTOWN",
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "forceCodeSigning": true,
     "directories": {
@@ -71,18 +68,13 @@
     },
     "files": [
       "dist/**/*",
-      "site/assets/**/*",
-      "build/icon.icns",
-      "build/icon.ico",
-      "build/icon.png",
       "package.json",
       "LICENSE",
       "README.md",
       "!dist/__tests__/**/*",
-      "!.goblintown/**/*"
+      "!.flytown/**/*"
     ],
     "mac": {
-      "icon": "build/icon.icns",
       "category": "public.app-category.developer-tools",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -94,13 +86,11 @@
       ]
     },
     "win": {
-      "icon": "build/icon.ico",
       "target": [
         "nsis"
       ]
     },
     "linux": {
-      "icon": "build/icon.png",
       "category": "Development",
       "target": [
         "AppImage"
@@ -112,7 +102,7 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Goblintown"
+      "shortcutName": "FLYTOWN"
     }
   },
   "dependencies": {

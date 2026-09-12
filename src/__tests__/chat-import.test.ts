@@ -13,12 +13,12 @@ import {
   vectorizeStoredArtifacts,
 } from "../chat-import.js";
 import { findRelevantArtifacts } from "../artifact.js";
-import { Hoard } from "../hoard.js";
+import { Compost } from "../compost.js";
 
 const tmpRoots: string[] = [];
 
 async function tempRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "goblintown-chat-import-"));
+  const root = await mkdtemp(join(tmpdir(), "flytown-chat-import-"));
   tmpRoots.push(root);
   return root;
 }
@@ -35,8 +35,8 @@ describe("previous chat import", () => {
         type: "session_meta",
         payload: {
           id: "sess-1",
-          cwd: "/repo/goblintown",
-          thread_name: "Goblin Tank voice",
+          cwd: "/repo/flytown",
+          thread_name: "Swarm UI voice",
         },
       }),
       JSON.stringify({
@@ -45,7 +45,7 @@ describe("previous chat import", () => {
         payload: {
           type: "message",
           role: "user",
-          content: [{ type: "input_text", text: "Make the Tank AI-first." }],
+          content: [{ type: "input_text", text: "Make the swarm AI-first." }],
         },
       }),
       JSON.stringify({
@@ -54,7 +54,7 @@ describe("previous chat import", () => {
         payload: {
           type: "message",
           role: "assistant",
-          content: [{ type: "output_text", text: "Use a router before full rites." }],
+          content: [{ type: "output_text", text: "Use a router before full flights." }],
         },
       }),
       JSON.stringify({
@@ -72,11 +72,11 @@ describe("previous chat import", () => {
 
     assert.equal(record.source, "codex");
     assert.equal(record.id, "codex:sess-1");
-    assert.equal(record.workspace, "/repo/goblintown");
+    assert.equal(record.workspace, "/repo/flytown");
     assert.equal(record.messages.length, 2);
     assert.equal(record.messages[0].role, "user");
     assert.equal(record.messages[1].role, "assistant");
-    assert.match(record.title, /Goblin Tank voice|Make the Tank/);
+    assert.match(record.title, /Swarm UI voice|Make the swarm/);
   });
 
   it("parses ChatGPT conversations.json and skips non-user assistant roles", () => {
@@ -95,7 +95,7 @@ describe("previous chat import", () => {
             message: {
               author: { role: "user" },
               create_time: 1_779_000_001,
-              content: { content_type: "text", parts: ["Can Goblintown import my old chats?"] },
+              content: { content_type: "text", parts: ["Can FLYTOWN import my old chats?"] },
             },
           },
           "assistant-1": {
@@ -129,7 +129,7 @@ describe("previous chat import", () => {
     assert.equal(records[0].id, "chatgpt:conv-1");
     assert.equal(records[0].title, "Previous app direction");
     assert.equal(records[0].messages.length, 2);
-    assert.equal(records[0].messages[0].text, "Can Goblintown import my old chats?");
+    assert.equal(records[0].messages[0].text, "Can FLYTOWN import my old chats?");
     assert.equal(records[0].messages[1].text, "Yes, as structured memory.");
   });
 
@@ -145,7 +145,7 @@ describe("previous chat import", () => {
       messages: [
         { role: "user" as const, text: "My key is sk-live-abcdefghijklmnopqrstuvwxyz123456" },
         { role: "assistant" as const, text: "Do not store that token." },
-        { role: "user" as const, text: "Remember the full Tank import plan." },
+        { role: "user" as const, text: "Remember the full chat import plan." },
       ],
     };
 
@@ -186,11 +186,11 @@ describe("previous chat import", () => {
 
   it("imports chat artifacts and vectorizes them with an injected embedder", async () => {
     const root = await tempRoot();
-    const hoard = new Hoard(join(root, ".goblintown", "hoard"));
-    await hoard.init();
+    const compost = new Compost(join(root, ".flytown", "compost"));
+    await compost.init();
 
     const result = await importChatRecords({
-      hoard,
+      compost,
       records: [
         {
           id: "codex:sess-vector",
@@ -198,7 +198,7 @@ describe("previous chat import", () => {
           title: "Vector chat",
           rawRef: "vector.jsonl",
           messages: [
-            { role: "user", text: "Goblintown needs indexed chat memory." },
+            { role: "user", text: "FLYTOWN needs indexed chat memory." },
             { role: "assistant", text: "Precompute embeddings on import." },
           ],
         },
@@ -212,19 +212,19 @@ describe("previous chat import", () => {
     assert.equal(result.artifacts.length, 2);
     assert.equal(result.vectorized, 2);
 
-    const stored = await hoard.allArtifacts();
+    const stored = await compost.allArtifacts();
     assert.equal(stored.length, 2);
     assert.ok(stored.every((artifact) => artifact.embedding?.length === 2));
   });
 
   it("uses explicit AI summaries only when requested", async () => {
     const root = await tempRoot();
-    const hoard = new Hoard(join(root, ".goblintown", "hoard"));
-    await hoard.init();
+    const compost = new Compost(join(root, ".flytown", "compost"));
+    await compost.init();
     let calls = 0;
 
     const result = await importChatRecords({
-      hoard,
+      compost,
       records: [
         {
           id: "codex:sess-summary",
@@ -284,8 +284,8 @@ describe("previous chat import", () => {
 
   it("vectorizes stored artifacts that are missing embeddings", async () => {
     const root = await tempRoot();
-    const hoard = new Hoard(join(root, ".goblintown", "hoard"));
-    await hoard.init();
+    const compost = new Compost(join(root, ".flytown", "compost"));
+    await compost.init();
     const artifacts = buildChatArtifacts({
       id: "codex:sess-missing",
       source: "codex",
@@ -293,16 +293,16 @@ describe("previous chat import", () => {
       rawRef: "missing.jsonl",
       messages: [{ role: "user", text: "Vectorize missing artifacts." }],
     });
-    for (const artifact of artifacts) await hoard.stashArtifact(artifact);
+    for (const artifact of artifacts) await compost.stashArtifact(artifact);
 
     const result = await vectorizeStoredArtifacts({
-      hoard,
+      compost,
       missingOnly: true,
       embedder: async (text) => [1, text.length],
     });
 
     assert.equal(result.vectorized, artifacts.length);
-    const stored = await hoard.allArtifacts();
+    const stored = await compost.allArtifacts();
     assert.ok(stored.every((artifact) => artifact.embedding?.length === 2));
   });
 

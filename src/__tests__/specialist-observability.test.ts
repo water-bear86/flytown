@@ -5,15 +5,15 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const riteSource = readFileSync(join(repoRoot, "src", "rite.ts"), "utf8");
+const flightSource = readFileSync(join(repoRoot, "src", "flight.ts"), "utf8");
 const cliSource = readFileSync(join(repoRoot, "src", "cli.ts"), "utf8");
 
 describe("specialist recovery observability", () => {
   it("emits visible events when specialist clustering returns nothing or fails", () => {
-    assert.match(riteSource, /kind: "specialist:cluster:empty"/);
-    assert.match(riteSource, /kind: "specialist:cluster:error"/);
-    assert.match(riteSource, /onStep\(\{\s*kind: "specialist:cluster:error"/);
-    assert.doesNotMatch(riteSource, /catch\s*\{\s*\/\/ recovery is best-effort; fall through to ogre\s*\}/);
+    assert.match(flightSource, /kind: "specialist:cluster:empty"/);
+    assert.match(flightSource, /kind: "specialist:cluster:error"/);
+    assert.match(flightSource, /onStep\(\{\s*kind: "specialist:cluster:error"/);
+    assert.doesNotMatch(flightSource, /catch\s*\{\s*\/\/ recovery is best-effort; fall through to soldier\s*\}/);
   });
 
   it("renders specialist empty and error states in CLI output", () => {

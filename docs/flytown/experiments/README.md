@@ -1,6 +1,8 @@
 # FLYTOWN experiment log
 
-All runs below use the deterministic **mock worker world** (`src/flytown/eval/mock-rite.ts`), not live models. The mock is a toy: it tests whether a planner's decisions are *consequential and comparable*, not whether they are good in the real world. Live evaluation is a separate, later step.
+> **Names:** on 2026-09-12 FLYTOWN replaced every inherited Goblintown term (goblin, troll, rite, hoard, warren, …) with the swarm vocabulary in [`docs/flytown/VOCABULARY.md`](../VOCABULARY.md). Sections that record work done before the rename keep the names that were true at the time; all current-behaviour descriptions use the new ones. **Every entry in this log — each dated section, and the Milestone 3 protocol with its larva runs, all written on 2026-09-11 and 2026-09-12 — is a pre-rename record:** those runs used the Goblintown worker prompts, and their write-ups keep the names of that time (`spawn_subrite`, rites, troll, ogre, `warren.json`, …). Today the same things are `spawn_flight`, flights, guard, soldier and `terrarium.json`.
+
+The Milestone 2 and Milestone 3 runs below use the deterministic **mock worker world** (`src/flytown/eval/mock-flight.ts`), not live models. The mock is a toy: it tests whether a planner's decisions are *consequential and comparable*, not whether they are good in the real world. The entries marked LIVE ran the real pipeline against real models; the mushroom-body memory entry makes no model calls at all.
 
 Connectome: `fafb-v783-projectome-1` — FlyWire FAFB materialization 783 collapsed to 79 neuropil-level nodes (78 regions + `UNASGD`), 3,509 edges, 54.5M synapses, built by `connectome-etl/build.py` from the Zenodo archival release (MD5-verified). See `connectome/fafb-v783-projectome-1/manifest.json` for every preprocessing assumption and its provenance tag.
 

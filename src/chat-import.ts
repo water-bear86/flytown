@@ -5,9 +5,9 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, extname, join, relative, resolve, sep } from "node:path";
 import { extractKeywords } from "./artifact.js";
 import { artifactRetrievalText, embed } from "./embeddings.js";
-import { makeGoblin } from "./creatures.js";
-import { callCreature } from "./openai-client.js";
-import type { Hoard } from "./hoard.js";
+import { makeForager } from "./castes.js";
+import { callInsect } from "./openai-client.js";
+import type { Compost } from "./compost.js";
 import type { Artifact, ArtifactClaim } from "./types.js";
 
 export type ChatImportSource = "codex" | "chatgpt" | "folder";
@@ -45,7 +45,7 @@ export interface ChatScanResult {
 }
 
 export interface ChatImportOptions {
-  hoard: Hoard;
+  compost: Compost;
   records: ChatRecord[];
   ids?: string[];
   vectorize?: boolean;
@@ -64,7 +64,7 @@ export interface ChatImportResult {
 }
 
 export interface VectorizeOptions {
-  hoard: Hoard;
+  compost: Compost;
   artifacts?: Artifact[];
   missingOnly?: boolean;
   limit?: number;
@@ -243,7 +243,7 @@ export function buildChatArtifacts(
   const summary = opts.summary ? redactSecrets(compactWhitespace(opts.summary)) : "";
   const root: Artifact = {
     id: rootId,
-    riteId: `chat:${contentHash}`,
+    flightId: `chat:${contentHash}`,
     task: rootSummary,
     outcome: "winner",
     claims: [{
@@ -276,7 +276,7 @@ export function buildChatArtifacts(
     const claim = `Imported chat chunk ${index + 1}/${chunks.length} from "${record.title}".`;
     return {
       id: `chatc-${chunkHash}`,
-      riteId: `chat:${contentHash}:${index + 1}`,
+      flightId: `chat:${contentHash}:${index + 1}`,
       task: claim,
       outcome: "winner",
       claims: [{
@@ -326,18 +326,18 @@ export async function importChatRecords(opts: ChatImportOptions): Promise<ChatIm
     skipped.push(...v.failed);
   }
 
-  for (const artifact of artifacts) await opts.hoard.stashArtifact(artifact);
+  for (const artifact of artifacts) await opts.compost.stashArtifact(artifact);
   return { records: selected, artifacts, vectorized, skipped };
 }
 
 export async function vectorizeStoredArtifacts(opts: VectorizeOptions): Promise<VectorizeResult> {
-  const all = opts.artifacts ?? await opts.hoard.allArtifacts();
+  const all = opts.artifacts ?? await opts.compost.allArtifacts();
   const selected = all
     .filter((artifact) => !opts.missingOnly || !artifact.embedding || artifact.embedding.length === 0)
     .slice(0, clampLimit(opts.limit, all.length || MAX_SCAN_LIMIT, 1, MAX_SCAN_LIMIT));
   const result = await vectorizeArtifacts(selected, opts.embedder ?? DEFAULT_EMBEDDER);
   for (const artifact of selected) {
-    if (artifact.embedding && artifact.embedding.length > 0) await opts.hoard.stashArtifact(artifact);
+    if (artifact.embedding && artifact.embedding.length > 0) await opts.compost.stashArtifact(artifact);
   }
   return { scanned: selected.length, vectorized: result.vectorized, failed: result.failed };
 }
@@ -533,7 +533,7 @@ async function summarizeChatRecord(record: ChatRecord): Promise<string> {
     "",
     transcript,
   ].join("\n");
-  const { text } = await callCreature(makeGoblin(), prompt, {
+  const { text } = await callInsect(makeForager(), prompt, {
     outputFormat: "markdown",
     maxOutputTokens: 900,
   });

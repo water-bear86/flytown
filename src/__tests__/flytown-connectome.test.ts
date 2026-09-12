@@ -112,11 +112,11 @@ describe("adapters", () => {
   });
   it("applyReward only touches adapter weights and never the graph", () => {
     const w0 = defaultAdapters();
-    const before = w0.readout.spawn_subrite.find((e) => e.group === "LAL")!.weight;
+    const before = w0.readout.spawn_flight.find((e) => e.group === "LAL")!.weight;
     const scores = Object.fromEntries(ORCH_ACTIONS.map((a) => [a, 1 / ORCH_ACTIONS.length])) as Record<OrchAction, number>;
-    const w1 = applyReward({ ...w0, learning: { updates: 0, baseline: 0 } }, { action: "spawn_subrite", scores, activityByGroup: { "region:LAL": 1 }, reward: 1 });
-    assert.ok(w1.readout.spawn_subrite.find((e) => e.group === "LAL")!.weight > before);
-    assert.equal(w0.readout.spawn_subrite.find((e) => e.group === "LAL")!.weight, before, "input untouched");
+    const w1 = applyReward({ ...w0, learning: { updates: 0, baseline: 0 } }, { action: "spawn_flight", scores, activityByGroup: { "region:LAL": 1 }, reward: 1 });
+    assert.ok(w1.readout.spawn_flight.find((e) => e.group === "LAL")!.weight > before);
+    assert.equal(w0.readout.spawn_flight.find((e) => e.group === "LAL")!.weight, before, "input untouched");
     assert.equal(w1.learning?.updates, 1);
   });
 });

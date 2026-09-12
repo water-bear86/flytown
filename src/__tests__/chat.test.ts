@@ -1,15 +1,15 @@
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import {
-  buildSingleGoblinChatPrompt,
+  buildSingleForagerChatPrompt,
   collectChatWebToolResults,
-  detectGoblintownOffer,
+  detectFlightOffer,
   extractChatWebUrls,
   normalizeLikelyChatUrls,
   normalizeChatMessages,
 } from "../chat.js";
 
-describe("single goblin chat", () => {
+describe("single forager chat", () => {
   it("normalizes only user and assistant messages", () => {
     const messages = normalizeChatMessages([
       { role: "system", content: "ignored" },
@@ -25,21 +25,21 @@ describe("single goblin chat", () => {
     ]);
   });
 
-  it("builds a single-goblin prompt from chat history", () => {
-    const prompt = buildSingleGoblinChatPrompt([
+  it("builds a single-forager prompt from chat history", () => {
+    const prompt = buildSingleForagerChatPrompt([
       { role: "user", content: "What changed?" },
       { role: "assistant", content: "The route changed." },
       { role: "user", content: "Summarize it." },
     ]);
 
-    assert.match(prompt, /AI-first single Goblin chat mode/);
+    assert.match(prompt, /AI-first single-forager chat mode/);
     assert.match(prompt, /regular single LLM model call/);
-    assert.match(prompt, /Do not run multi-agent Goblintown orchestration/);
-    assert.match(prompt, /Goblintown vocabulary/);
-    assert.match(prompt, /A rite is a full Goblintown run/);
-    assert.match(prompt, /The Tank is the main app surface/);
-    assert.match(prompt, /Loot is a saved model output/);
-    assert.match(prompt, /Be useful first, with a little Goblintown-native bite/);
+    assert.match(prompt, /Do not run multi-agent FLYTOWN orchestration/);
+    assert.match(prompt, /FLYTOWN vocabulary/);
+    assert.match(prompt, /A flight is a full FLYTOWN run/);
+    assert.match(prompt, /The web control surface \(`flytown serve`\) is the main app surface/);
+    assert.match(prompt, /A morsel is a saved model output/);
+    assert.match(prompt, /Be useful first, with a little FLYTOWN-native bite/);
     assert.match(prompt, /User: What changed\?/);
     assert.match(prompt, /Assistant: The route changed\./);
     assert.match(prompt, /User: Summarize it\./);
@@ -49,11 +49,11 @@ describe("single goblin chat", () => {
     const urls = extractChatWebUrls([
       { role: "user", content: "ignore https://old.example/a" },
       { role: "assistant", content: "ok" },
-      { role: "user", content: "Check https://github.com/0xbl33p/goblintown, then https://example.com/docs." },
+      { role: "user", content: "Check https://github.com/example/flytown, then https://example.com/docs." },
     ]);
 
     assert.deepEqual(urls, [
-      "https://github.com/0xbl33p/goblintown",
+      "https://github.com/example/flytown",
       "https://example.com/docs",
     ]);
   });
@@ -70,14 +70,14 @@ describe("single goblin chat", () => {
       ["https://github.com/aeyakovenko/percolator-cli/issues/72"],
     );
     assert.equal(
-      detectGoblintownOffer([
-        { role: "user", content: "Lets run a rite to solve this bounty: https://github.com/aeyakovenko/percolator-cli/issues/72g" },
+      detectFlightOffer([
+        { role: "user", content: "Lets run a flight to solve this bounty: https://github.com/aeyakovenko/percolator-cli/issues/72g" },
       ])?.task,
-      "Lets run a rite to solve this bounty: https://github.com/aeyakovenko/percolator-cli/issues/72",
+      "Lets run a flight to solve this bounty: https://github.com/aeyakovenko/percolator-cli/issues/72",
     );
   });
 
-  it("adds fetched website context to the single-goblin prompt", async () => {
+  it("adds fetched website context to the single-forager prompt", async () => {
     const results = await collectChatWebToolResults(
       [{ role: "user", content: "What is on https://github.com/example/repo?" }],
       async () =>
@@ -86,7 +86,7 @@ describe("single goblin chat", () => {
           headers: { "content-type": "text/html" },
         }),
     );
-    const prompt = buildSingleGoblinChatPrompt(
+    const prompt = buildSingleForagerChatPrompt(
       [{ role: "user", content: "What is on https://github.com/example/repo?" }],
       results,
     );
@@ -99,35 +99,43 @@ describe("single goblin chat", () => {
     assert.match(prompt, /cite the relevant URL/);
   });
 
-  it("offers Goblintown for explicit requests", () => {
-    const offer = detectGoblintownOffer([
-      { role: "user", content: "Run Goblintown on this migration plan." },
+  it("offers FLYTOWN for explicit requests", () => {
+    const offer = detectFlightOffer([
+      { role: "user", content: "Run FLYTOWN on this migration plan." },
     ]);
 
     assert.deepEqual(offer, {
-      task: "Run Goblintown on this migration plan.",
+      task: "Run FLYTOWN on this migration plan.",
       requested: true,
       reason: "explicit",
     });
   });
 
-  it("treats explicit rite requests as run requests", () => {
-    const offer = detectGoblintownOffer([
-      { role: "user", content: "Run a rite about whether the Beatles are good." },
+  it("treats explicit flight requests as run requests", () => {
+    const offer = detectFlightOffer([
+      { role: "user", content: "Run a flight about whether the Beatles are good." },
     ]);
 
     assert.deepEqual(offer, {
-      task: "Run a rite about whether the Beatles are good.",
+      task: "Run a flight about whether the Beatles are good.",
       requested: true,
       reason: "explicit",
     });
   });
 
-  it("uses the previous user task for bare rite follow-ups", () => {
-    const offer = detectGoblintownOffer([
+  it("does not treat an ordinary mention of a flight as a run request", () => {
+    const offer = detectFlightOffer([
+      { role: "user", content: "What is the cheapest flight to Lisbon?" },
+    ]);
+
+    assert.equal(offer, undefined);
+  });
+
+  it("uses the previous user task for bare flight follow-ups", () => {
+    const offer = detectFlightOffer([
       { role: "user", content: "Is Abbey Road better than Revolver?" },
       { role: "assistant", content: "Short answer: close call." },
-      { role: "user", content: "do a rite" },
+      { role: "user", content: "do a flight" },
     ]);
 
     assert.deepEqual(offer, {
@@ -137,8 +145,8 @@ describe("single goblin chat", () => {
     });
   });
 
-  it("offers Goblintown for complex tasks without auto-running it", () => {
-    const offer = detectGoblintownOffer([
+  it("offers FLYTOWN for complex tasks without auto-running it", () => {
+    const offer = detectFlightOffer([
       {
         role: "user",
         content:
@@ -150,8 +158,8 @@ describe("single goblin chat", () => {
     assert.equal(offer?.reason, "complex");
   });
 
-  it("does not offer Goblintown for simple chat", () => {
-    const offer = detectGoblintownOffer([
+  it("does not offer FLYTOWN for simple chat", () => {
+    const offer = detectFlightOffer([
       { role: "user", content: "What is this repo?" },
     ]);
 
@@ -160,7 +168,7 @@ describe("single goblin chat", () => {
 
   it("rejects prompts without a latest user message", () => {
     assert.throws(
-      () => buildSingleGoblinChatPrompt([{ role: "assistant", content: "ready" }]),
+      () => buildSingleForagerChatPrompt([{ role: "assistant", content: "ready" }]),
       /latest user message/,
     );
   });

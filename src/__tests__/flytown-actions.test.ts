@@ -17,8 +17,8 @@ function sig(over: Partial<TaskSignals> = {}): TaskSignals {
 
 describe("normalizeScores", () => {
   it("normalises to a distribution and treats invalid values as zero", () => {
-    const s = normalizeScores({ spawn_subrite: 2, retry_new_approach: NaN, run_tests: -1, invoke_reviewer: 2 });
-    assert.equal(s.spawn_subrite, 0.5);
+    const s = normalizeScores({ spawn_flight: 2, retry_new_approach: NaN, run_tests: -1, invoke_reviewer: 2 });
+    assert.equal(s.spawn_flight, 0.5);
     assert.equal(s.invoke_reviewer, 0.5);
     assert.equal(s.retry_new_approach, 0);
     assert.equal(s.run_tests, 0);
@@ -31,19 +31,19 @@ describe("normalizeScores", () => {
 
 describe("decide", () => {
   it("picks the argmax as primary and includes actions above the ratio", () => {
-    const s = normalizeScores({ spawn_subrite: 1, run_tests: 0.6, invoke_reviewer: 0.2 });
+    const s = normalizeScores({ spawn_flight: 1, run_tests: 0.6, invoke_reviewer: 0.2 });
     const d = decide(s, sig());
-    assert.equal(d.primary, "spawn_subrite");
+    assert.equal(d.primary, "spawn_flight");
     assert.deepEqual(d.included, ["run_tests"]);
   });
-  it("shrinks pack size under pressure and grows it for increase_pack_size", () => {
-    const grow = decide(normalizeScores({ increase_pack_size: 1 }), sig());
-    assert.equal(grow.packSize, 5);
-    const tight = decide(normalizeScores({ spawn_subrite: 1 }), sig({ pressure: 0.8 }));
-    assert.equal(tight.packSize, 1);
+  it("shrinks swarm size under pressure and grows it for increase_swarm_size", () => {
+    const grow = decide(normalizeScores({ increase_swarm_size: 1 }), sig());
+    assert.equal(grow.swarmSize, 5);
+    const tight = decide(normalizeScores({ spawn_flight: 1 }), sig({ pressure: 0.8 }));
+    assert.equal(tight.swarmSize, 1);
   });
   it("rotates personality on retry after a failed attempt", () => {
-    const first = decide(normalizeScores({ spawn_subrite: 1 }), sig());
+    const first = decide(normalizeScores({ spawn_flight: 1 }), sig());
     const retry = decide(normalizeScores({ retry_new_approach: 1 }), sig({ history: { attempts: 1, replanDepth: 1, lastOutcome: "failure", failureReason: "x" } }));
     assert.notEqual(first.personality, retry.personality);
   });
@@ -58,39 +58,39 @@ describe("compilePlan", () => {
     }
   });
   it("builds investigate → main → verify → review → synthesize for a rich decision", () => {
-    const s = normalizeScores({ spawn_subrite: 1, request_artifact_investigation: 0.9, run_tests: 0.8, invoke_reviewer: 0.7 });
+    const s = normalizeScores({ spawn_flight: 1, request_artifact_investigation: 0.9, run_tests: 0.8, invoke_reviewer: 0.7 });
     const p = compilePlan(decide(s, sig()), sig(), { plannerId: "t", planIdSeed: "abc" });
     assert.deepEqual(p.nodes.map((n) => n.id), ["investigate", "main", "verify", "review", "synthesize"]);
-    assert.deepEqual(p.nodes.map((n) => n.hints?.action), ["request_artifact_investigation", "spawn_subrite", "run_tests", "invoke_reviewer", "merge_results"]);
-    assert.equal(p.nodes.find((n) => n.id === "verify")?.hints?.trollTools, true);
+    assert.deepEqual(p.nodes.map((n) => n.hints?.action), ["request_artifact_investigation", "spawn_flight", "run_tests", "invoke_reviewer", "merge_results"]);
+    assert.equal(p.nodes.find((n) => n.id === "verify")?.hints?.guardTools, true);
     assert.equal(p.nodes.at(-1)?.kind, "synthesize");
     assert.ok(validatePlan(p).ok);
     assert.deepEqual(topologicalOrder(p).map((n) => n.id), ["investigate", "main", "verify", "review", "synthesize"]);
   });
   it("respects maxNodes", () => {
-    const s = normalizeScores({ spawn_subrite: 1, request_artifact_investigation: 0.9, run_tests: 0.8, invoke_reviewer: 0.7 });
+    const s = normalizeScores({ spawn_flight: 1, request_artifact_investigation: 0.9, run_tests: 0.8, invoke_reviewer: 0.7 });
     const p = compilePlan(decide(s, sig()), sig(), { plannerId: "t", maxNodes: 2, planIdSeed: "abc" });
     assert.ok(p.nodes.length <= 2);
     assert.ok(validatePlan(p).ok);
   });
   it("produces a single node plan for a plain spawn decision", () => {
-    const p = compilePlan(decide(normalizeScores({ spawn_subrite: 1 }), sig()), sig(), { plannerId: "t", planIdSeed: "abc" });
+    const p = compilePlan(decide(normalizeScores({ spawn_flight: 1 }), sig()), sig(), { plannerId: "t", planIdSeed: "abc" });
     assert.equal(p.nodes.length, 1);
-    assert.equal(p.nodes[0].kind, "sub_rite");
+    assert.equal(p.nodes[0].kind, "flight");
     assert.equal(p.halt, undefined);
   });
   it("is deterministic given a planIdSeed", () => {
-    const s = normalizeScores({ spawn_subrite: 1, surface_uncertainty: 0.8 });
+    const s = normalizeScores({ spawn_flight: 1, surface_uncertainty: 0.8 });
     const a = compilePlan(decide(s, sig()), sig(), { plannerId: "t", planIdSeed: "same" });
     const b = compilePlan(decide(s, sig()), sig(), { plannerId: "t", planIdSeed: "same" });
     assert.equal(a.id, b.id);
-    assert.deepEqual(a.nodes.map((n) => [n.id, n.task, n.packSize, n.personality, n.hints]), b.nodes.map((n) => [n.id, n.task, n.packSize, n.personality, n.hints]));
+    assert.deepEqual(a.nodes.map((n) => [n.id, n.task, n.swarmSize, n.personality, n.hints]), b.nodes.map((n) => [n.id, n.task, n.swarmSize, n.personality, n.hints]));
     assert.equal(a.nodes[0].hints?.debate, true);
   });
   it("rewrites the main task on retry with the failure reason", () => {
-    const s = normalizeScores({ retry_new_approach: 1, spawn_subrite: 0.9 });
-    const p = compilePlan(decide(s, sig({ history: { attempts: 1, replanDepth: 1, lastOutcome: "failure", failureReason: "ogre fell over" } })), sig({ history: { attempts: 1, replanDepth: 1, lastOutcome: "failure", failureReason: "ogre fell over" } }), { plannerId: "t", planIdSeed: "x" });
-    assert.ok(p.nodes[0].task.includes("ogre fell over"));
+    const s = normalizeScores({ retry_new_approach: 1, spawn_flight: 0.9 });
+    const p = compilePlan(decide(s, sig({ history: { attempts: 1, replanDepth: 1, lastOutcome: "failure", failureReason: "soldier fell over" } })), sig({ history: { attempts: 1, replanDepth: 1, lastOutcome: "failure", failureReason: "soldier fell over" } }), { plannerId: "t", planIdSeed: "x" });
+    assert.ok(p.nodes[0].task.includes("soldier fell over"));
     assert.ok(p.nodes[0].task.includes("materially different approach"));
   });
 });

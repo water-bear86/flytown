@@ -1,21 +1,21 @@
 /**
  * Phase 6 — Context-folding for old artifacts.
  *
- * As the warren accumulates artifacts, retrieval gets noisy. Folding picks
+ * As the terrarium accumulates artifacts, retrieval gets noisy. Folding picks
  * topically similar groups (via keyword overlap, or embeddings if available)
- * and asks the Pigeon-Scribe to merge each group into a single higher-level
+ * and asks the Messenger-Scribe to merge each group into a single higher-level
  * summary artifact. The folded inputs are then marked as parents of the new
  * artifact (so the lineage is preserved).
  *
  * Pure functions exported:
  *   - clusterByKeywords: simple greedy clustering for testability
- *   - buildFoldPrompt: the prompt the pigeon receives
+ *   - buildFoldPrompt: the prompt the messenger receives
  */
-import { makeScribe } from "./creatures.js";
-import { callCreature } from "./openai-client.js";
+import { makeScribe } from "./castes.js";
+import { callInsect } from "./openai-client.js";
 import { parseArtifactJson } from "./artifact.js";
 import type { Artifact } from "./types.js";
-import type { Hoard } from "./hoard.js";
+import type { Compost } from "./compost.js";
 
 /**
  * Greedy clustering: walk artifacts in age order; for each, attach to the
@@ -50,7 +50,7 @@ export function buildFoldPrompt(group: Artifact[]): string {
   lines.push(``);
   for (let i = 0; i < group.length; i++) {
     const a = group[i];
-    lines.push(`--- Artifact ${i + 1} (id=${a.id}, rite=${a.riteId}, outcome=${a.outcome}) ---`);
+    lines.push(`--- Artifact ${i + 1} (id=${a.id}, flight=${a.flightId}, outcome=${a.outcome}) ---`);
     lines.push(`Task: ${a.task}`);
     if (a.claims.length > 0) {
       lines.push(`Claims:`);
@@ -72,7 +72,7 @@ export function buildFoldPrompt(group: Artifact[]): string {
   );
   lines.push(`{`);
   lines.push(`  "claims": [{ "text": string, "confidence": "established"|"likely"|"speculative", "evidenceIds": number[] }],`);
-  lines.push(`  "evidence": [{ "kind": "loot"|"file"|"url"|"external", "ref": string, "snippet": string }],`);
+  lines.push(`  "evidence": [{ "kind": "morsel"|"file"|"url"|"external", "ref": string, "snippet": string }],`);
   lines.push(`  "openQuestions": string[],`);
   lines.push(`  "nextSteps": string[],`);
   lines.push(`  "keywords": string[]`);
@@ -81,7 +81,7 @@ export function buildFoldPrompt(group: Artifact[]): string {
 }
 
 export async function foldArtifacts(opts: {
-  hoard: Hoard;
+  compost: Compost;
   threshold?: number;
   minOverlap?: number;
   maxClusterSize?: number;
@@ -95,7 +95,7 @@ export async function foldArtifacts(opts: {
   const minAgeDays = opts.minAgeDays ?? 7;
   const cutoff = Date.now() - minAgeDays * 86_400_000;
 
-  const all = await opts.hoard.allArtifacts();
+  const all = await opts.compost.allArtifacts();
   if (all.length < threshold) {
     opts.onProgress?.(`only ${all.length} artifacts; below threshold ${threshold}; nothing to fold`);
     return { created: [], foldedInputCount: 0 };
@@ -129,17 +129,17 @@ export async function foldArtifacts(opts: {
     opts.onProgress?.(`folding ${group.length} artifacts`);
     try {
       const prompt = buildFoldPrompt(group);
-      const { text } = await callCreature(scribe, prompt, { maxOutputTokens: 1500 });
+      const { text } = await callInsect(scribe, prompt, { maxOutputTokens: 1500 });
       const groupKeywords = Array.from(new Set(group.flatMap((g) => g.keywords)));
       const folded = parseArtifactJson(text, {
-        riteId: "fold-" + group[0].riteId.slice(0, 6),
-        task: `Folded summary of ${group.length} prior rites: ${group.map((g) => g.task).slice(0, 3).join(" / ")}`,
+        flightId: "fold-" + group[0].flightId.slice(0, 6),
+        task: `Folded summary of ${group.length} prior flights: ${group.map((g) => g.task).slice(0, 3).join(" / ")}`,
         outcome: "winner",
         parentArtifactIds: group.map((g) => g.id),
       });
       // Inherit union of keywords if scribe didn't provide any usable ones.
       if (folded.keywords.length === 0) folded.keywords = groupKeywords.slice(0, 12);
-      await opts.hoard.stashArtifact(folded);
+      await opts.compost.stashArtifact(folded);
       created.push(folded);
       foldedInputCount += group.length;
     } catch {

@@ -1,8 +1,8 @@
 /**
  * DecisionTrace — the auditable record of one planning decision.
  *
- * Written to <root>/.flytown/traces/<runId>.json. Cross-references
- * Goblintown's own Plan/Rite/RunRecord ids so a single runId reconstructs
+ * Written to <root>/.flytown/traces/<runId>.json. Cross-references the
+ * worker pipeline's Plan/Flight/RunRecord ids so a single runId reconstructs
  * both "what the planner did" and "what the workers did as a result".
  *
  * Every biologically-flavoured field carries a provenance tag so the trace
@@ -37,7 +37,7 @@ export function makeTrace(args: {
     signals: args.signals,
     features: args.features,
     actionScores: args.scores,
-    decision: { primary: args.decision.primary, included: args.decision.included, packSize: args.decision.packSize, personality: args.decision.personality },
+    decision: { primary: args.decision.primary, included: args.decision.included, swarmSize: args.decision.swarmSize, personality: args.decision.personality },
     plan: args.plan,
     brain: args.brain,
     learning: args.learning,
@@ -102,7 +102,7 @@ export interface DecisionTrace {
   plan: Plan;
   brain?: BrainActivityTrace;
   /** Outcome is appended after execution when known. */
-  outcome?: { planOutcome: string; reward?: number; replans?: number; finalRiteId?: string; tokens?: number; wallMs?: number };
+  outcome?: { planOutcome: string; reward?: number; replans?: number; finalFlightId?: string; tokens?: number; wallMs?: number };
   learning?: { enabled: boolean; applied: string[] };
   provenance: Record<string, ProvenanceTag>;
   /** Free-form notes, e.g. fallback reasons. */
@@ -154,7 +154,7 @@ export function renderTraceText(t: DecisionTrace): string {
   lines.push(`signals: deliverable=${t.signals.deliverable} complexity=${t.signals.complexity.toFixed(2)} uncertainty=${t.signals.uncertainty.toFixed(2)} pressure=${t.signals.pressure.toFixed(2)} repoFiles=${t.signals.repo.fileCount} tests=${t.signals.repo.hasTests} failures=${JSON.stringify(t.signals.failures)} attempts=${t.signals.history.attempts}`);
   const top = Object.entries(t.actionScores).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([a, v]) => `${a}=${v.toFixed(3)}`).join("  ");
   lines.push(`actions: ${top}`);
-  lines.push(`decision: primary=${t.decision.primary} included=[${t.decision.included.join(",")}] pack=${t.decision.packSize} personality=${t.decision.personality}`);
+  lines.push(`decision: primary=${t.decision.primary} included=[${t.decision.included.join(",")}] swarm=${t.decision.swarmSize} personality=${t.decision.personality}`);
   if (t.brain) {
     const b = t.brain;
     lines.push(`brain: ${b.connectomeId}${b.level ? ` (${b.level})` : ""} variant=${b.variant}${b.ablatedRegions.length ? ` ablated=[${b.ablatedRegions.join(",")}]` : ""} recurrence=${b.recurrence} steps=${b.stats.steps} active=${b.stats.activeRegions}/${b.engine.nodes ?? "?"} max=${b.stats.maxActivity.toFixed(3)}`);
@@ -170,7 +170,7 @@ export function renderTraceText(t: DecisionTrace): string {
     if (contrib) lines.push(`  ${t.decision.primary} ← ${contrib.slice(0, 5).map(([r, c]) => `${r}(${c.toFixed(2)})`).join(" ")}`);
   }
   if (t.plan.halt) lines.push(`plan: HALT ${t.plan.halt.kind} — ${t.plan.halt.reason}`);
-  else lines.push(`plan: ${t.plan.nodes.map((n) => `${n.id}[${n.hints?.action ?? n.kind},pack=${n.packSize}]`).join(" → ")}`);
+  else lines.push(`plan: ${t.plan.nodes.map((n) => `${n.id}[${n.hints?.action ?? n.kind},swarm=${n.swarmSize}]`).join(" → ")}`);
   if (t.outcome) lines.push(`outcome: ${JSON.stringify(t.outcome)}`);
   for (const n of t.notes) lines.push(`note: ${n}`);
   return lines.join("\n");

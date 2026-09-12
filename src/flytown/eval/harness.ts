@@ -11,10 +11,10 @@
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { executePlan, type PlanOutcome, type RiteRunner } from "../../plan-executor.js";
-import { performRite } from "../../rite.js";
+import { executePlan, type PlanOutcome, type FlightRunner } from "../../plan-executor.js";
+import { performFlight } from "../../flight.js";
 import { withProviderRoot } from "../../openai-client.js";
-import { Hoard } from "../../hoard.js";
+import { Compost } from "../../compost.js";
 import type { Artifact } from "../../types.js";
 import type { OrchAction } from "../actions.js";
 import type { PlannerBackend } from "../planner-backend.js";
@@ -26,35 +26,35 @@ import { hashSeed, makeRng } from "../rng.js";
 import { writeTrace, type DecisionTrace } from "../trace.js";
 import { FIXTURES, fixtureAvailability, rubricFor, type Fixture, type FixtureCategory } from "./fixtures.js";
 import { judgeOutput } from "./judge.js";
-import { makeMockRiteRunner, type MockRiteStats } from "./mock-rite.js";
+import { makeMockFlightRunner, type MockFlightStats } from "./mock-flight.js";
 
 /**
- * Live mode: sub-rites run through the real Goblintown pipeline (Raccoon →
- * pack → Gremlin → Troll → Specialists → Ogre → Scribe) against the provider
- * configured in `warrenRoot`'s `.goblintown/warren.json`. Training epochs,
+ * Live mode: flights run through the real FLYTOWN pipeline (Scout →
+ * swarm → Wasp → Guard → Specialists → Soldier → Scribe) against the provider
+ * configured in `terrariumRoot`'s `.flytown/terrarium.json`. Training epochs,
  * when requested, still use the mock world ("trained in simulation,
  * evaluated live"). Every cap below exists to keep a run bounded.
  */
 export interface LiveOptions {
-  warrenRoot: string;
-  /** cap on goblins per sub-rite (default 2) */
-  packSize?: number;
+  terrariumRoot: string;
+  /** cap on foragers per flight (default 2) */
+  swarmSize?: number;
   /** cap on output tokens per model call (default 400) */
   maxOutputTokensPerCall?: number;
-  /** Goblintown budget per plan run — phases stop once exceeded (default 40,000) */
+  /** token budget per plan run — flight phases stop once exceeded (default 40,000) */
   budgetTokensPerRun?: number;
   /** stop scheduling live runs once this many tokens have been spent in total (default 3,000,000) */
   maxTotalTokens?: number;
-  /** repository globs the Raccoon may read for context (default README + manifest) */
+  /** repository globs the Scout may read for context (default README + manifest) */
   scanGlobs?: string[];
-  /** allow verifier tool use during troll review when a node asks for it (default false) */
-  trollTools?: boolean;
+  /** allow verifier tool use during guard review when a node asks for it (default false) */
+  guardTools?: boolean;
   /** score every live run's final output against its fixture rubric with the LLM judge (default true) */
   judge?: boolean;
   /**
    * Refuse to start unless the resolved provider passes a live smoke test
    * (default true). A whole 400k-token run was once wasted because a running
-   * server had re-saved warren.json and dropped the provider's
+   * server had re-saved terrarium.json and dropped the provider's
    * `requestParams` — the model then spent its entire output budget on hidden
    * reasoning, every worker came back empty, and the numbers were garbage
    * that still looked like a result. Fail fast instead.
@@ -71,7 +71,7 @@ export interface HarnessOptions {
   maxReplan?: number;
   maxNodes?: number;
   live?: LiveOptions;
-  /** Where hoards/traces/results go. Default: a temp dir. */
+  /** Where composts/traces/results go. Default: a temp dir. */
   root?: string;
   resolve?: Partial<ResolveOptions>;
   /** Persist every decision trace (can be many files). Default false. */
@@ -85,7 +85,7 @@ export interface HarnessOptions {
    */
   epochs?: number;
   trainSeeds?: number[];
-  /** Run each planner's fixture loop concurrently (live mode: bounded by the provider and Goblintown's call semaphore). */
+  /** Run each planner's fixture loop concurrently (live mode: bounded by the provider and the shared call semaphore). */
   parallelPlanners?: boolean;
   /** Max concurrent runs per planner (fixtures × seeds). Default 1. */
   parallelFixtures?: number;
@@ -117,9 +117,9 @@ export interface RunResult {
   actionsRun: string[];
   unnecessaryActions: number;
   replans: number;
-  rites: number;
+  flights: number;
   tokens: number;
-  goblinCalls: number;
+  foragerCalls: number;
   failures: number;
   recovered: boolean;
   usedFallback: boolean;
@@ -127,8 +127,8 @@ export interface RunResult {
   runId: string;
   error?: string;
   mode: "mock" | "live";
-  /** live mode: outcome of the final rite and the first claims of the final artifact, for human review */
-  finalRiteOutcome?: string;
+  /** live mode: outcome of the final flight and the first claims of the final artifact, for human review */
+  finalFlightOutcome?: string;
   finalClaims?: string[];
   /** live mode with judge: rubric score in [0,1] and the judge's rationale */
   quality?: number;
@@ -142,7 +142,7 @@ export interface PlannerSummary {
   completionRate: number;
   terminationAccuracy: number;
   meanTokens: number;
-  meanRites: number;
+  meanFlights: number;
   meanReplans: number;
   meanNodes: number;
   meanUnnecessary: number;
@@ -214,17 +214,17 @@ export interface PreflightResult {
  * budget. Records the resolved provider settings in the report so a run's
  * validity is auditable after the fact.
  */
-export async function preflightProvider(warrenRoot: string): Promise<PreflightResult> {
-  const { withProviderRoot, resolveActiveProviderRuntimeForSlot, callCreature } = await import("../../openai-client.js");
-  const { makeGoblin } = await import("../../creatures.js");
-  const runtime = withProviderRoot(warrenRoot, () => resolveActiveProviderRuntimeForSlot("goblin"));
+export async function preflightProvider(terrariumRoot: string): Promise<PreflightResult> {
+  const { withProviderRoot, resolveActiveProviderRuntimeForSlot, callInsect } = await import("../../openai-client.js");
+  const { makeForager } = await import("../../castes.js");
+  const runtime = withProviderRoot(terrariumRoot, () => resolveActiveProviderRuntimeForSlot("forager"));
   const provider = {
-    id: runtime.id, baseURL: runtime.baseURL, model: runtime.models.goblin,
+    id: runtime.id, baseURL: runtime.baseURL, model: runtime.models.forager,
     apiKeySource: runtime.apiKeySource, requestParams: JSON.stringify(runtime.requestParams ?? {}),
   };
   try {
-    const { text, usage } = await withProviderRoot(warrenRoot, () =>
-      callCreature(makeGoblin("stoic"), "Reply with exactly: ready", { maxOutputTokens: 64 }));
+    const { text, usage } = await withProviderRoot(terrariumRoot, () =>
+      callInsect(makeForager("stoic"), "Reply with exactly: ready", { maxOutputTokens: 64 }));
     const replyChars = text.trim().length;
     return { ok: replyChars > 0, provider, replyChars, usage: usage.totalTokens, error: replyChars > 0 ? undefined : "provider returned an empty response" };
   } catch (err) {
@@ -249,10 +249,10 @@ export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
   const liveBudget = { totalTokens: 0, cap: opts.live?.maxTotalTokens ?? 3_000_000 };
   let preflight: PreflightResult | undefined;
   if (opts.live && opts.live.preflight !== false) {
-    preflight = await preflightProvider(opts.live.warrenRoot);
+    preflight = await preflightProvider(opts.live.terrariumRoot);
     log(`preflight: ${preflight.ok ? "ok" : "FAILED"} · ${preflight.provider.id}/${preflight.provider.model} · key from ${preflight.provider.apiKeySource} · requestParams ${preflight.provider.requestParams} · reply ${preflight.replyChars} chars`);
     if (!preflight.ok) {
-      throw new Error(`live preflight failed (${preflight.error}). Provider ${preflight.provider.id}/${preflight.provider.model}, requestParams ${preflight.provider.requestParams}. Refusing to spend a budget on a provider that cannot answer — check the Warren's provider config (a running server can re-save warren.json and drop requestParams) and the API key.`);
+      throw new Error(`live preflight failed (${preflight.error}). Provider ${preflight.provider.id}/${preflight.provider.model}, requestParams ${preflight.provider.requestParams}. Refusing to spend a budget on a provider that cannot answer — check the Terrarium's provider config (a running server can re-save terrarium.json and drop requestParams) and the API key.`);
     }
     liveBudget.totalTokens += preflight.usage ?? 0;
   }
@@ -268,7 +268,7 @@ export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
     for (const fixture of fixtures) for (const seed of seeds) jobs.push({ fixture, seed });
     const runJob = async ({ fixture, seed }: { fixture: Fixture; seed: number }) => {
       if (opts.live && liveBudget.totalTokens >= liveBudget.cap) {
-        runs.push({ planner: spec, fixtureId: fixture.id, category: fixture.category, seed, repoAvailable: availability[fixture.id], outcome: "failed", expected: fixture.expected, terminationCorrect: false, completed: false, nodes: 0, primary: "spawn_subrite", included: [], reward: 0, actionsRun: [], unnecessaryActions: 0, replans: 0, rites: 0, tokens: 0, goblinCalls: 0, failures: 0, recovered: false, usedFallback: false, wallMs: 0, runId: `${spec}-${fixture.id}-s${seed}`, error: `live token budget exhausted (${liveBudget.totalTokens} ≥ ${liveBudget.cap})`, mode: "live" });
+        runs.push({ planner: spec, fixtureId: fixture.id, category: fixture.category, seed, repoAvailable: availability[fixture.id], outcome: "failed", expected: fixture.expected, terminationCorrect: false, completed: false, nodes: 0, primary: "spawn_flight", included: [], reward: 0, actionsRun: [], unnecessaryActions: 0, replans: 0, flights: 0, tokens: 0, foragerCalls: 0, failures: 0, recovered: false, usedFallback: false, wallMs: 0, runId: `${spec}-${fixture.id}-s${seed}`, error: `live token budget exhausted (${liveBudget.totalTokens} ≥ ${liveBudget.cap})`, mode: "live" });
         return;
       }
       const r = await runOne({ spec, backend, fixture, seed, root, repo: repoCache.get(fixture.repo)!, maxReplan: opts.maxReplan ?? 2, maxNodes: opts.maxNodes ?? 6, writeTraces: !!opts.writeTraces, available: availability[fixture.id], live: opts.live });
@@ -276,7 +276,7 @@ export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
       fallbacks.length = 0;
       liveBudget.totalTokens += r.tokens;
       runs.push(r);
-      log(`${spec} ${fixture.id} seed=${seed} → ${r.outcome}${r.haltKind ? `(${r.haltKind})` : ""} nodes=${r.nodes} rites=${r.rites} tokens=${r.tokens}${opts.live ? ` (total ${liveBudget.totalTokens})` : ""}${r.quality !== undefined ? ` quality=${r.quality.toFixed(2)}` : ""} ${r.wallMs}ms${r.error ? ` ERROR ${r.error}` : ""}`);
+      log(`${spec} ${fixture.id} seed=${seed} → ${r.outcome}${r.haltKind ? `(${r.haltKind})` : ""} nodes=${r.nodes} flights=${r.flights} tokens=${r.tokens}${opts.live ? ` (total ${liveBudget.totalTokens})` : ""}${r.quality !== undefined ? ` quality=${r.quality.toFixed(2)}` : ""} ${r.wallMs}ms${r.error ? ` ERROR ${r.error}` : ""}`);
     };
     const width = Math.max(1, opts.parallelFixtures ?? 1);
     // Online (live) learning must see runs in order, so learnable planners stay sequential.
@@ -347,42 +347,42 @@ async function trainBackend(a: { spec: string; resolveOpts: ResolveOptions; fixt
 
 const DEFAULT_LIVE_GLOBS = ["README.md", "package.json", "pyproject.toml", "Cargo.toml", "go.mod"];
 
-/** Real Goblintown pipeline as a RiteRunner, with the live caps applied and usage accounted. */
-function makeLiveRiteRunner(live: LiveOptions, stats: MockRiteStats): RiteRunner {
+/** Real FLYTOWN pipeline as a FlightRunner, with the live caps applied and usage accounted. */
+function makeLiveFlightRunner(live: LiveOptions, stats: MockFlightStats): FlightRunner {
   return async (ro) => {
-    const action = ro.nodeHints?.action ?? "spawn_subrite";
-    stats.rites++;
+    const action = ro.nodeHints?.action ?? "spawn_flight";
+    stats.flights++;
     stats.actions.push(action);
-    const res = await performRite({
+    const res = await performFlight({
       ...ro,
-      packSize: Math.max(1, Math.min(ro.packSize, live.packSize ?? 2)),
+      swarmSize: Math.max(1, Math.min(ro.swarmSize, live.swarmSize ?? 2)),
       scanGlobs: live.scanGlobs ?? DEFAULT_LIVE_GLOBS,
       maxOutputTokensPerCall: live.maxOutputTokensPerCall ?? 400,
       budgetTokens: live.budgetTokensPerRun ?? 40_000,
-      trollTools: !!live.trollTools && !!ro.trollTools,
+      guardTools: !!live.guardTools && !!ro.guardTools,
     });
-    const tokens = res.allLoot.reduce((s, l) => s + (l.usage?.totalTokens ?? 0), 0);
+    const tokens = res.allMorsels.reduce((s, l) => s + (l.usage?.totalTokens ?? 0), 0);
     stats.tokens += tokens;
-    stats.goblinCalls += res.allLoot.length;
-    if (res.rite.outcome === "all_failed") stats.failures++;
+    stats.foragerCalls += res.allMorsels.length;
+    if (res.flight.outcome === "all_failed") stats.failures++;
     return res;
   };
 }
 
 async function runOne(a: { spec: string; backend: PlannerBackend; fixture: Fixture; seed: number; root: string; repo: RepoSignals; maxReplan: number; maxNodes: number; writeTraces: boolean; available: boolean; live?: LiveOptions }): Promise<RunResult> {
-  if (a.live) return withProviderRoot(a.live.warrenRoot, () => runOneInner(a));
+  if (a.live) return withProviderRoot(a.live.terrariumRoot, () => runOneInner(a));
   return runOneInner(a);
 }
 
 async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: Fixture; seed: number; root: string; repo: RepoSignals; maxReplan: number; maxNodes: number; writeTraces: boolean; available: boolean; live?: LiveOptions }): Promise<RunResult> {
   const { fixture, seed } = a;
   const runId = `${a.spec.replace(/[^a-z0-9]+/gi, "_")}-${fixture.id}-s${seed}`;
-  const hoard = new Hoard(join(a.root, ".flytown", "eval-hoard", runId));
-  await hoard.init();
-  const stats: MockRiteStats = { rites: 0, tokens: 0, goblinCalls: 0, failures: 0, actions: [] };
-  const riteRunner = a.live ? makeLiveRiteRunner(a.live, stats) : makeMockRiteRunner({ fixture, seed, stats });
+  const compost = new Compost(join(a.root, ".flytown", "eval-compost", runId));
+  await compost.init();
+  const stats: MockFlightStats = { flights: 0, tokens: 0, foragerCalls: 0, failures: 0, actions: [] };
+  const flightRunner = a.live ? makeLiveFlightRunner(a.live, stats) : makeMockFlightRunner({ fixture, seed, stats });
   const parentArtifacts: Artifact[] = Array.from({ length: fixture.priorArtifacts ?? 0 }, (_, i) => ({
-    id: `prior-${fixture.id}-${i}`, riteId: `prior-rite-${i}`, task: fixture.task, outcome: "winner",
+    id: `prior-${fixture.id}-${i}`, flightId: `prior-flight-${i}`, task: fixture.task, outcome: "winner",
     claims: [{ text: "prior finding", confidence: "established" }], evidence: [], openQuestions: [], nextSteps: [], parentArtifactIds: [], keywords: [], timestamp: 0,
   }));
   const traces: DecisionTrace[] = [];
@@ -393,7 +393,7 @@ async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: 
   let replans = 0;
   let firstTrace: DecisionTrace | undefined;
   let nodes = 0;
-  let finalRiteOutcome: string | undefined;
+  let finalFlightOutcome: string | undefined;
   let finalClaims: string[] | undefined;
   let quality: number | undefined;
   let judgeRationale: string | undefined;
@@ -415,13 +415,13 @@ async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: 
         return r;
       },
     };
-    const exec = await executePlan({ plan: res.plan, cwd: fixture.repo, hoard, planner: replanner, riteRunner, maxReplanDepth: a.maxReplan, parentArtifacts, budgetTokens: a.live?.budgetTokensPerRun, maxOutputTokensPerCall: a.live?.maxOutputTokensPerCall });
+    const exec = await executePlan({ plan: res.plan, cwd: fixture.repo, compost, planner: replanner, flightRunner, maxReplanDepth: a.maxReplan, parentArtifacts, budgetTokens: a.live?.budgetTokensPerRun, maxOutputTokensPerCall: a.live?.maxOutputTokensPerCall });
     outcome = exec.outcome;
     haltKind = exec.halt?.kind;
     replans = exec.replans;
     if (a.live) {
       finalClaims = exec.finalArtifact?.claims.slice(0, 3).map((c) => c.text);
-      if (exec.finalRiteId) finalRiteOutcome = (await hoard.getRite(exec.finalRiteId))?.outcome;
+      if (exec.finalFlightId) finalFlightOutcome = (await compost.getFlight(exec.finalFlightId))?.outcome;
       if (a.live.judge !== false) {
         const termOk = terminationOk(fixture.expected, outcome, haltKind);
         if (outcome === "halted") {
@@ -429,10 +429,10 @@ async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: 
           quality = termOk ? 1 : 0;
           judgeRationale = `halted (${haltKind}); expected ${fixture.expected}`;
         } else if (outcome === "success") {
-          const finalOutput = exec.finalLootId ? (await hoard.getLoot(exec.finalLootId))?.output : undefined;
+          const finalOutput = exec.finalMorselId ? (await compost.getMorsel(exec.finalMorselId))?.output : undefined;
           const verdict = await judgeOutput({
             task: fixture.task, rubric: rubricFor(fixture), expected: fixture.expected,
-            outcome: `completed a ${exec.plan.nodes.length}-node plan (final rite outcome: ${finalRiteOutcome ?? "unknown"}); actions: ${stats.actions.join(" → ") || "none"}`,
+            outcome: `completed a ${exec.plan.nodes.length}-node plan (final flight outcome: ${finalFlightOutcome ?? "unknown"}); actions: ${stats.actions.join(" → ") || "none"}`,
             output: finalOutput, claims: exec.finalArtifact?.claims.map((c) => c.text),
           });
           stats.tokens += verdict.tokens;
@@ -455,7 +455,7 @@ async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: 
   }
   const wallMs = Date.now() - t0;
   if (a.writeTraces) for (const t of traces) { t.outcome = { planOutcome: outcome, replans, tokens: stats.tokens, wallMs, reward: quality }; await writeTrace(a.root, t); }
-  const primary = (firstTrace?.decision.primary ?? "spawn_subrite") as OrchAction;
+  const primary = (firstTrace?.decision.primary ?? "spawn_flight") as OrchAction;
   const included = (firstTrace?.decision.included ?? []) as OrchAction[];
   const completed = outcome === "success";
   const terminationCorrect = terminationOk(fixture.expected, outcome, haltKind);
@@ -467,8 +467,8 @@ async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: 
     features: firstTrace?.features ? FEATURE_NAMES.map((n) => firstTrace!.features![n] ?? 0) : undefined,
     reward: quality !== undefined ? 0.8 * quality + 0.2 * (terminationCorrect ? 1 : 0) : rewardFor(terminationCorrect, stats.tokens),
     actionsRun: stats.actions, unnecessaryActions: countUnnecessary(fixture, stats.actions), replans,
-    rites: stats.rites, tokens: stats.tokens, goblinCalls: stats.goblinCalls, failures: stats.failures, recovered,
-    usedFallback: false, wallMs, runId, error, mode: a.live ? "live" : "mock", finalRiteOutcome, finalClaims, quality, judgeRationale, judgeError,
+    flights: stats.flights, tokens: stats.tokens, foragerCalls: stats.foragerCalls, failures: stats.failures, recovered,
+    usedFallback: false, wallMs, runId, error, mode: a.live ? "live" : "mock", finalFlightOutcome, finalClaims, quality, judgeRationale, judgeError,
   };
 }
 
@@ -519,7 +519,7 @@ export function summarize(planner: string, rs: RunResult[]): PlannerSummary {
     planner, runs: rs.length, sensitivity,
     completionRate: mean(ok.filter((r) => r.expected === "complete").map((r) => (r.completed ? 1 : 0))),
     terminationAccuracy: mean(ok.map((r) => (r.terminationCorrect ? 1 : 0))),
-    meanTokens: mean(ok.map((r) => r.tokens)), meanRites: mean(ok.map((r) => r.rites)), meanReplans: mean(ok.map((r) => r.replans)),
+    meanTokens: mean(ok.map((r) => r.tokens)), meanFlights: mean(ok.map((r) => r.flights)), meanReplans: mean(ok.map((r) => r.replans)),
     meanNodes: mean(ok.map((r) => r.nodes)), meanUnnecessary: mean(ok.map((r) => r.unnecessaryActions)),
     recoveryRate: mean(misleading.map((r) => (r.completed ? 1 : 0))),
     fallbackRate: mean(rs.map((r) => (r.usedFallback ? 1 : 0))), errorRate: mean(rs.map((r) => (r.error ? 1 : 0))),
@@ -579,7 +579,7 @@ export function compare(a: string, b: string, runs: RunResult[]): Comparison {
 export function renderReport(r: HarnessReport): string {
   const L: string[] = [];
   const live = r.options.live;
-  L.push(`# FLYTOWN evaluation report`, ``, `created: ${r.createdAt}  ·  seeds: ${r.options.seeds?.join(",")}  ·  fixtures: ${r.options.fixtures?.length}  ·  ${live ? `**LIVE** — real Goblintown pipeline against the provider in ${live.warrenRoot} (pack ≤ ${live.packSize ?? 2}, ≤ ${live.maxOutputTokensPerCall ?? 400} output tokens/call, ≤ ${live.budgetTokensPerRun ?? 40_000} tokens/run${r.options.epochs ? "; learnable planners trained in the mock world first" : ""})` : "mock worker world (not live models)"}`, ``);
+  L.push(`# FLYTOWN evaluation report`, ``, `created: ${r.createdAt}  ·  seeds: ${r.options.seeds?.join(",")}  ·  fixtures: ${r.options.fixtures?.length}  ·  ${live ? `**LIVE** — real FLYTOWN pipeline against the provider in ${live.terrariumRoot} (swarm ≤ ${live.swarmSize ?? 2}, ≤ ${live.maxOutputTokensPerCall ?? 400} output tokens/call, ≤ ${live.budgetTokensPerRun ?? 40_000} tokens/run${r.options.epochs ? "; learnable planners trained in the mock world first" : ""})` : "mock worker world (not live models)"}`, ``);
   if (live && r.preflight) {
     const p = r.preflight.provider;
     L.push(`> provider (preflight ${r.preflight.ok ? "passed" : "FAILED"}): ${p.id} · ${p.model} · key from ${p.apiKeySource} · requestParams ${p.requestParams} · smoke reply ${r.preflight.replyChars} chars`, ``);
@@ -587,14 +587,14 @@ export function renderReport(r: HarnessReport): string {
   if (live) {
     const spent = r.runs.reduce((s, x) => s + x.tokens, 0);
     const wall = r.runs.reduce((s, x) => s + x.wallMs, 0);
-    L.push(`> tokens spent: ${spent.toLocaleString()}  ·  wall time: ${(wall / 60_000).toFixed(1)} min  ·  ${r.runs.filter((x) => x.error?.includes("budget exhausted")).length} runs skipped by the total-token cap. Completion here means Goblintown's own troll-gated pipeline produced a winner for every node; halts are judged against each fixture's expected termination. No external judge yet — final claims are recorded per run in report.json for human review.`, ``);
+    L.push(`> tokens spent: ${spent.toLocaleString()}  ·  wall time: ${(wall / 60_000).toFixed(1)} min  ·  ${r.runs.filter((x) => x.error?.includes("budget exhausted")).length} runs skipped by the total-token cap. Completion here means FLYTOWN's own guard-gated pipeline produced a winner for every node; halts are judged against each fixture's expected termination. No external judge yet — final claims are recorded per run in report.json for human review.`, ``);
   }
   const missing = Object.entries(r.fixtureAvailability).filter(([, ok]) => !ok).map(([id]) => id);
   if (missing.length) L.push(`> repositories missing on this machine for: ${missing.join(", ")} — those runs used empty repo signals.`, ``);
   const judged = r.summaries.some((s) => s.meanQuality !== undefined);
-  L.push(`| planner | runs |${judged ? " quality (judge) |" : ""} termination acc | completion (of completable) | recovery (misleading) | mean tokens | mean rites | mean replans | mean nodes | unnecessary | task-sensitivity (distinct / JS bits) | errors |`);
+  L.push(`| planner | runs |${judged ? " quality (judge) |" : ""} termination acc | completion (of completable) | recovery (misleading) | mean tokens | mean flights | mean replans | mean nodes | unnecessary | task-sensitivity (distinct / JS bits) | errors |`);
   L.push(`|---|---|${judged ? "---|" : ""}---|---|---|---|---|---|---|---|---|---|`);
-  for (const s of r.summaries) L.push(`| ${s.planner} | ${s.runs} |${judged ? ` ${s.meanQuality !== undefined ? `${s.meanQuality.toFixed(2)} (n=${s.judgedRuns})` : "–"} |` : ""} ${pct(s.terminationAccuracy)} | ${pct(s.completionRate)} | ${pct(s.recoveryRate)} | ${s.meanTokens.toFixed(0)} | ${s.meanRites.toFixed(2)} | ${s.meanReplans.toFixed(2)} | ${s.meanNodes.toFixed(2)} | ${s.meanUnnecessary.toFixed(2)} | ${s.sensitivity.distinctPrimaries} / ${s.sensitivity.meanPairwiseJs.toFixed(3)} | ${pct(s.errorRate)} |`);
+  for (const s of r.summaries) L.push(`| ${s.planner} | ${s.runs} |${judged ? ` ${s.meanQuality !== undefined ? `${s.meanQuality.toFixed(2)} (n=${s.judgedRuns})` : "–"} |` : ""} ${pct(s.terminationAccuracy)} | ${pct(s.completionRate)} | ${pct(s.recoveryRate)} | ${s.meanTokens.toFixed(0)} | ${s.meanFlights.toFixed(2)} | ${s.meanReplans.toFixed(2)} | ${s.meanNodes.toFixed(2)} | ${s.meanUnnecessary.toFixed(2)} | ${s.sensitivity.distinctPrimaries} / ${s.sensitivity.meanPairwiseJs.toFixed(3)} | ${pct(s.errorRate)} |`);
   L.push(``);
   if (judged) L.push(`> quality = LLM-judge rubric score in [0,1] per fixture (halts scored 1/0 by the fixture's expected termination; failed plans 0). The judge is a model call with a fixed prompt shared across planners — record, don't trust blindly; rationales are in report.json.`, ``);
   const constant = r.summaries.filter((s) => s.sensitivity.distinctPrimaries <= 1 && s.runs > 1).map((s) => s.planner);

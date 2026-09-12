@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-const WARREN_DIRNAME = ".goblintown";
-const MANIFEST_FILE = "warren.json";
+const TERRARIUM_DIRNAME = ".flytown";
+const MANIFEST_FILE = "terrarium.json";
 const PROVIDER_SECRETS_FILE = "provider-secrets.json";
 
 interface ProviderSecretsPayload {
@@ -22,7 +22,7 @@ export function readProviderSecretsForRootSync(root: string): Record<string, str
 }
 
 export function readProviderSecretsFromCwdSync(cwd = process.cwd()): Record<string, string> {
-  const root = findWarrenRootSync(cwd);
+  const root = findTerrariumRootSync(cwd);
   if (!root) return {};
   return readProviderSecretsForRootSync(root);
 }
@@ -33,7 +33,7 @@ export async function setProviderSecretForRoot(
   apiKey: string,
 ): Promise<void> {
   if (!isEnvName(apiKeyEnv)) return;
-  const dir = join(root, WARREN_DIRNAME);
+  const dir = join(root, TERRARIUM_DIRNAME);
   await mkdir(dir, { recursive: true });
   const path = providerSecretsPathForRoot(root);
   const current = await readProviderSecretsForRoot(root);
@@ -58,7 +58,7 @@ export async function clearProviderSecretForRoot(
 }
 
 export function providerSecretsPathForRoot(root: string): string {
-  return join(root, WARREN_DIRNAME, PROVIDER_SECRETS_FILE);
+  return join(root, TERRARIUM_DIRNAME, PROVIDER_SECRETS_FILE);
 }
 
 async function readProviderSecretsForRoot(root: string): Promise<Record<string, string>> {
@@ -103,10 +103,10 @@ function isEnvName(value: unknown): value is string {
   return typeof value === "string" && /^[A-Z_][A-Z0-9_]*$/.test(value);
 }
 
-function findWarrenRootSync(start: string): string | null {
+function findTerrariumRootSync(start: string): string | null {
   let cur = start;
   while (true) {
-    const candidate = join(cur, WARREN_DIRNAME, MANIFEST_FILE);
+    const candidate = join(cur, TERRARIUM_DIRNAME, MANIFEST_FILE);
     if (existsSync(candidate)) return cur;
     const parent = dirname(cur);
     if (parent === cur) return null;

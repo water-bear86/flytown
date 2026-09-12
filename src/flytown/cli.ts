@@ -10,7 +10,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { loadWarren } from "../warren.js";
+import { loadTerrarium } from "../terrarium.js";
 import { loadRewardPlugin } from "../reward-plugin.js";
 import { executePlan } from "../plan-executor.js";
 import type { Artifact } from "../types.js";
@@ -82,7 +82,7 @@ async function cmdSensitivity(args: string[]): Promise<void> {
     const feats: Record<string, number>[] = [], inputs: Record<string, number>[] = [], finals: Record<string, number>[] = [], scores: Record<string, number>[] = [];
     const primaries = new Set<string>();
     for (const fx of FIXTURES) {
-      const res = await backend.plan({ task: fx.task, cwd: fx.repo, repo: repoCache.get(fx.repo), extraSignals: fx.extra, runId: `sens-${fx.id}`, parentArtifacts: Array.from({ length: fx.priorArtifacts ?? 0 }, (_, i) => ({ id: `p${i}`, riteId: "r", task: fx.task, outcome: "winner" as const, claims: [], evidence: [], openQuestions: [], nextSteps: [], parentArtifactIds: [], keywords: [], timestamp: 0 })) });
+      const res = await backend.plan({ task: fx.task, cwd: fx.repo, repo: repoCache.get(fx.repo), extraSignals: fx.extra, runId: `sens-${fx.id}`, parentArtifacts: Array.from({ length: fx.priorArtifacts ?? 0 }, (_, i) => ({ id: `p${i}`, flightId: "r", task: fx.task, outcome: "winner" as const, claims: [], evidence: [], openQuestions: [], nextSteps: [], parentArtifactIds: [], keywords: [], timestamp: 0 })) });
       const t = res.trace!;
       feats.push(norm(t.features ?? {}));
       scores.push(t.actionScores);
@@ -120,7 +120,7 @@ async function cmdPlan(args: string[]): Promise<void> {
   const task = positional(args)[0];
   const f = flags(args);
   if (!task) { process.stderr.write(`usage: fly plan "<task>" [--planner fly|rules|random|learned|llm] [--dry-run] [--max-nodes N] [--seed N] [--no-fallback]\n`); process.exitCode = 1; return; }
-  const w = await loadWarren(process.cwd());
+  const w = await loadTerrarium(process.cwd());
   const spec = f.planner ?? w.manifest.flytown?.planner ?? DEFAULT_PLANNER;
   const seed = f.seed ? Number(f.seed) : w.manifest.flytown?.seed;
   const backend = resolvePlannerBackend(spec, {
@@ -139,7 +139,7 @@ async function cmdPlan(args: string[]): Promise<void> {
   if (f["dry-run"]) { process.stdout.write(`(dry run — not executed; trace ${runId})\n`); return; }
   const rewardPlugin = await loadRewardPlugin(w.root);
   const result = await executePlan({
-    plan: res.plan, cwd: w.root, hoard: w.hoard, planner: backend, rewardFn: rewardPlugin.fn, parentArtifacts: [] as Artifact[],
+    plan: res.plan, cwd: w.root, compost: w.compost, planner: backend, rewardFn: rewardPlugin.fn, parentArtifacts: [] as Artifact[],
     maxReplanDepth: f["max-replan"] ? Number(f["max-replan"]) : 2,
     onPlanEvent: (ev) => process.stdout.write(`  [plan] ${ev.kind}${"nodeId" in ev ? ` ${ev.nodeId}` : ""}${"reason" in ev ? ` ${ev.reason}` : ""}\n`),
   });
@@ -154,22 +154,22 @@ async function cmdEval(args: string[]): Promise<void> {
   const ids = f.fixtures ? new Set(f.fixtures.split(",")) : null;
   const fixtures = ids ? FIXTURES.filter((x) => ids.has(x.id)) : FIXTURES;
   let root = f.out;
-  if (!root) { try { root = (await loadWarren(process.cwd())).root; } catch { root = process.cwd(); } }
+  if (!root) { try { root = (await loadTerrarium(process.cwd())).root; } catch { root = process.cwd(); } }
   let live: import("./eval/harness.js").LiveOptions | undefined;
-  if (f.live === "true" || f.warren) {
-    const warrenRoot = f.warren ?? (await loadWarren(process.cwd())).root;
+  if (f.live === "true" || f.terrarium) {
+    const terrariumRoot = f.terrarium ?? (await loadTerrarium(process.cwd())).root;
     live = {
-      warrenRoot,
-      packSize: f.pack ? Number(f.pack) : 2,
+      terrariumRoot,
+      swarmSize: f.swarm ? Number(f.swarm) : 2,
       maxOutputTokensPerCall: f["max-output"] ? Number(f["max-output"]) : 400,
       budgetTokensPerRun: f.budget ? Number(f.budget) : 40_000,
       maxTotalTokens: f["max-total-tokens"] ? Number(f["max-total-tokens"]) : 3_000_000,
       scanGlobs: f.globs ? f.globs.split(",") : undefined,
-      trollTools: f["troll-tools"] === "true",
+      guardTools: f["guard-tools"] === "true",
       judge: f["no-judge"] !== "true",
       liveLearning: f["live-learning"] === "true",
     };
-    process.stdout.write(`LIVE evaluation against provider in ${warrenRoot} — pack ≤ ${live.packSize}, ≤ ${live.maxOutputTokensPerCall} output tokens/call, ≤ ${live.budgetTokensPerRun} tokens/run, ≤ ${live.maxTotalTokens} tokens total, judge=${live.judge ? "on" : "off"}, live-learning=${live.liveLearning ? "on" : "off"}\n`);
+    process.stdout.write(`LIVE evaluation against provider in ${terrariumRoot} — swarm ≤ ${live.swarmSize}, ≤ ${live.maxOutputTokensPerCall} output tokens/call, ≤ ${live.budgetTokensPerRun} tokens/run, ≤ ${live.maxTotalTokens} tokens total, judge=${live.judge ? "on" : "off"}, live-learning=${live.liveLearning ? "on" : "off"}\n`);
   }
   const report = await runHarness({
     planners, fixtures, seeds, root, maxReplan: f["max-replan"] ? Number(f["max-replan"]) : 2, writeTraces: f.traces === "true",
@@ -212,7 +212,7 @@ async function cmdReplay(args: string[]): Promise<void> {
 
 export async function replayTrace(root: string, t: DecisionTrace) {
   const backend = resolvePlannerBackend(t.plannerId.split("(")[0], { root, seed: t.brain?.engine.variantSeed as number | undefined, connectome: t.brain?.connectomeId, fallback: false });
-  const parentArtifacts: Artifact[] = t.request.priorArtifactIds.map((pid) => ({ id: pid, riteId: pid, task: t.request.task, outcome: "winner", claims: [], evidence: [], openQuestions: [], nextSteps: [], parentArtifactIds: [], keywords: [], timestamp: 0 }));
+  const parentArtifacts: Artifact[] = t.request.priorArtifactIds.map((pid) => ({ id: pid, flightId: pid, task: t.request.task, outcome: "winner", claims: [], evidence: [], openQuestions: [], nextSteps: [], parentArtifactIds: [], keywords: [], timestamp: 0 }));
   const res = await backend.plan({
     task: t.request.task, cwd: t.request.cwd, maxNodes: t.request.maxNodes, replanDepth: t.request.replanDepth, budgetTokens: t.request.budgetTokens,
     extraSignals: t.request.extraSignals, parentArtifacts, repo: t.signals.repo, runId: t.runId,
@@ -225,7 +225,7 @@ export function diffPlans(orig: DecisionTrace, plan: import("../types.js").Plan,
   const out: string[] = [];
   if (trace && trace.decision.primary !== orig.decision.primary) out.push(`primary ${orig.decision.primary} → ${trace.decision.primary}`);
   if (trace && trace.decision.included.join() !== orig.decision.included.join()) out.push(`included [${orig.decision.included}] → [${trace.decision.included}]`);
-  const shape = (p: import("../types.js").Plan) => p.halt ? `halt:${p.halt.kind}` : p.nodes.map((n) => `${n.id}[${n.hints?.action ?? n.kind},${n.packSize},${n.personality}]`).join(">");
+  const shape = (p: import("../types.js").Plan) => p.halt ? `halt:${p.halt.kind}` : p.nodes.map((n) => `${n.id}[${n.hints?.action ?? n.kind},${n.swarmSize},${n.personality}]`).join(">");
   if (shape(orig.plan) !== shape(plan)) out.push(`plan ${shape(orig.plan)} → ${shape(plan)}`);
   if (trace?.brain && orig.brain) {
     const a = orig.brain.steps.at(-1)?.activity ?? {}, b = trace.brain.steps.at(-1)?.activity ?? {};
@@ -269,5 +269,5 @@ async function cmdRegions(args: string[]): Promise<void> {
 }
 
 async function rootOrCwd(): Promise<string> {
-  try { return (await loadWarren(process.cwd())).root; } catch { return process.cwd(); }
+  try { return (await loadTerrarium(process.cwd())).root; } catch { return process.cwd(); }
 }

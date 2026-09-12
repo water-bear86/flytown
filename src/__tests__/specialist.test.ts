@@ -4,14 +4,14 @@ import {
   buildClusterPrompt,
   buildSpecialistPrompt,
   parseClustersJson,
-  pickSeedLoot,
+  pickSeedMorsel,
 } from "../specialist.js";
-import type { Loot, TrollVerdict } from "../types.js";
+import type { Morsel, GuardVerdict } from "../types.js";
 
-const makeLoot = (id: string, output: string, reward = 0): Loot => ({
+const makeMorsel = (id: string, output: string, reward = 0): Morsel => ({
   id,
-  riteId: "rite-1",
-  creatureKind: "goblin",
+  flightId: "flight-1",
+  caste: "forager",
   personality: "nerdy",
   model: "gpt-5-mini",
   prompt: "p",
@@ -19,39 +19,39 @@ const makeLoot = (id: string, output: string, reward = 0): Loot => ({
   reward,
   timestamp: 0,
   drift: {
-    creatureMentions: { goblin: 0, gremlin: 0, raccoon: 0, troll: 0, ogre: 0, pigeon: 0 },
-    totalCreatureWords: 0,
+    casteMentions: { forager: 0, wasp: 0, scout: 0, guard: 0, soldier: 0, messenger: 0 },
+    totalCasteWords: 0,
     outputWordCount: output.split(/\s+/).length,
     driftRate: 0,
   },
 });
 
-const makeVerdict = (lootId: string, score: number, passed = false): TrollVerdict => ({
-  lootId, passed, score, critique: "fails because " + lootId,
+const makeVerdict = (morselId: string, score: number, passed = false): GuardVerdict => ({
+  morselId, passed, score, critique: "fails because " + morselId,
 });
 
 describe("buildClusterPrompt", () => {
-  it("includes task, all goblins, verdicts, and gremlin attacks", () => {
-    const goblinLoot = [
-      makeLoot("g0", "first attempt"),
-      makeLoot("g1", "second attempt"),
+  it("includes task, all foragers, verdicts, and wasp attacks", () => {
+    const foragerMorsels = [
+      makeMorsel("g0", "first attempt"),
+      makeMorsel("g1", "second attempt"),
     ];
     const verdicts = {
       g0: makeVerdict("g0", 0.3),
       g1: makeVerdict("g1", 0.4),
     };
-    const gremlinByGoblinId = {
-      g0: makeLoot("gr0", "g0 fails on null input"),
-      g1: makeLoot("gr1", "g1 fails on empty array"),
+    const waspByForagerId = {
+      g0: makeMorsel("gr0", "g0 fails on null input"),
+      g1: makeMorsel("gr1", "g1 fails on empty array"),
     };
     const out = buildClusterPrompt({
-      task: "TASK_X", goblinLoot, verdicts, gremlinLootByGoblinId: gremlinByGoblinId, maxClusters: 3,
+      task: "TASK_X", foragerMorsels, verdicts, waspMorselByForagerId: waspByForagerId, maxClusters: 3,
     });
     assert.ok(out.includes("TASK_X"));
     assert.ok(out.includes("first attempt"));
     assert.ok(out.includes("g0 fails on null input"));
-    assert.ok(out.includes("Goblin #0"));
-    assert.ok(out.includes("Goblin #1"));
+    assert.ok(out.includes("Forager #0"));
+    assert.ok(out.includes("Forager #1"));
     assert.ok(out.includes("clusters"));
     assert.ok(out.includes("severity"));
   });
@@ -61,20 +61,20 @@ describe("parseClustersJson", () => {
   it("parses a clean cluster array", () => {
     const json = JSON.stringify({
       clusters: [
-        { name: "null-handling", description: "ignores null", affectedGoblinIndexes: [0, 1], specialistFocus: "handle null", severity: "high" },
-        { name: "off-by-one", description: "loop bounds wrong", affectedGoblinIndexes: [2], specialistFocus: "fix bounds", severity: "medium" },
+        { name: "null-handling", description: "ignores null", affectedForagerIndexes: [0, 1], specialistFocus: "handle null", severity: "high" },
+        { name: "off-by-one", description: "loop bounds wrong", affectedForagerIndexes: [2], specialistFocus: "fix bounds", severity: "medium" },
       ],
     });
     const out = parseClustersJson(json, 3, 5);
     assert.equal(out.length, 2);
     assert.equal(out[0].name, "null-handling");
     assert.equal(out[0].severity, "high");
-    assert.deepEqual(out[0].affectedGoblinIndexes, [0, 1]);
+    assert.deepEqual(out[0].affectedForagerIndexes, [0, 1]);
   });
 
   it("strips code fences and leading prose", () => {
     const json = "Here are the clusters:\n```json\n" + JSON.stringify({
-      clusters: [{ name: "n", description: "d", affectedGoblinIndexes: [], specialistFocus: "f", severity: "low" }],
+      clusters: [{ name: "n", description: "d", affectedForagerIndexes: [], specialistFocus: "f", severity: "low" }],
     }) + "\n```";
     const out = parseClustersJson(json, 3, 5);
     assert.equal(out.length, 1);
@@ -96,12 +96,12 @@ describe("parseClustersJson", () => {
     assert.equal(out[1].name, "med-thing");
   });
 
-  it("filters out invalid goblin indexes", () => {
+  it("filters out invalid forager indexes", () => {
     const json = JSON.stringify({
-      clusters: [{ name: "n", description: "d", specialistFocus: "f", affectedGoblinIndexes: [0, 5, -1, 2], severity: "high" }],
+      clusters: [{ name: "n", description: "d", specialistFocus: "f", affectedForagerIndexes: [0, 5, -1, 2], severity: "high" }],
     });
     const out = parseClustersJson(json, 3, 5);
-    assert.deepEqual(out[0].affectedGoblinIndexes, [0, 2]);
+    assert.deepEqual(out[0].affectedForagerIndexes, [0, 2]);
   });
 
   it("coerces unknown severity to 'medium'", () => {
@@ -145,59 +145,59 @@ describe("parseClustersJson", () => {
 });
 
 describe("buildSpecialistPrompt", () => {
-  it("includes task, focus, severity, seed, and gremlin critique", () => {
+  it("includes task, focus, severity, seed, and wasp critique", () => {
     const out = buildSpecialistPrompt({
       task: "TASK_Y",
-      cluster: { name: "n", description: "DESCR", specialistFocus: "FOCUS", affectedGoblinIndexes: [0], severity: "high" },
-      seedLoot: makeLoot("seed-1", "SEED_OUTPUT"),
-      seedGremlinCritique: "GREMLIN_SAID",
+      cluster: { name: "n", description: "DESCR", specialistFocus: "FOCUS", affectedForagerIndexes: [0], severity: "high" },
+      seedMorsel: makeMorsel("seed-1", "SEED_OUTPUT"),
+      seedWaspCritique: "WASP_SAID",
     });
     assert.ok(out.includes("TASK_Y"));
     assert.ok(out.includes("FOCUS"));
     assert.ok(out.includes("DESCR"));
     assert.ok(out.includes("SEED_OUTPUT"));
-    assert.ok(out.includes("GREMLIN_SAID"));
+    assert.ok(out.includes("WASP_SAID"));
     assert.ok(out.includes("high"));
   });
 
-  it("works without a gremlin critique", () => {
+  it("works without a wasp critique", () => {
     const out = buildSpecialistPrompt({
       task: "T",
-      cluster: { name: "n", description: "d", specialistFocus: "f", affectedGoblinIndexes: [], severity: "low" },
-      seedLoot: makeLoot("s", "S"),
+      cluster: { name: "n", description: "d", specialistFocus: "f", affectedForagerIndexes: [], severity: "low" },
+      seedMorsel: makeMorsel("s", "S"),
     });
     assert.ok(out.includes("T"));
-    assert.ok(!out.includes("Gremlin's specific complaint"));
+    assert.ok(!out.includes("Wasp's specific complaint"));
   });
 });
 
-describe("pickSeedLoot", () => {
-  it("returns the highest-reward goblin", () => {
-    const loots = [
-      makeLoot("a", "x", 0.2),
-      makeLoot("b", "y", 0.5),
-      makeLoot("c", "z", 0.1),
+describe("pickSeedMorsel", () => {
+  it("returns the highest-reward forager", () => {
+    const morsels = [
+      makeMorsel("a", "x", 0.2),
+      makeMorsel("b", "y", 0.5),
+      makeMorsel("c", "z", 0.1),
     ];
-    const seed = pickSeedLoot(loots, {});
+    const seed = pickSeedMorsel(morsels, {});
     assert.equal(seed?.id, "b");
   });
 
   it("falls back to highest verdict score when reward is missing", () => {
-    const loots = [
-      makeLoot("a", "x"),
-      makeLoot("b", "y"),
+    const morsels = [
+      makeMorsel("a", "x"),
+      makeMorsel("b", "y"),
     ];
-    delete loots[0].reward;
-    delete loots[1].reward;
+    delete morsels[0].reward;
+    delete morsels[1].reward;
     const verdicts = {
       a: makeVerdict("a", 0.3),
       b: makeVerdict("b", 0.7),
     };
-    const seed = pickSeedLoot(loots, verdicts);
+    const seed = pickSeedMorsel(morsels, verdicts);
     assert.equal(seed?.id, "b");
   });
 
   it("returns undefined for empty list", () => {
-    assert.equal(pickSeedLoot([], {}), undefined);
+    assert.equal(pickSeedMorsel([], {}), undefined);
   });
 });

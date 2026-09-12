@@ -1,95 +1,95 @@
-import type { Hoard } from "./hoard.js";
-import type { Loot, Rite } from "./types.js";
+import type { Compost } from "./compost.js";
+import type { Morsel, Flight } from "./types.js";
 
-export async function exportRiteMarkdown(
-  hoard: Hoard,
-  riteId: string,
+export async function exportFlightMarkdown(
+  compost: Compost,
+  flightId: string,
 ): Promise<string | null> {
-  const rite = await hoard.getRite(riteId);
-  if (!rite) return null;
+  const flight = await compost.getFlight(flightId);
+  if (!flight) return null;
 
-  const all = await hoard.allLoot();
-  const inRite = all.filter((l) => l.riteId === riteId);
-  const lootById = new Map(inRite.map((l) => [l.id, l]));
+  const all = await compost.allMorsels();
+  const inFlight = all.filter((l) => l.flightId === flightId);
+  const morselById = new Map(inFlight.map((l) => [l.id, l]));
 
   const parts: string[] = [];
-  parts.push(`# Rite \`${rite.id}\``);
+  parts.push(`# Flight \`${flight.id}\``);
   parts.push("");
   parts.push(
-    `- **Outcome:** ${rite.outcome}\n` +
-      `- **Personality:** ${rite.personality}\n` +
-      `- **Pack size:** ${rite.packSize}\n` +
-      `- **Started:** ${new Date(rite.startedAt).toISOString()}\n` +
-      `- **Finished:** ${rite.finishedAt ? new Date(rite.finishedAt).toISOString() : "(unfinished)"}\n` +
-      `- **Scan globs:** ${rite.scanGlobs.length === 0 ? "(none)" : rite.scanGlobs.map((g) => `\`${g}\``).join(", ")}\n` +
-      `- **Total loot:** ${inRite.length}\n` +
-      `- **Total tokens:** ${inRite.reduce((s, l) => s + (l.usage?.totalTokens ?? 0), 0)}`,
+    `- **Outcome:** ${flight.outcome}\n` +
+      `- **Personality:** ${flight.personality}\n` +
+      `- **Swarm size:** ${flight.swarmSize}\n` +
+      `- **Started:** ${new Date(flight.startedAt).toISOString()}\n` +
+      `- **Finished:** ${flight.finishedAt ? new Date(flight.finishedAt).toISOString() : "(unfinished)"}\n` +
+      `- **Scan globs:** ${flight.scanGlobs.length === 0 ? "(none)" : flight.scanGlobs.map((g) => `\`${g}\``).join(", ")}\n` +
+      `- **Total morsels:** ${inFlight.length}\n` +
+      `- **Total tokens:** ${inFlight.reduce((s, l) => s + (l.usage?.totalTokens ?? 0), 0)}`,
   );
   parts.push("");
   parts.push(`## Task`);
   parts.push("");
   parts.push("```");
-  parts.push(rite.task);
+  parts.push(flight.task);
   parts.push("```");
   parts.push("");
 
-  if (rite.contextLootId) {
-    const r = lootById.get(rite.contextLootId);
-    parts.push(`## Raccoon scavenge (\`${rite.contextLootId}\`)`);
+  if (flight.contextMorselId) {
+    const r = morselById.get(flight.contextMorselId);
+    parts.push(`## Scout context (\`${flight.contextMorselId}\`)`);
     parts.push("");
-    parts.push(formatLootMeta(r));
+    parts.push(formatMorselMeta(r));
     parts.push("");
     parts.push(r ? r.output : "(missing)");
     parts.push("");
   }
 
-  parts.push(`## Goblin pack`);
+  parts.push(`## Forager swarm`);
   parts.push("");
-  for (const gid of rite.goblinLootIds) {
-    const goblin = lootById.get(gid);
-    const verdict = rite.trollVerdicts[gid];
-    const chaosId = rite.chaosLootIds[gid];
-    const chaos = chaosId ? lootById.get(chaosId) : null;
-    const isWinner = gid === rite.winnerLootId;
+  for (const gid of flight.foragerMorselIds) {
+    const forager = morselById.get(gid);
+    const verdict = flight.guardVerdicts[gid];
+    const stingId = flight.stingMorselIds[gid];
+    const sting = stingId ? morselById.get(stingId) : null;
+    const isWinner = gid === flight.winnerMorselId;
     parts.push(
-      `### Goblin \`${gid}\`${isWinner ? "  ★ winner" : ""}`,
+      `### Forager \`${gid}\`${isWinner ? "  ★ winner" : ""}`,
     );
     parts.push("");
-    parts.push(formatLootMeta(goblin));
+    parts.push(formatMorselMeta(forager));
     if (verdict) {
       parts.push(
-        `- **Troll:** ${verdict.passed ? "PASS" : "FAIL"} (score ${verdict.score.toFixed(2)})\n` +
+        `- **Guard:** ${verdict.passed ? "PASS" : "FAIL"} (score ${verdict.score.toFixed(2)})\n` +
           `- **Critique:** ${verdict.critique}`,
       );
     }
     parts.push("");
-    parts.push(goblin ? goblin.output : "(missing)");
+    parts.push(forager ? forager.output : "(missing)");
     parts.push("");
-    if (chaos) {
-      parts.push(`#### Gremlin chaos (\`${chaos.id}\`)`);
+    if (sting) {
+      parts.push(`#### Wasp sting (\`${sting.id}\`)`);
       parts.push("");
-      parts.push(formatLootMeta(chaos));
+      parts.push(formatMorselMeta(sting));
       parts.push("");
-      parts.push(chaos.output);
+      parts.push(sting.output);
       parts.push("");
     }
   }
 
-  if (rite.ogreLootId) {
-    const ogre = lootById.get(rite.ogreLootId);
-    parts.push(`## Ogre fallback (\`${rite.ogreLootId}\`)`);
+  if (flight.soldierMorselId) {
+    const soldier = morselById.get(flight.soldierMorselId);
+    parts.push(`## Soldier fallback (\`${flight.soldierMorselId}\`)`);
     parts.push("");
-    parts.push(formatLootMeta(ogre));
+    parts.push(formatMorselMeta(soldier));
     parts.push("");
-    parts.push(ogre ? ogre.output : "(missing)");
+    parts.push(soldier ? soldier.output : "(missing)");
     parts.push("");
   }
 
-  if (rite.winnerLootId) {
-    const winner = lootById.get(rite.winnerLootId);
+  if (flight.winnerMorselId) {
+    const winner = morselById.get(flight.winnerMorselId);
     parts.push(`## Winner`);
     parts.push("");
-    parts.push(`**Loot id:** \`${rite.winnerLootId}\``);
+    parts.push(`**Morsel id:** \`${flight.winnerMorselId}\``);
     parts.push("");
     parts.push(winner ? winner.output : "(missing)");
     parts.push("");
@@ -98,16 +98,16 @@ export async function exportRiteMarkdown(
   return parts.join("\n");
 }
 
-function formatLootMeta(loot: Loot | undefined): string {
-  if (!loot) return "_(missing from Hoard)_";
-  const u = loot.usage;
+function formatMorselMeta(morsel: Morsel | undefined): string {
+  if (!morsel) return "_(missing from Compost)_";
+  const u = morsel.usage;
   return (
-    `- **Model:** \`${loot.model}\`\n` +
-    `- **Personality:** ${loot.personality}\n` +
+    `- **Model:** \`${morsel.model}\`\n` +
+    `- **Personality:** ${morsel.personality}\n` +
     (u
       ? `- **Tokens:** ${u.totalTokens} (prompt ${u.promptTokens} / completion ${u.completionTokens})\n`
       : "") +
-    `- **Drift rate:** ${loot.drift.driftRate.toFixed(4)}` +
-    (loot.reward !== undefined ? `\n- **Shinies:** ${loot.reward.toFixed(3)}` : "")
+    `- **Drift rate:** ${morsel.drift.driftRate.toFixed(4)}` +
+    (morsel.reward !== undefined ? `\n- **Sugar:** ${morsel.reward.toFixed(3)}` : "")
   );
 }

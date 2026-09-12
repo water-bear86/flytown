@@ -3,42 +3,42 @@ import { strict as assert } from "node:assert";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Hoard } from "../hoard.js";
-import { exportRiteMarkdown } from "../export.js";
-import { compareRites } from "../compare.js";
-import type { CreatureKind, Loot, Rite } from "../types.js";
+import { Compost } from "../compost.js";
+import { exportFlightMarkdown } from "../export.js";
+import { compareFlights } from "../compare.js";
+import type { Caste, Morsel, Flight } from "../types.js";
 
 function emptyDrift() {
   return {
-    creatureMentions: {
-      goblin: 0,
-      gremlin: 0,
-      raccoon: 0,
-      troll: 0,
-      ogre: 0,
-      pigeon: 0,
+    casteMentions: {
+      forager: 0,
+      wasp: 0,
+      scout: 0,
+      guard: 0,
+      soldier: 0,
+      messenger: 0,
     },
-    totalCreatureWords: 0,
+    totalCasteWords: 0,
     outputWordCount: 1,
     driftRate: 0,
   };
 }
 
-function loot(
-  riteId: string,
-  kind: CreatureKind,
+function morsel(
+  flightId: string,
+  caste: Caste,
   output: string,
   parents?: string[],
-): Loot {
+): Morsel {
   return {
     id: "",
-    riteId,
-    creatureKind: kind,
+    flightId,
+    caste,
     personality: "nerdy",
     model: "test-model",
     prompt: "p",
     output,
-    parentLootIds: parents,
+    parentMorselIds: parents,
     timestamp: Date.now(),
     drift: emptyDrift(),
     usage: {
@@ -51,91 +51,91 @@ function loot(
 }
 
 let dir: string;
-let hoard: Hoard;
+let compost: Compost;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "goblintown-export-"));
-  hoard = new Hoard(join(dir, "hoard"));
-  await hoard.init();
+  dir = await mkdtemp(join(tmpdir(), "flytown-export-"));
+  compost = new Compost(join(dir, "compost"));
+  await compost.init();
 });
 
 afterEach(async () => {
   if (dir) await rm(dir, { recursive: true, force: true }).catch(() => {});
 });
 
-async function buildRite(id: string, task: string): Promise<Rite> {
-  const goblinId = await hoard.stash(loot(id, "goblin", `goblin-output-${id}`));
-  const winnerLoot = (await hoard.getLoot(goblinId))!;
-  winnerLoot.reward = 0.7;
-  await hoard.stash(winnerLoot);
-  const rite: Rite = {
+async function buildFlight(id: string, task: string): Promise<Flight> {
+  const foragerId = await compost.stash(morsel(id, "forager", `forager-output-${id}`));
+  const winnerMorsel = (await compost.getMorsel(foragerId))!;
+  winnerMorsel.reward = 0.7;
+  await compost.stash(winnerMorsel);
+  const flight: Flight = {
     id,
     task,
     scanGlobs: [],
-    packSize: 1,
+    swarmSize: 1,
     personality: "nerdy",
-    goblinLootIds: [goblinId],
-    chaosLootIds: {},
-    trollVerdicts: {
-      [goblinId]: {
-        lootId: goblinId,
+    foragerMorselIds: [foragerId],
+    stingMorselIds: {},
+    guardVerdicts: {
+      [foragerId]: {
+        morselId: foragerId,
         passed: true,
         score: 0.7,
         critique: "good",
       },
     },
-    winnerLootId: goblinId,
+    winnerMorselId: foragerId,
     outcome: "winner",
     startedAt: Date.now(),
     finishedAt: Date.now(),
   };
-  await hoard.stashRite(rite);
-  return rite;
+  await compost.stashFlight(flight);
+  return flight;
 }
 
-describe("exportRiteMarkdown", () => {
-  it("returns null for unknown rite", async () => {
-    assert.equal(await exportRiteMarkdown(hoard, "nope"), null);
+describe("exportFlightMarkdown", () => {
+  it("returns null for unknown flight", async () => {
+    assert.equal(await exportFlightMarkdown(compost, "nope"), null);
   });
 
-  it("emits a markdown bundle covering task, goblin, winner", async () => {
-    const r = await buildRite("rx", "do a thing");
-    const md = await exportRiteMarkdown(hoard, "rx");
+  it("emits a markdown bundle covering task, forager, winner", async () => {
+    const r = await buildFlight("rx", "do a thing");
+    const md = await exportFlightMarkdown(compost, "rx");
     assert.ok(md);
-    assert.match(md!, /# Rite `rx`/);
+    assert.match(md!, /# Flight `rx`/);
     assert.match(md!, /## Task/);
     assert.match(md!, /do a thing/);
-    assert.match(md!, /## Goblin pack/);
+    assert.match(md!, /## Forager swarm/);
     assert.match(md!, /## Winner/);
-    assert.ok(md!.includes(r.winnerLootId!));
+    assert.ok(md!.includes(r.winnerMorselId!));
   });
 });
 
-describe("compareRites", () => {
-  it("returns null when either rite is missing", async () => {
-    await buildRite("a", "t");
-    assert.equal(await compareRites(hoard, "a", "missing"), null);
-    assert.equal(await compareRites(hoard, "missing", "a"), null);
+describe("compareFlights", () => {
+  it("returns null when either flight is missing", async () => {
+    await buildFlight("a", "t");
+    assert.equal(await compareFlights(compost, "a", "missing"), null);
+    assert.equal(await compareFlights(compost, "missing", "a"), null);
   });
 
   it("flags identical tasks as matching, distinct as not", async () => {
-    await buildRite("a", "the same task");
-    await buildRite("b", "the same task");
-    await buildRite("c", "a different task");
-    const ab = await compareRites(hoard, "a", "b");
-    const ac = await compareRites(hoard, "a", "c");
+    await buildFlight("a", "the same task");
+    await buildFlight("b", "the same task");
+    await buildFlight("c", "a different task");
+    const ab = await compareFlights(compost, "a", "b");
+    const ac = await compareFlights(compost, "a", "c");
     assert.ok(ab);
     assert.ok(ac);
     assert.equal(ab!.taskMatches, true);
     assert.equal(ac!.taskMatches, false);
   });
 
-  it("aggregates total tokens and pass rate per rite", async () => {
-    await buildRite("solo", "t");
-    const cmp = await compareRites(hoard, "solo", "solo");
+  it("aggregates total tokens and pass rate per flight", async () => {
+    await buildFlight("solo", "t");
+    const cmp = await compareFlights(compost, "solo", "solo");
     assert.ok(cmp);
     assert.equal(cmp!.a.totalTokens, 100);
-    assert.equal(cmp!.a.totalLoot, 1);
+    assert.equal(cmp!.a.totalMorsels, 1);
     assert.equal(cmp!.a.passRate, 1);
   });
 });

@@ -1,11 +1,11 @@
-import { makeSpecialistGoblin, makeTroll } from "./creatures.js";
+import { makeSpecialistForager, makeGuard } from "./castes.js";
 import { measureDrift } from "./drift.js";
 import { extractFirstJsonObject } from "./json-extract.js";
-import { callCreature, callCreatureStream } from "./openai-client.js";
+import { callInsect, callInsectStream } from "./openai-client.js";
 import { makeThinkingRelay } from "./streaming.js";
-import { trollReview } from "./troll-review.js";
-import type { FailureCluster, Loot, OutputFormat, TrollVerdict } from "./types.js";
-import type { Hoard } from "./hoard.js";
+import { guardReview } from "./guard-review.js";
+import type { FailureCluster, Morsel, OutputFormat, GuardVerdict } from "./types.js";
+import type { Compost } from "./compost.js";
 
 const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 } as const;
 
@@ -14,32 +14,32 @@ const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 } as const;
  */
 export function buildClusterPrompt(opts: {
   task: string;
-  goblinLoot: Loot[];
-  verdicts: Record<string, TrollVerdict>;
-  gremlinLootByGoblinId: Record<string, Loot | undefined>;
+  foragerMorsels: Morsel[];
+  verdicts: Record<string, GuardVerdict>;
+  waspMorselByForagerId: Record<string, Morsel | undefined>;
   maxClusters: number;
 }): string {
   const lines: string[] = [];
   lines.push(`Original task:`);
   lines.push(opts.task);
   lines.push("");
-  lines.push(`The pack of ${opts.goblinLoot.length} goblins all failed troll review. Their attempts and critiques follow.`);
+  lines.push(`The swarm of ${opts.foragerMorsels.length} foragers all failed guard review. Their attempts and critiques follow.`);
   lines.push("");
-  opts.goblinLoot.forEach((g, i) => {
+  opts.foragerMorsels.forEach((g, i) => {
     const v = opts.verdicts[g.id];
-    const gremlin = opts.gremlinLootByGoblinId[g.id];
-    lines.push(`--- Goblin #${i} [${g.personality}] (loot ${g.id}) ---`);
+    const wasp = opts.waspMorselByForagerId[g.id];
+    lines.push(`--- Forager #${i} [${g.personality}] (morsel ${g.id}) ---`);
     lines.push(`Output:`);
     lines.push(truncate(g.output, 800));
     if (v) {
-      lines.push(`Troll verdict: passed=${v.passed} score=${v.score.toFixed(2)}`);
-      lines.push(`Troll critique: ${v.critique}`);
+      lines.push(`Guard verdict: passed=${v.passed} score=${v.score.toFixed(2)}`);
+      lines.push(`Guard critique: ${v.critique}`);
     } else {
-      lines.push(`(no troll verdict)`);
+      lines.push(`(no guard verdict)`);
     }
-    if (gremlin) {
-      lines.push(`Gremlin attack:`);
-      lines.push(truncate(gremlin.output, 600));
+    if (wasp) {
+      lines.push(`Wasp attack:`);
+      lines.push(truncate(wasp.output, 600));
     }
     lines.push("");
   });
@@ -53,7 +53,7 @@ export function buildClusterPrompt(opts: {
   lines.push(`    {`);
   lines.push(`      "name": "kebab-case identifier",`);
   lines.push(`      "description": "1-2 sentences of what is wrong",`);
-  lines.push(`      "affectedGoblinIndexes": [0, 1],`);
+  lines.push(`      "affectedForagerIndexes": [0, 1],`);
   lines.push(`      "specialistFocus": "concise instruction telling a specialist what to fix",`);
   lines.push(`      "severity": "high" | "medium" | "low"`);
   lines.push(`    }`);
@@ -67,7 +67,7 @@ export function buildClusterPrompt(opts: {
 /**
  * Parse a clustering JSON blob. Forgiving (handles fences, bad enums, etc.).
  */
-export function parseClustersJson(raw: string, packSize: number, maxClusters: number): FailureCluster[] {
+export function parseClustersJson(raw: string, swarmSize: number, maxClusters: number): FailureCluster[] {
   const json = extractFirstJsonObject(raw);
   let parsed: Record<string, unknown> = {};
   if (json) {
@@ -91,15 +91,15 @@ export function parseClustersJson(raw: string, packSize: number, maxClusters: nu
       severityRaw === "high" || severityRaw === "medium" || severityRaw === "low"
         ? severityRaw
         : "medium";
-    const idxs = Array.isArray(obj.affectedGoblinIndexes)
-      ? (obj.affectedGoblinIndexes as unknown[])
+    const idxs = Array.isArray(obj.affectedForagerIndexes)
+      ? (obj.affectedForagerIndexes as unknown[])
           .map((n) => Number(n))
-          .filter((n) => Number.isInteger(n) && n >= 0 && n < packSize)
+          .filter((n) => Number.isInteger(n) && n >= 0 && n < swarmSize)
       : [];
     clusters.push({
       name,
       description: description || focus,
-      affectedGoblinIndexes: idxs,
+      affectedForagerIndexes: idxs,
       specialistFocus: focus,
       severity,
     });
@@ -110,13 +110,13 @@ export function parseClustersJson(raw: string, packSize: number, maxClusters: nu
 }
 
 /**
- * Build the user prompt a Specialist Goblin receives. Pure.
+ * Build the user prompt a Specialist Forager receives. Pure.
  */
 export function buildSpecialistPrompt(opts: {
   task: string;
   cluster: FailureCluster;
-  seedLoot: Loot;
-  seedGremlinCritique?: string;
+  seedMorsel: Morsel;
+  seedWaspCritique?: string;
 }): string {
   const parts: string[] = [];
   parts.push(`Original task:`);
@@ -127,11 +127,11 @@ export function buildSpecialistPrompt(opts: {
   parts.push(`Cluster description: ${opts.cluster.description}`);
   parts.push("");
   parts.push(`Best previous attempt (seed — fix this, don't restart unless unsalvageable):`);
-  parts.push(opts.seedLoot.output);
-  if (opts.seedGremlinCritique) {
+  parts.push(opts.seedMorsel.output);
+  if (opts.seedWaspCritique) {
     parts.push("");
-    parts.push(`Gremlin's specific complaint about this attempt:`);
-    parts.push(truncate(opts.seedGremlinCritique, 600));
+    parts.push(`Wasp's specific complaint about this attempt:`);
+    parts.push(truncate(opts.seedWaspCritique, 600));
   }
   parts.push("");
   parts.push(`Output the corrected answer only. No preamble. No commentary on the changes.`);
@@ -141,47 +141,47 @@ export function buildSpecialistPrompt(opts: {
 /** Run the failure-clustering LLM call. */
 export async function clusterFailures(opts: {
   task: string;
-  goblinLoot: Loot[];
-  verdicts: Record<string, TrollVerdict>;
-  gremlinLootByGoblinId: Record<string, Loot | undefined>;
+  foragerMorsels: Morsel[];
+  verdicts: Record<string, GuardVerdict>;
+  waspMorselByForagerId: Record<string, Morsel | undefined>;
   maxClusters: number;
   maxOutputTokens?: number;
-}): Promise<{ clusters: FailureCluster[]; usage: Loot["usage"] }> {
-  // Use the troll model for clustering — it's the same adversarial sensibility,
+}): Promise<{ clusters: FailureCluster[]; usage: Morsel["usage"] }> {
+  // Use the guard model for clustering — it's the same adversarial sensibility,
   // and it's typically a cheap mini-tier model.
-  const judge = makeTroll();
+  const judge = makeGuard();
   const prompt = buildClusterPrompt({
     task: opts.task,
-    goblinLoot: opts.goblinLoot,
+    foragerMorsels: opts.foragerMorsels,
     verdicts: opts.verdicts,
-    gremlinLootByGoblinId: opts.gremlinLootByGoblinId,
+    waspMorselByForagerId: opts.waspMorselByForagerId,
     maxClusters: opts.maxClusters,
   });
-  const { text, usage } = await callCreature(
+  const { text, usage } = await callInsect(
     {
       ...judge,
       systemPrompt:
-        `You are a failure analyst inside the Goblintown protocol. ` +
-        `Cluster the failures of a pack of goblin agents into 1-${opts.maxClusters} dominant failure modes. ` +
+        `You are a failure analyst in the FLYTOWN swarm. ` +
+        `Cluster the failures of a swarm of forager agents into 1-${opts.maxClusters} dominant failure modes. ` +
         `Output strict JSON only, no prose, no fences.`,
     },
     prompt,
     { maxOutputTokens: opts.maxOutputTokens ?? 800 },
   );
-  const clusters = parseClustersJson(text, opts.goblinLoot.length, opts.maxClusters);
+  const clusters = parseClustersJson(text, opts.foragerMorsels.length, opts.maxClusters);
   return { clusters, usage };
 }
 
 /**
- * Pick the seed loot from a failed pack: highest-reward goblin, falling back
- * to the highest troll score, then the first.
+ * Pick the seed morsel from a failed swarm: highest-reward forager, falling back
+ * to the highest guard score, then the first.
  */
-export function pickSeedLoot(
-  goblinLoot: Loot[],
-  verdicts: Record<string, TrollVerdict>,
-): Loot | undefined {
-  if (goblinLoot.length === 0) return undefined;
-  return goblinLoot.reduce((best, cur) => {
+export function pickSeedMorsel(
+  foragerMorsels: Morsel[],
+  verdicts: Record<string, GuardVerdict>,
+): Morsel | undefined {
+  if (foragerMorsels.length === 0) return undefined;
+  return foragerMorsels.reduce((best, cur) => {
     const bScore = best.reward ?? verdicts[best.id]?.score ?? 0;
     const cScore = cur.reward ?? verdicts[cur.id]?.score ?? 0;
     return cScore > bScore ? cur : best;
@@ -192,47 +192,47 @@ export function pickSeedLoot(
  * Run the specialist recovery layer. Returns the winner if any specialist
  * passes review OR meaningfully improves over the seed; null otherwise.
  */
-export async function runSpecialistRerite(opts: {
-  riteId: string;
+export async function runSpecialistRecovery(opts: {
+  flightId: string;
   task: string;
   clusters: FailureCluster[];
-  seedLoot: Loot;
+  seedMorsel: Morsel;
   seedScore: number;
-  seedGremlinByGoblinId: Record<string, Loot | undefined>;
-  hoard: Hoard;
+  seedWaspByForagerId: Record<string, Morsel | undefined>;
+  compost: Compost;
   maxOutputTokensPerCall?: number;
   outputFormat?: OutputFormat;
   /** Min absolute score-over-seed to count as a recovery win when no specialist passes outright. Default 0.05. */
   improvementMargin?: number;
   onSpawn?: (index: number, cluster: FailureCluster) => void;
-  onDone?: (index: number, loot: Loot) => void;
-  onVerdict?: (index: number, loot: Loot, verdict: TrollVerdict) => void;
+  onDone?: (index: number, morsel: Morsel) => void;
+  onVerdict?: (index: number, morsel: Morsel, verdict: GuardVerdict) => void;
   /** Live partial output from each specialist as it streams. */
   onThink?: (index: number, cumulativeText: string) => void;
 }): Promise<{
-  loots: Loot[];
-  verdicts: Record<string, TrollVerdict>;
-  winner: Loot | null;
-  /** Why this specialist won: "passed" if it cleared the troll, "improved" if it just beat the seed score. */
+  morsels: Morsel[];
+  verdicts: Record<string, GuardVerdict>;
+  winner: Morsel | null;
+  /** Why this specialist won: "passed" if it cleared the guard, "improved" if it just beat the seed score. */
   winReason: "passed" | "improved" | null;
 }> {
-  const seedGremlin = opts.seedGremlinByGoblinId[opts.seedLoot.id]?.output;
+  const seedWasp = opts.seedWaspByForagerId[opts.seedMorsel.id]?.output;
 
   const jobs = opts.clusters.map((cluster, i) => async () => {
     opts.onSpawn?.(i, cluster);
-    const specialist = makeSpecialistGoblin(cluster.specialistFocus);
+    const specialist = makeSpecialistForager(cluster.specialistFocus);
     const userPrompt = buildSpecialistPrompt({
       task: opts.task,
       cluster,
-      seedLoot: opts.seedLoot,
-      seedGremlinCritique: seedGremlin,
+      seedMorsel: opts.seedMorsel,
+      seedWaspCritique: seedWasp,
     });
     const onThink = opts.onThink;
     let output: string;
     let usage;
     if (onThink) {
       const relay = makeThinkingRelay((text) => onThink(i, text));
-      const r = await callCreatureStream(specialist, userPrompt, relay.onChunk, {
+      const r = await callInsectStream(specialist, userPrompt, relay.onChunk, {
         maxOutputTokens: opts.maxOutputTokensPerCall,
         outputFormat: opts.outputFormat,
       });
@@ -240,7 +240,7 @@ export async function runSpecialistRerite(opts: {
       output = r.text;
       usage = r.usage;
     } else {
-      const r = await callCreature(specialist, userPrompt, {
+      const r = await callInsect(specialist, userPrompt, {
         maxOutputTokens: opts.maxOutputTokensPerCall,
         outputFormat: opts.outputFormat,
       });
@@ -248,46 +248,46 @@ export async function runSpecialistRerite(opts: {
       usage = r.usage;
     }
     const drift = measureDrift(output);
-    const loot: Loot = {
+    const morsel: Morsel = {
       id: "",
-      riteId: opts.riteId,
-      creatureKind: "goblin",
+      flightId: opts.flightId,
+      caste: "forager",
       personality: specialist.personality,
       model: specialist.model,
       prompt: userPrompt,
       output,
-      parentLootIds: [opts.seedLoot.id],
+      parentMorselIds: [opts.seedMorsel.id],
       timestamp: Date.now(),
       drift,
       usage,
     };
-    await opts.hoard.stash(loot);
-    opts.onDone?.(i, loot);
-    return { loot, index: i };
+    await opts.compost.stash(morsel);
+    opts.onDone?.(i, morsel);
+    return { morsel, index: i };
   });
 
   const results = await Promise.all(jobs.map((fn) => fn()));
 
   // Re-judge each specialist output sequentially (cheap, ordered logs).
-  const verdicts: Record<string, TrollVerdict> = {};
-  for (const { loot, index } of results) {
-    const { verdict, trollLoot } = await trollReview({
-      goblinLoot: loot,
+  const verdicts: Record<string, GuardVerdict> = {};
+  for (const { morsel, index } of results) {
+    const { verdict, guardMorsel } = await guardReview({
+      foragerMorsel: morsel,
       originalTask: opts.task,
-      chaosLoot: undefined,
-      hoard: opts.hoard,
-      riteId: opts.riteId,
+      stingMorsel: undefined,
+      compost: opts.compost,
+      flightId: opts.flightId,
     });
-    verdicts[loot.id] = verdict;
-    // stash troll's verdict loot
-    void trollLoot;
-    opts.onVerdict?.(index, loot, verdict);
+    verdicts[morsel.id] = verdict;
+    // stash guard's verdict morsel
+    void guardMorsel;
+    opts.onVerdict?.(index, morsel, verdict);
   }
 
-  const allLoots = results.map((r) => r.loot);
-  const passing = allLoots.filter((l) => verdicts[l.id]?.passed);
+  const allMorsels = results.map((r) => r.morsel);
+  const passing = allMorsels.filter((l) => verdicts[l.id]?.passed);
 
-  let winner: Loot | null = null;
+  let winner: Morsel | null = null;
   let winReason: "passed" | "improved" | null = null;
 
   if (passing.length > 0) {
@@ -299,18 +299,18 @@ export async function runSpecialistRerite(opts: {
     winReason = "passed";
   } else {
     const margin = opts.improvementMargin ?? 0.05;
-    const best = allLoots.reduce((b, c) => {
+    const best = allMorsels.reduce((b, c) => {
       const bs = verdicts[b.id]?.score ?? 0;
       const cs = verdicts[c.id]?.score ?? 0;
       return cs > bs ? c : b;
-    }, allLoots[0]);
+    }, allMorsels[0]);
     if (best && (verdicts[best.id]?.score ?? 0) >= opts.seedScore + margin) {
       winner = best;
       winReason = "improved";
     }
   }
 
-  return { loots: allLoots, verdicts, winner, winReason };
+  return { morsels: allMorsels, verdicts, winner, winReason };
 }
 
 /* --------- internal helpers --------- */

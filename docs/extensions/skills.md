@@ -17,8 +17,8 @@ The existing concrete skill is:
 .agents/skills/add-provider-package/SKILL.md
 ```
 
-The UI and tests point at that path. Do not casually move it to a top-level
-`skills/` directory unless the runtime and tests are changed together.
+Keep skills under `.agents/skills/`; do not move them to a top-level `skills/`
+directory.
 
 ## When To Add A Skill
 
@@ -83,9 +83,10 @@ classes, README, tests, examples, docs, and release references.
 | User-facing behavior | `docs/` |
 | CLI/API reference | `docs/reference/` |
 | Product concepts | `README.md` or `docs/architecture/` |
+| Names of castes, units of work, commands and paths | `docs/flytown/VOCABULARY.md` |
 | Runtime verifier-tool code | `src/tools.ts` |
-| Local project state | `.goblintown/` |
+| Local project state | `.flytown/` |
 | Agent workflow recipe | `.agents/skills/<name>/SKILL.md` |
 
-The clean rule: docs explain Goblintown to users. Skills teach future agents how
-to safely change Goblintown.
+The clean rule: docs explain FLYTOWN to users. Skills teach future agents how
+to safely change FLYTOWN.

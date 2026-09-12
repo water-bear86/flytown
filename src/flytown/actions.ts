@@ -2,7 +2,7 @@
  * Orchestration action vocabulary and the shared action → Plan compiler.
  *
  * Every planner backend (rules, random, learned, fly) emits scores over the
- * same small action set; this module turns those scores into a Goblintown
+ * same small action set; this module turns those scores into a FLYTOWN
  * Plan with one deterministic, unit-tested rule set. Backends therefore differ
  * only in *what they decide*, never in how a decision becomes work — which is
  * what makes them comparable.
@@ -12,8 +12,8 @@ import type { Personality, Plan, PlanEdge, PlanNode } from "../types.js";
 import type { TaskSignals } from "./signals.js";
 
 export const ORCH_ACTIONS = [
-  "spawn_subrite",
-  "increase_pack_size",
+  "spawn_flight",
+  "increase_swarm_size",
   "request_artifact_investigation",
   "invoke_reviewer",
   "merge_results",
@@ -56,7 +56,7 @@ export interface OrchDecision {
   /** Actions with score >= includeRatio * max, excluding primary. */
   included: OrchAction[];
   scores: ActionScores;
-  packSize: number;
+  swarmSize: number;
   personality: Personality;
 }
 
@@ -84,11 +84,11 @@ export function decide(scores: ActionScores, signals: TaskSignals, opts: DecideO
   const included = entries.filter(([a, v]) => a !== primary && v >= includeRatio * max && v > 0).map(([a]) => a);
   const hasAction = (a: OrchAction) => primary === a || included.includes(a);
 
-  let packSize = 3;
-  if (hasAction("increase_pack_size")) packSize = 5;
-  else if (hasAction("surface_uncertainty")) packSize = 4;
-  if (signals.pressure > 0.7) packSize = Math.max(1, packSize - 2);
-  else if (signals.pressure > 0.4) packSize = Math.max(1, packSize - 1);
+  let swarmSize = 3;
+  if (hasAction("increase_swarm_size")) swarmSize = 5;
+  else if (hasAction("surface_uncertainty")) swarmSize = 4;
+  if (signals.pressure > 0.7) swarmSize = Math.max(1, swarmSize - 2);
+  else if (signals.pressure > 0.4) swarmSize = Math.max(1, swarmSize - 1);
 
   let personality: Personality;
   switch (signals.deliverable) {
@@ -105,7 +105,7 @@ export function decide(scores: ActionScores, signals: TaskSignals, opts: DecideO
     personality = PERSONALITY_ROTATION[(signals.history.replanDepth + PERSONALITY_ROTATION.indexOf(personality) + 1) % PERSONALITY_ROTATION.length];
   }
 
-  return { primary, included, scores, packSize, personality };
+  return { primary, included, scores, swarmSize, personality };
 }
 
 export interface CompileOptions {
@@ -125,7 +125,7 @@ export interface CompileOptions {
  *  - request_artifact_investigation / search_memory add an investigation node
  *    that feeds the main node.
  *  - run_tests / run_tool add a verification node after the main node with
- *    trollTools enabled.
+ *    guardTools enabled.
  *  - invoke_reviewer adds a review node after the main (or verification) node.
  *  - surface_uncertainty adds debate to the main node and asks for
  *    enumerated hypotheses.
@@ -151,8 +151,8 @@ export function compilePlan(decision: OrchDecision, signals: TaskSignals, opts: 
   const nodes: PlanNode[] = [];
   const edges: PlanEdge[] = [];
   const mk = (nid: string, task: string, action: OrchAction, extra: Partial<PlanNode> = {}): PlanNode => ({
-    id: nid, task, inputs: [], kind: "sub_rite", status: "pending",
-    packSize: decision.packSize, personality: decision.personality,
+    id: nid, task, inputs: [], kind: "flight", status: "pending",
+    swarmSize: decision.swarmSize, personality: decision.personality,
     hints: { action, ...(extra.hints ?? {}) }, ...extra,
   });
   const link = (from: string, to: string) => { edges.push({ from, to }); nodes.find((n) => n.id === to)!.inputs.push(from); };
@@ -162,7 +162,7 @@ export function compilePlan(decision: OrchDecision, signals: TaskSignals, opts: 
     const focus = has("search_memory") && signals.priorArtifacts > 0
       ? "Review the prior artifacts and the repository for facts directly relevant to the task; list what is established, what is contradicted, and what remains unknown."
       : "Investigate the repository and any error output before proposing changes: identify the concrete files, symbols and evidence involved; list competing explanations with the evidence for and against each.";
-    nodes.push(mk("investigate", `${focus}\n\nTask context: ${signals.task}`, has("search_memory") ? "search_memory" : "request_artifact_investigation", { packSize: Math.min(decision.packSize, 3), personality: "cynical" }));
+    nodes.push(mk("investigate", `${focus}\n\nTask context: ${signals.task}`, has("search_memory") ? "search_memory" : "request_artifact_investigation", { swarmSize: Math.min(decision.swarmSize, 3), personality: "cynical" }));
     prev = "investigate";
   }
 
@@ -173,7 +173,7 @@ export function compilePlan(decision: OrchDecision, signals: TaskSignals, opts: 
   if (has("surface_uncertainty")) {
     mainTask = `${mainTask}\n\nState your assumptions explicitly. If more than one hypothesis is plausible, enumerate them with the evidence that would discriminate between them, and say which you are least sure about.`;
   }
-  nodes.push(mk("main", mainTask, "spawn_subrite", { hints: { action: "spawn_subrite", debate: has("surface_uncertainty") || undefined } }));
+  nodes.push(mk("main", mainTask, "spawn_flight", { hints: { action: "spawn_flight", debate: has("surface_uncertainty") || undefined } }));
   if (prev) link(prev, "main");
   prev = "main";
 
@@ -181,19 +181,19 @@ export function compilePlan(decision: OrchDecision, signals: TaskSignals, opts: 
     const verifyTask = has("run_tests")
       ? `Verify the result of the previous step against the repository's tests and build: state exactly which checks would pass or fail and why, citing concrete evidence.\n\nTask context: ${signals.task}`
       : `Verify the previous step's claims using the available verifier tools; report which claims are confirmed, refuted, or unverifiable.\n\nTask context: ${signals.task}`;
-    nodes.push(mk("verify", verifyTask, has("run_tests") ? "run_tests" : "run_tool", { packSize: Math.min(decision.packSize, 2), personality: "stoic", hints: { action: has("run_tests") ? "run_tests" : "run_tool", trollTools: true } }));
+    nodes.push(mk("verify", verifyTask, has("run_tests") ? "run_tests" : "run_tool", { swarmSize: Math.min(decision.swarmSize, 2), personality: "stoic", hints: { action: has("run_tests") ? "run_tests" : "run_tool", guardTools: true } }));
     link(prev, "verify");
     prev = "verify";
   }
 
   if (has("invoke_reviewer") && nodes.length < maxNodes) {
-    nodes.push(mk("review", `Critically review the previous step's output for correctness, missed cases, and unsupported claims${signals.securitySensitive ? ", with particular attention to security implications" : ""}. Reject anything not backed by evidence.\n\nTask context: ${signals.task}`, "invoke_reviewer", { packSize: Math.min(decision.packSize, 2), personality: "cynical" }));
+    nodes.push(mk("review", `Critically review the previous step's output for correctness, missed cases, and unsupported claims${signals.securitySensitive ? ", with particular attention to security implications" : ""}. Reject anything not backed by evidence.\n\nTask context: ${signals.task}`, "invoke_reviewer", { swarmSize: Math.min(decision.swarmSize, 2), personality: "cynical" }));
     link(prev, "review");
     prev = "review";
   }
 
   if ((has("merge_results") || nodes.length > 1) && nodes.length < maxNodes) {
-    nodes.push(mk("synthesize", `Synthesize the preceding steps into a single final deliverable for: ${signals.task}`, "merge_results", { kind: "synthesize", packSize: Math.min(decision.packSize, 2), personality: "stoic" }));
+    nodes.push(mk("synthesize", `Synthesize the preceding steps into a single final deliverable for: ${signals.task}`, "merge_results", { kind: "synthesize", swarmSize: Math.min(decision.swarmSize, 2), personality: "stoic" }));
     link(prev, "synthesize");
   }
 

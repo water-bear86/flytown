@@ -1,19 +1,19 @@
 /**
  * LLM judge for live evaluation.
  *
- * Goblintown's troll-gated "success" turned out to be non-discriminative
- * live: specialists and the ogre fallback rescue almost any plan shape, so
+ * FLYTOWN's guard-gated "success" turned out to be non-discriminative
+ * live: specialists and the soldier fallback rescue almost any plan shape, so
  * every planner "completes" every completable task. The judge scores the
  * final output against a per-fixture rubric on a 0–1 scale with a short
- * rationale. It is a model call (same provider/slot as the troll), so it is
+ * rationale. It is a model call (same provider/slot as the guard), so it is
  * itself fallible — scores are recorded with their rationale, never taken as
  * ground truth, and the judge prompt is fixed across planners so any bias is
  * shared.
  */
-import { callCreature } from "../../openai-client.js";
+import { callInsect } from "../../openai-client.js";
 import { extractFirstJsonObject } from "../../json-extract.js";
 import { activeModelForSlot } from "../../openai-client.js";
-import type { Creature } from "../../types.js";
+import type { Insect } from "../../types.js";
 
 export interface JudgeInput {
   task: string;
@@ -34,11 +34,11 @@ export interface JudgeVerdict {
 
 const MAX_OUTPUT_CHARS = 6000;
 
-export function judgeCreature(): Creature {
+export function judgeInsect(): Insect {
   return {
-    kind: "troll",
-    modelSlot: "troll",
-    model: activeModelForSlot("troll", "gpt-5-mini"),
+    caste: "guard",
+    modelSlot: "guard",
+    model: activeModelForSlot("guard", "gpt-5-mini"),
     temperature: 0.1,
     personality: "stoic",
     systemPrompt:
@@ -76,7 +76,7 @@ export function parseJudgeResponse(raw: string): { score: number; rationale: str
 
 export async function judgeOutput(input: JudgeInput, opts: { maxOutputTokens?: number } = {}): Promise<JudgeVerdict> {
   try {
-    const { text, usage } = await callCreature(judgeCreature(), buildJudgePrompt(input), { maxOutputTokens: opts.maxOutputTokens ?? 300 });
+    const { text, usage } = await callInsect(judgeInsect(), buildJudgePrompt(input), { maxOutputTokens: opts.maxOutputTokens ?? 300 });
     const parsed = parseJudgeResponse(text);
     if (!parsed) return { score: 0, rationale: "", tokens: usage.totalTokens, error: `unparseable judge response: ${text.slice(0, 120)}` };
     return { score: parsed.score, rationale: parsed.rationale, tokens: usage.totalTokens };

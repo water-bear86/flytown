@@ -68,7 +68,7 @@ const M: ProvenanceTag = "METAPHOR";
 const L: ProvenanceTag = "INFERRED_FROM_LITERATURE";
 
 function bias(spawn = 0.15, other = 0.02): Record<OrchAction, number> {
-  return Object.fromEntries(ORCH_ACTIONS.map((a) => [a, a === "spawn_subrite" ? spawn : other])) as Record<OrchAction, number>;
+  return Object.fromEntries(ORCH_ACTIONS.map((a) => [a, a === "spawn_flight" ? spawn : other])) as Record<OrchAction, number>;
 }
 
 /**
@@ -113,8 +113,8 @@ export function defaultProjectomeAdapters(): AdapterWeights {
       constraints: [{ group: "FB", weight: 0.4, tag: M }],
     },
     readout: {
-      spawn_subrite: [{ group: "LAL", weight: 1.0, tag: M, note: "premotor" }, { group: "SPS", weight: 0.4, tag: M }, { group: "IPS", weight: 0.3, tag: M }],
-      increase_pack_size: [{ group: "FB", weight: 0.9, tag: M, note: "arousal / exploration" }, { group: "CRE", weight: 0.4, tag: M }],
+      spawn_flight: [{ group: "LAL", weight: 1.0, tag: M, note: "premotor" }, { group: "SPS", weight: 0.4, tag: M }, { group: "IPS", weight: 0.3, tag: M }],
+      increase_swarm_size: [{ group: "FB", weight: 0.9, tag: M, note: "arousal / exploration" }, { group: "CRE", weight: 0.4, tag: M }],
       request_artifact_investigation: [{ group: "LH", weight: 0.8, tag: M }, { group: "PLP", weight: 0.4, tag: M }, { group: "MB_CA", weight: 0.3, tag: M }],
       invoke_reviewer: [{ group: "SLP", weight: 0.8, tag: M }, { group: "SIP", weight: 0.5, tag: M }],
       merge_results: [{ group: "PB", weight: 0.8, tag: M, note: "integration" }, { group: "EB", weight: 0.3, tag: M }],
@@ -221,8 +221,8 @@ export function defaultLarvaAdapters(): AdapterWeights {
     // avoidance and punishment depresses approach for the task's KC code.
     // The valence→action mapping itself remains METAPHOR.
     readout: {
-      spawn_subrite: [{ group: dnvnc, weight: 1.0, tag: M, note: "locomotor command" }, { group: preVnc, weight: 0.4, tag: M }, { group: mbonApp, weight: 0.5, tag: L, note: "approach-driving MBONs" }],
-      increase_pack_size: [{ group: preVnc, weight: 0.5, tag: M }, { group: fbn, weight: 0.6, tag: M, note: "MB feedback / arousal" }, { group: mbonApp, weight: 0.3, tag: L }],
+      spawn_flight: [{ group: dnvnc, weight: 1.0, tag: M, note: "locomotor command" }, { group: preVnc, weight: 0.4, tag: M }, { group: mbonApp, weight: 0.5, tag: L, note: "approach-driving MBONs" }],
+      increase_swarm_size: [{ group: preVnc, weight: 0.5, tag: M }, { group: fbn, weight: 0.6, tag: M, note: "MB feedback / arousal" }, { group: mbonApp, weight: 0.3, tag: L }],
       request_artifact_investigation: [{ group: lhn, weight: 0.8, tag: M, note: "innate odour evaluation" }, { group: pn, weight: 0.3, tag: M }],
       invoke_reviewer: [{ group: cn, weight: 0.8, tag: M, note: "convergence neurons" }, { group: lhn, weight: 0.3, tag: M }],
       merge_results: [{ group: cn, weight: 0.6, tag: M }, { group: preSez, weight: 0.5, tag: M }],

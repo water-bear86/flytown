@@ -8,35 +8,35 @@ import {
   renderArtifactContext,
   scoreArtifact,
 } from "../artifact.js";
-import type { Artifact, Loot, Rite, TrollVerdict } from "../types.js";
+import type { Artifact, Morsel, Flight, GuardVerdict } from "../types.js";
 
-const sampleLoot = (over: Partial<Loot> = {}): Loot => ({
-  id: "loot-1",
-  riteId: "rite-1",
-  creatureKind: "goblin",
+const sampleMorsel = (over: Partial<Morsel> = {}): Morsel => ({
+  id: "morsel-1",
+  flightId: "flight-1",
+  caste: "forager",
   personality: "nerdy",
   model: "gpt-5-mini",
   prompt: "p",
   output: "winning output",
   timestamp: Date.now(),
   drift: {
-    creatureMentions: { goblin: 0, gremlin: 0, raccoon: 0, troll: 0, ogre: 0, pigeon: 0 },
-    totalCreatureWords: 0,
+    casteMentions: { forager: 0, wasp: 0, scout: 0, guard: 0, soldier: 0, messenger: 0 },
+    totalCasteWords: 0,
     outputWordCount: 2,
     driftRate: 0,
   },
   ...over,
 });
 
-const sampleRite = (over: Partial<Rite> = {}): Rite => ({
-  id: "rite-abc12345",
+const sampleFlight = (over: Partial<Flight> = {}): Flight => ({
+  id: "flight-abc12345",
   task: "summarize the migration plan",
   scanGlobs: [],
-  packSize: 3,
+  swarmSize: 3,
   personality: "nerdy",
-  goblinLootIds: [],
-  chaosLootIds: {},
-  trollVerdicts: {},
+  foragerMorselIds: [],
+  stingMorselIds: {},
+  guardVerdicts: {},
   outcome: "winner",
   startedAt: Date.now(),
   ...over,
@@ -44,9 +44,9 @@ const sampleRite = (over: Partial<Rite> = {}): Rite => ({
 
 describe("extractKeywords", () => {
   it("returns lowercased non-stopword tokens by frequency", () => {
-    const k = extractKeywords("The Goblin reviews the Migration plan for the migration script");
+    const k = extractKeywords("The Forager reviews the Migration plan for the migration script");
     assert.ok(k.includes("migration"));
-    assert.ok(k.includes("goblin"));
+    assert.ok(k.includes("forager"));
     assert.ok(!k.includes("the"));
     assert.equal(k[0], "migration", "most frequent should be first");
   });
@@ -59,7 +59,7 @@ describe("extractKeywords", () => {
 describe("scoreArtifact", () => {
   const now = 1_700_000_000_000;
   const fresh: Artifact = {
-    id: "a-1", riteId: "r-1", task: "migrate db", outcome: "winner",
+    id: "a-1", flightId: "r-1", task: "migrate db", outcome: "winner",
     claims: [], evidence: [], openQuestions: [], nextSteps: [],
     parentArtifactIds: [],
     keywords: ["migration", "database", "schema"],
@@ -87,7 +87,7 @@ describe("scoreArtifact", () => {
 describe("findRelevantArtifacts", () => {
   const now = 1_700_000_000_000;
   const make = (id: string, kw: string[], ageDays: number): Artifact => ({
-    id, riteId: id, task: kw.join(" "), outcome: "winner",
+    id, flightId: id, task: kw.join(" "), outcome: "winner",
     claims: [], evidence: [], openQuestions: [], nextSteps: [],
     parentArtifactIds: [], keywords: kw,
     timestamp: now - ageDays * 86_400_000,
@@ -117,17 +117,17 @@ describe("findRelevantArtifacts", () => {
 
 describe("parseArtifactJson", () => {
   const meta = {
-    riteId: "rite-abc12345",
+    flightId: "flight-abc12345",
     task: "do thing",
     outcome: "winner" as const,
-    winnerLootId: "loot-1",
+    winnerMorselId: "morsel-1",
     parentArtifactIds: [],
   };
 
   it("parses a clean JSON object", () => {
     const json = JSON.stringify({
       claims: [{ text: "x", confidence: "established", evidenceIds: [0] }],
-      evidence: [{ kind: "loot", ref: "loot-1", snippet: "..." }],
+      evidence: [{ kind: "morsel", ref: "morsel-1", snippet: "..." }],
       openQuestions: ["why?"],
       nextSteps: ["do y"],
       keywords: ["alpha", "beta"],
@@ -135,11 +135,11 @@ describe("parseArtifactJson", () => {
     const a = parseArtifactJson(json, meta);
     assert.equal(a.claims.length, 1);
     assert.equal(a.claims[0].text, "x");
-    assert.equal(a.evidence[0].kind, "loot");
+    assert.equal(a.evidence[0].kind, "morsel");
     assert.deepEqual(a.openQuestions, ["why?"]);
     assert.deepEqual(a.keywords, ["alpha", "beta"]);
-    assert.equal(a.riteId, "rite-abc12345");
-    assert.equal(a.winnerLootId, "loot-1");
+    assert.equal(a.flightId, "flight-abc12345");
+    assert.equal(a.winnerMorselId, "morsel-1");
   });
 
   it("strips code fences and leading prose", () => {
@@ -181,12 +181,12 @@ describe("parseArtifactJson", () => {
 describe("buildScribePrompt", () => {
   it("includes task, winning output, and verdicts", () => {
     const prompt = buildScribePrompt({
-      rite: sampleRite({ task: "FOOTASK" }),
-      winnerLoot: sampleLoot({ id: "loot-W", output: "FINAL" }),
-      goblinLoot: [sampleLoot({ id: "loot-W", output: "FINAL" })],
-      gremlinLoot: [],
-      ogreLoot: null,
-      verdicts: [{ lootId: "loot-W", passed: true, score: 0.9, critique: "good" }],
+      flight: sampleFlight({ task: "FOOTASK" }),
+      winnerMorsel: sampleMorsel({ id: "morsel-W", output: "FINAL" }),
+      foragerMorsels: [sampleMorsel({ id: "morsel-W", output: "FINAL" })],
+      waspMorsels: [],
+      soldierMorsel: null,
+      verdicts: [{ morselId: "morsel-W", passed: true, score: 0.9, critique: "good" }],
       parentArtifacts: [],
     });
     assert.ok(prompt.includes("FOOTASK"));
@@ -197,16 +197,16 @@ describe("buildScribePrompt", () => {
 
   it("lists parent artifacts when present", () => {
     const parent: Artifact = {
-      id: "a-parent", riteId: "r-parent", task: "earlier task", outcome: "winner",
+      id: "a-parent", flightId: "r-parent", task: "earlier task", outcome: "winner",
       claims: [], evidence: [], openQuestions: [], nextSteps: [],
       parentArtifactIds: [], keywords: [], timestamp: 0,
     };
     const prompt = buildScribePrompt({
-      rite: sampleRite(),
-      winnerLoot: null,
-      goblinLoot: [],
-      gremlinLoot: [],
-      ogreLoot: null,
+      flight: sampleFlight(),
+      winnerMorsel: null,
+      foragerMorsels: [],
+      waspMorsels: [],
+      soldierMorsel: null,
       verdicts: [],
       parentArtifacts: [parent],
     });
@@ -218,7 +218,7 @@ describe("buildScribePrompt", () => {
 describe("renderArtifactContext", () => {
   it("renders a compact prior-context block", () => {
     const a: Artifact = {
-      id: "a-1", riteId: "r-1", task: "T", outcome: "winner",
+      id: "a-1", flightId: "r-1", task: "T", outcome: "winner",
       claims: [
         { text: "claim one", confidence: "established" },
         { text: "claim two", confidence: "speculative" },

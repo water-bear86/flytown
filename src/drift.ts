@@ -1,23 +1,28 @@
-import { CREATURE_KINDS, type CreatureKind, type DriftReport } from "./types.js";
+import { CASTES, type Caste, type DriftReport } from "./types.js";
 
+/**
+ * Count mentions of the caste names (singular or plural, whole words,
+ * case-insensitive) in a model output. Drift is reported, not penalised: it
+ * detects the themed worker prompts leaking into what the models write.
+ */
 export function measureDrift(output: string): DriftReport {
   const lower = output.toLowerCase();
-  const mentions: Record<CreatureKind, number> = {
-    goblin: 0,
-    gremlin: 0,
-    raccoon: 0,
-    troll: 0,
-    ogre: 0,
-    pigeon: 0,
+  const mentions: Record<Caste, number> = {
+    forager: 0,
+    wasp: 0,
+    scout: 0,
+    guard: 0,
+    soldier: 0,
+    messenger: 0,
   };
 
-  for (const kind of CREATURE_KINDS) {
-    const re = new RegExp(`\\b${kind}s?\\b`, "g");
+  for (const caste of CASTES) {
+    const re = new RegExp(`\\b${caste}s?\\b`, "g");
     const matches = lower.match(re);
-    mentions[kind] = matches ? matches.length : 0;
+    mentions[caste] = matches ? matches.length : 0;
   }
 
-  const totalCreatureWords = CREATURE_KINDS.reduce(
+  const totalCasteWords = CASTES.reduce(
     (sum, k) => sum + mentions[k],
     0,
   );
@@ -26,18 +31,19 @@ export function measureDrift(output: string): DriftReport {
     .filter((w) => w.length > 0).length;
 
   return {
-    creatureMentions: mentions,
-    totalCreatureWords,
+    casteMentions: mentions,
+    totalCasteWords,
     outputWordCount,
-    driftRate: outputWordCount > 0 ? totalCreatureWords / outputWordCount : 0,
+    driftRate: outputWordCount > 0 ? totalCasteWords / outputWordCount : 0,
   };
 }
 
-export function crossCreatureDrift(
+/** Fraction of output words that name a caste other than `selfCaste`. */
+export function crossCasteDrift(
   output: string,
-  selfKind: CreatureKind,
+  selfCaste: Caste,
 ): number {
   const r = measureDrift(output);
-  const cross = r.totalCreatureWords - r.creatureMentions[selfKind];
+  const cross = r.totalCasteWords - r.casteMentions[selfCaste];
   return r.outputWordCount > 0 ? cross / r.outputWordCount : 0;
 }

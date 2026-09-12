@@ -1,28 +1,28 @@
-import { performRite, type RiteOptions, type RiteResult } from "./rite.js";
-import type { Hoard } from "./hoard.js";
+import { performFlight, type FlightOptions, type FlightResult } from "./flight.js";
+import type { Compost } from "./compost.js";
 
 export interface RerollOptions {
-  riteId: string;
+  flightId: string;
   cwd: string;
-  hoard: Hoard;
+  compost: Compost;
   noFallback?: boolean;
   budgetTokens?: number;
   maxOutputTokensPerCall?: number;
-  onStep?: RiteOptions["onStep"];
-  rewardFn?: RiteOptions["rewardFn"];
+  onStep?: FlightOptions["onStep"];
+  rewardFn?: FlightOptions["rewardFn"];
 }
 
-export async function reroll(opts: RerollOptions): Promise<RiteResult> {
-  const original = await opts.hoard.getRite(opts.riteId);
+export async function reroll(opts: RerollOptions): Promise<FlightResult> {
+  const original = await opts.compost.getFlight(opts.flightId);
   if (!original) {
-    throw new Error(`Rite ${opts.riteId} not found in the Hoard.`);
+    throw new Error(`Flight ${opts.flightId} not found in the Compost.`);
   }
-  return performRite({
+  return performFlight({
     task: original.task,
-    packSize: original.packSize,
+    swarmSize: original.swarmSize,
     scanGlobs: original.scanGlobs,
     cwd: opts.cwd,
-    hoard: opts.hoard,
+    compost: opts.compost,
     personality: original.personality,
     rewardFn: opts.rewardFn,
     noFallback: opts.noFallback,

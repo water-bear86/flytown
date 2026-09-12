@@ -1,9 +1,9 @@
 /**
- * Planner — turns a complex task into a DAG of sub-rites.
+ * Planner — turns a complex task into a DAG of flights.
  *
- * The Planner is itself an LLM call (uses the troll model — terse, structured,
+ * The Planner is itself an LLM call (uses the guard model — terse, structured,
  * adversarial about scope). It outputs a Plan (DAG of PlanNodes). Each node
- * becomes a sub-rite. The DAG is topologically executed, with each node's
+ * becomes a flight. The DAG is topologically executed, with each node's
  * artifact fed forward to dependent nodes. On a node failure, the planner
  * may be re-invoked with the failure context (recursive replan, max depth 2).
  *
@@ -11,9 +11,9 @@
  * topologicalOrder) are testable without LLM calls.
  */
 import { randomUUID } from "node:crypto";
-import { makeTroll } from "./creatures.js";
+import { makeGuard } from "./castes.js";
 import { extractFirstJsonObject } from "./json-extract.js";
-import { callCreature } from "./openai-client.js";
+import { callInsect } from "./openai-client.js";
 import type {
   Artifact,
   Personality,
@@ -22,7 +22,7 @@ import type {
   PlanNode,
 } from "./types.js";
 
-const ALLOWED_PERSONALITIES: Personality[] = ["nerdy", "cynical", "chipper", "stoic", "feral", "goblin_mode"];
+const ALLOWED_PERSONALITIES: Personality[] = ["nerdy", "cynical", "chipper", "stoic", "feral", "frenzied"];
 
 export function buildPlannerPrompt(opts: {
   task: string;
@@ -38,7 +38,7 @@ export function buildPlannerPrompt(opts: {
   if (opts.parentArtifacts && opts.parentArtifacts.length > 0) {
     lines.push(`Prior artifacts you may build on:`);
     for (const a of opts.parentArtifacts) {
-      lines.push(`- artifact ${a.id} (rite ${a.riteId}): ${a.task.slice(0, 120)}`);
+      lines.push(`- artifact ${a.id} (flight ${a.flightId}): ${a.task.slice(0, 120)}`);
       for (const c of a.claims.slice(0, 3)) {
         lines.push(`    · ${c.text}`);
       }
@@ -58,11 +58,11 @@ export function buildPlannerPrompt(opts: {
 
   const cap = Math.max(2, Math.min(opts.maxNodes ?? 6, 10));
   lines.push(
-    `Decompose this task into a directed acyclic graph of 1-${cap} sub-rites. ` +
-      `Each node is a sub-rite with a clear, narrow task. Final node must be of kind "synthesize". ` +
-      `If the task is genuinely simple, emit a single node with kind="sub_rite" and no synthesize node.`,
+    `Decompose this task into a directed acyclic graph of 1-${cap} flights. ` +
+      `Each node is a flight with a clear, narrow task. Final node must be of kind "synthesize". ` +
+      `If the task is genuinely simple, emit a single node with kind="flight" and no synthesize node.`,
   );
-  lines.push(`For each node, also suggest a packSize (1-5) and lead personality from: nerdy|cynical|chipper|stoic|feral|goblin_mode.`);
+  lines.push(`For each node, also suggest a swarmSize (1-5) and lead personality from: nerdy|cynical|chipper|stoic|feral|frenzied.`);
   lines.push("");
   lines.push(`Output strict JSON only (no fences, no prose):`);
   lines.push(`{`);
@@ -71,8 +71,8 @@ export function buildPlannerPrompt(opts: {
   lines.push(`      "id": "n1",`);
   lines.push(`      "task": "concrete sub-task description",`);
   lines.push(`      "inputs": [],`);
-  lines.push(`      "kind": "sub_rite",`);
-  lines.push(`      "packSize": 3,`);
+  lines.push(`      "kind": "flight",`);
+  lines.push(`      "swarmSize": 3,`);
   lines.push(`      "personality": "stoic"`);
   lines.push(`    }`);
   lines.push(`  ],`);
@@ -102,16 +102,17 @@ export function parsePlanJson(raw: string, rootTask: string): Plan {
       ? (obj.inputs as unknown[]).filter((s): s is string => typeof s === "string" && s.length > 0)
       : [];
     const kindRaw = obj.kind;
-    const kind: PlanNode["kind"] = kindRaw === "synthesize" ? "synthesize" : "sub_rite";
-    const packSizeRaw = Number(obj.packSize);
-    const packSize = Number.isFinite(packSizeRaw) && packSizeRaw >= 1 && packSizeRaw <= 5
-      ? Math.floor(packSizeRaw)
+    // Forgiving: anything other than "synthesize" (including a missing kind) is a flight.
+    const kind: PlanNode["kind"] = kindRaw === "synthesize" ? "synthesize" : "flight";
+    const swarmSizeRaw = Number(obj.swarmSize);
+    const swarmSize = Number.isFinite(swarmSizeRaw) && swarmSizeRaw >= 1 && swarmSizeRaw <= 5
+      ? Math.floor(swarmSizeRaw)
       : undefined;
     const personality = ALLOWED_PERSONALITIES.includes(obj.personality as Personality)
       ? (obj.personality as Personality)
       : undefined;
     nodes.push({
-      id, task, inputs, kind, packSize, personality,
+      id, task, inputs, kind, swarmSize, personality,
       status: "pending",
     });
   }
@@ -236,14 +237,14 @@ export async function planTask(opts: {
   maxNodes?: number;
   maxOutputTokens?: number;
 }): Promise<{ plan: Plan; usage: { totalTokens: number } | undefined }> {
-  const planner = makeTroll();
+  const planner = makeGuard();
   const userPrompt = buildPlannerPrompt(opts);
-  const { text, usage } = await callCreature(
+  const { text, usage } = await callInsect(
     {
       ...planner,
       systemPrompt:
-        `You are a Planner inside the Goblintown protocol. ` +
-        `You decompose a complex task into a DAG of small, narrow sub-rites. ` +
+        `You are a Planner in the FLYTOWN swarm. ` +
+        `You decompose a complex task into a DAG of small, narrow flights. ` +
         `Be conservative — fewer nodes is better. ` +
         `Output strict JSON only, no fences, no prose.`,
     },

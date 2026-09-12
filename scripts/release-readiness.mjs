@@ -9,13 +9,13 @@ const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const version = pkg.version;
 const partDir = join(root, "release", "parts");
 const requiredArtifacts = [
-  `Goblintown-${version}-mac-arm64.dmg`,
-  `Goblintown-${version}-mac-x64.dmg`,
-  `Goblintown-${version}-linux-x86_64.AppImage`,
-  `Goblintown-${version}-linux-arm64.AppImage`,
-  `Goblintown-${version}-win.exe`,
-  `Goblintown-${version}-win-x64.exe`,
-  `Goblintown-${version}-win-arm64.exe`,
+  `FLYTOWN-${version}-mac-arm64.dmg`,
+  `FLYTOWN-${version}-mac-x64.dmg`,
+  `FLYTOWN-${version}-linux-x86_64.AppImage`,
+  `FLYTOWN-${version}-linux-arm64.AppImage`,
+  `FLYTOWN-${version}-win.exe`,
+  `FLYTOWN-${version}-win-x64.exe`,
+  `FLYTOWN-${version}-win-arm64.exe`,
 ];
 
 const checks = [];
@@ -48,11 +48,11 @@ function verifyMacDmgAppSignature(artifact) {
   if (process.platform !== "darwin") return { ok: true, output: "skipped outside macOS" };
   const dmg = join(root, "release", artifact);
   if (!existsSync(dmg)) return { ok: false, output: `${artifact} missing` };
-  const mount = mkdtempSync(join(tmpdir(), "goblintown-release-dmg-"));
+  const mount = mkdtempSync(join(tmpdir(), "flytown-release-dmg-"));
   try {
     const attach = commandResult("hdiutil", ["attach", dmg, "-mountpoint", mount, "-nobrowse", "-readonly"]);
     if (!attach.ok) return attach;
-    const app = join(mount, "Goblintown.app");
+    const app = join(mount, "FLYTOWN.app");
     return commandResult("codesign", ["--verify", "--deep", "--strict", "--verbose=4", app]);
   } finally {
     commandResult("hdiutil", ["detach", mount]);

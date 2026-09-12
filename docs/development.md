@@ -1,7 +1,8 @@
 # Development
 
-This repo is a TypeScript CLI, local HTTP server, browser UI, and Electron
-desktop package in one mildly overgrown jacket.
+This repo is a TypeScript CLI, a local HTTP server with a browser control
+surface, an Electron desktop shell, and an offline Python sidecar that builds
+the connectome artifacts.
 
 ## Setup
 
@@ -11,10 +12,16 @@ npm run build
 npm test
 ```
 
-Run the local browser UI:
+Run the web control surface:
 
 ```bash
 npm run serve -- --port 7777
+```
+
+Run the CLI straight from source with `tsx`, without building:
+
+```bash
+npm run dev -- <command> [args]
 ```
 
 Run the desktop shell:
@@ -25,7 +32,7 @@ npm run desktop
 
 ## Packaging
 
-Desktop package commands:
+Local desktop packages, written to the gitignored `release/` folder:
 
 ```bash
 npm run dist:mac
@@ -34,41 +41,42 @@ npm run dist:linux
 npm run dist:desktop
 ```
 
-Release readiness:
-
-```bash
-npm run release:ready
-```
-
-That readiness script validates the Desktop Beta 0.1 artifact set, SHA256 sums,
-and signing credentials. If it fails because certificates are missing, believe
-it.
+Nothing is published: there is no release pipeline and there are no
+prebuilt installers.
 
 ## Tests
-
-The main suite is:
 
 ```bash
 npm test
 ```
 
-For docs-only work, build first and run the docs help test:
+`npm test` builds first, then runs the suite as pure functions with no model
+calls. The list of test files in `package.json` is explicit, not a glob: add
+new test files to it.
 
-```bash
-npm run build
-node --test dist/__tests__/docs-help.test.js
-```
+## Connectome Artifacts
+
+Connectome artifacts under `connectome/` are built offline by the Python ETL
+sidecar in `connectome-etl/` (see its [README](../connectome-etl/README.md)). The TypeScript runtime only
+reads the finished, checksummed artifacts; set `FLYTOWN_CONNECTOME_DIR` to load
+them from somewhere else.
 
 ## Useful Source Map
 
 | Area | Files |
 | --- | --- |
-| CLI routing | `src/cli.ts`, `src/cli-help.ts` |
-| Browser UI/API | `src/server.ts`, `site/assets/` |
-| Single Goblin chat | `src/chat.ts` |
-| Rite pipeline | `src/rite.ts`, `src/quest.ts`, `src/troll-review.ts` |
-| Planning | `src/planner.ts`, `src/plan-executor.ts` |
-| Memory | `src/hoard.ts`, `src/artifact.ts`, `src/context-ingest.ts` |
-| Providers | `src/providers.ts`, `src/openai-client.ts` |
+| CLI routing | `src/cli.ts`, `src/cli-help.ts`, `src/slash-commands.ts` |
+| HTTP API and web control surface | `src/server.ts`, `src/flytown/web.ts` |
+| Ask mode | `src/chat.ts` |
+| Castes | `src/castes.ts` |
+| Flight pipeline | `src/flight.ts`, `src/foray.ts`, `src/scout.ts`, `src/sting.ts`, `src/guard-review.ts`, `src/specialist.ts`, `src/debate.ts`, `src/fallback.ts` |
+| Planning | `src/planner.ts`, `src/plan-executor.ts`, `src/flytown/planner-backend.ts`, `src/flytown/registry.ts` |
+| Connectome planners | `src/flytown/fly-planner.ts`, `src/flytown/connectome/`, `src/flytown/signals.ts`, `src/flytown/actions.ts`, `src/flytown/trace.ts`, `src/flytown/baselines/` |
+| Evaluation harness | `src/flytown/eval/`, `src/flytown/cli.ts` |
+| Memory | `src/compost.ts`, `src/artifact.ts`, `src/context-ingest.ts`, `src/chat-import.ts`, `src/embeddings.ts` |
+| Terrarium and run state | `src/terrarium.ts`, `src/run-store.ts` |
+| Reward | `src/reward.ts`, `src/reward-plugin.ts`, `src/drift.ts` |
+| Providers | `src/providers.ts`, `src/provider-secrets.ts`, `src/openai-client.ts` |
 | Verifier tools | `src/tools.ts` |
 | Desktop | `src/desktop.ts`, `build/`, `package.json` |
+| Connectome ETL (Python, offline) | `connectome-etl/` |

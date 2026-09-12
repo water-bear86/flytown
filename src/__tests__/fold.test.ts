@@ -4,7 +4,7 @@ import { buildFoldPrompt, clusterByKeywords } from "../fold.js";
 import type { Artifact } from "../types.js";
 
 const make = (id: string, keywords: string[], task = "T", over: Partial<Artifact> = {}): Artifact => ({
-  id, riteId: "r-" + id, task, outcome: "winner",
+  id, flightId: "r-" + id, task, outcome: "winner",
   claims: [], evidence: [], openQuestions: [], nextSteps: [],
   parentArtifactIds: [], keywords, timestamp: 0,
   ...over,

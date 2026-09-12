@@ -7,17 +7,17 @@ function rec(runId: string): RunRecord {
   return {
     runId,
     task: "Subjectively answer who was best before Michael Jordan.",
-    packSize: 4,
+    swarmSize: 4,
     scanGlobs: [],
-    mode: "rite",
+    mode: "flight",
     status: "error",
     request: {
-      mode: "rite",
+      mode: "flight",
       payload: {
         task: "Subjectively answer who was best before Michael Jordan.",
-        packSize: 4,
+        swarmSize: 4,
         debate: true,
-        trollTools: true,
+        guardTools: true,
         noSpecialist: false,
         budgetTokens: 12_000,
         maxOutputTokens: 1_200,
@@ -53,9 +53,9 @@ describe("server resume payloads", () => {
       /Original task: Subjectively answer who was best before Michael Jordan\./,
     );
     assert.doesNotMatch(String(payload.task), /Original task: Continue the interrupted/);
-    assert.equal(payload.packSize, 1);
+    assert.equal(payload.swarmSize, 1);
     assert.equal(payload.debate, false);
-    assert.equal(payload.trollTools, false);
+    assert.equal(payload.guardTools, false);
     assert.equal(payload.noSpecialist, true);
     assert.equal(payload.maxOutputTokens, 800);
     assert.equal(payload.budgetTokens, 12_000);

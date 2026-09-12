@@ -9,7 +9,7 @@ import {
 import type { Artifact } from "../types.js";
 
 const make = (over: Partial<Artifact> = {}): Artifact => ({
-  id: "a", riteId: "r", task: "T", outcome: "winner",
+  id: "a", flightId: "r", task: "T", outcome: "winner",
   claims: [], evidence: [], openQuestions: [], nextSteps: [],
   parentArtifactIds: [], keywords: [], timestamp: Date.now(),
   ...over,

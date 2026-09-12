@@ -11,7 +11,7 @@ import { hashSeed } from "../rng.js";
 
 export function rulesScores(s: TaskSignals): ActionScores {
   const r = zeroScores();
-  r.spawn_subrite = 1;
+  r.spawn_flight = 1;
 
   if (s.cues.mentionsBlocked || s.approvalsPending > 0) r.terminate_blocked += 3;
   if (s.history.attempts >= 2 && s.history.lastOutcome === "failure") r.terminate_blocked += 3;
@@ -26,10 +26,10 @@ export function rulesScores(s: TaskSignals): ActionScores {
   if (s.deliverable === "code_change" && s.repo.hasTests) r.run_tests += 1.2;
   if (s.deliverable === "verification") { r.run_tool += 1.2; r.run_tests += 0.8; }
   if (s.securitySensitive || s.deliverable === "code_change") r.invoke_reviewer += 1;
-  if (s.complexity > 0.5) { r.increase_pack_size += 0.8; r.merge_results += 0.8; }
-  if (s.deliverable === "research") { r.increase_pack_size += 0.6; r.merge_results += 0.6; }
+  if (s.complexity > 0.5) { r.increase_swarm_size += 0.8; r.merge_results += 0.8; }
+  if (s.deliverable === "research") { r.increase_swarm_size += 0.6; r.merge_results += 0.6; }
   if (s.history.lastOutcome === "failure" && s.history.attempts < 2) r.retry_new_approach += 2;
-  if (s.pressure > 0.6) { r.increase_pack_size = 0; r.invoke_reviewer *= 0.5; }
+  if (s.pressure > 0.6) { r.increase_swarm_size = 0; r.invoke_reviewer *= 0.5; }
 
   return normalizeScores(r);
 }

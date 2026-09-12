@@ -3,21 +3,21 @@ import { strict as assert } from "node:assert";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Hoard } from "../hoard.js";
-import { auditRite, collectRiteLootIds } from "../audit.js";
-import type { CreatureKind, Loot, Rite, TokenUsage } from "../types.js";
+import { Compost } from "../compost.js";
+import { auditFlight, collectFlightMorselIds } from "../audit.js";
+import type { Caste, Morsel, Flight, TokenUsage } from "../types.js";
 
 function emptyDrift(rate = 0) {
   return {
-    creatureMentions: {
-      goblin: 0,
-      gremlin: 0,
-      raccoon: 0,
-      troll: 0,
-      ogre: 0,
-      pigeon: 0,
+    casteMentions: {
+      forager: 0,
+      wasp: 0,
+      scout: 0,
+      guard: 0,
+      soldier: 0,
+      messenger: 0,
     },
-    totalCreatureWords: 0,
+    totalCasteWords: 0,
     outputWordCount: 100,
     driftRate: rate,
   };
@@ -32,22 +32,22 @@ function tokens(t: number, model = "test"): TokenUsage {
   };
 }
 
-function loot(
-  kind: CreatureKind,
+function morsel(
+  caste: Caste,
   output: string,
   parents?: string[],
   rate = 0,
   tok = 100,
-): Loot {
+): Morsel {
   return {
     id: "",
-    riteId: "test-rite",
-    creatureKind: kind,
+    flightId: "test-flight",
+    caste,
     personality: "nerdy",
     model: "test",
-    prompt: kind + " prompt " + output,
+    prompt: caste + " prompt " + output,
     output,
-    parentLootIds: parents,
+    parentMorselIds: parents,
     timestamp: Date.now(),
     drift: emptyDrift(rate),
     usage: tokens(tok),
@@ -55,117 +55,117 @@ function loot(
 }
 
 let dir: string;
-let hoard: Hoard;
+let compost: Compost;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "goblintown-audit-"));
-  hoard = new Hoard(join(dir, "hoard"));
-  await hoard.init();
+  dir = await mkdtemp(join(tmpdir(), "flytown-audit-"));
+  compost = new Compost(join(dir, "compost"));
+  await compost.init();
 });
 
 afterEach(async () => {
   if (dir) await rm(dir, { recursive: true, force: true }).catch(() => {});
 });
 
-describe("auditRite", () => {
-  it("returns null for an unknown rite", async () => {
-    const out = await auditRite(hoard, "nope");
+describe("auditFlight", () => {
+  it("returns null for an unknown flight", async () => {
+    const out = await auditFlight(compost, "nope");
     assert.equal(out, null);
   });
 
   it("aggregates tokens, drift, and longest chain", async () => {
-    const raccoon = loot("raccoon", "facts", undefined, 0.0, 80);
-    const ra = await hoard.stash(raccoon);
-    const goblin = loot("goblin", "draft answer", [ra], 0.05, 200);
-    const ga = await hoard.stash(goblin);
-    const gremlin = loot("gremlin", "attacks", [ga], 0.1, 150);
-    const gra = await hoard.stash(gremlin);
-    const troll = loot("troll", '{"passed":true,"score":0.8,"critique":"ok"}', [
+    const scout = morsel("scout", "facts", undefined, 0.0, 80);
+    const ra = await compost.stash(scout);
+    const forager = morsel("forager", "draft answer", [ra], 0.05, 200);
+    const ga = await compost.stash(forager);
+    const wasp = morsel("wasp", "attacks", [ga], 0.1, 150);
+    const gra = await compost.stash(wasp);
+    const guard = morsel("guard", '{"passed":true,"score":0.8,"critique":"ok"}', [
       ga,
       gra,
     ], 0.0, 50);
-    const ta = await hoard.stash(troll);
+    const ta = await compost.stash(guard);
 
-    const rite: Rite = {
+    const flight: Flight = {
       id: "r1",
       task: "do thing",
       scanGlobs: ["src/**/*.ts"],
-      packSize: 1,
+      swarmSize: 1,
       personality: "nerdy",
-      contextLootId: ra,
-      goblinLootIds: [ga],
-      chaosLootIds: { [ga]: gra },
-      trollVerdicts: {
-        [ga]: { lootId: ga, passed: true, score: 0.8, critique: "ok" },
+      contextMorselId: ra,
+      foragerMorselIds: [ga],
+      stingMorselIds: { [ga]: gra },
+      guardVerdicts: {
+        [ga]: { morselId: ga, passed: true, score: 0.8, critique: "ok" },
       },
-      winnerLootId: ga,
+      winnerMorselId: ga,
       outcome: "winner",
       startedAt: 0,
     };
-    await hoard.stashRite(rite);
-    // Troll loot lives outside the rite manifest, so audit totals don't
-    // include it — the manifest is the source of truth for what's "in" a rite.
+    await compost.stashFlight(flight);
+    // Guard morsel lives outside the flight manifest, so audit totals don't
+    // include it — the manifest is the source of truth for what's "in" a flight.
     void ta;
 
-    const report = await auditRite(hoard, "r1");
+    const report = await auditFlight(compost, "r1");
     assert.ok(report);
-    assert.equal(report!.totalLoot, 3, "raccoon + goblin + gremlin");
+    assert.equal(report!.totalMorsels, 3, "scout + forager + wasp");
     assert.equal(report!.totalTokens, 80 + 200 + 150);
-    assert.equal(report!.byKind.goblin.count, 1);
-    assert.equal(report!.byKind.gremlin.count, 1);
-    assert.equal(report!.byKind.raccoon.count, 1);
+    assert.equal(report!.byCaste.forager.count, 1);
+    assert.equal(report!.byCaste.wasp.count, 1);
+    assert.equal(report!.byCaste.scout.count, 1);
 
-    // Highest drift rate is the gremlin at 0.1
+    // Highest drift rate is the wasp at 0.1
     assert.ok(report!.highestDrift);
-    assert.equal(report!.highestDrift!.kind, "gremlin");
+    assert.equal(report!.highestDrift!.caste, "wasp");
 
-    // Longest chain: raccoon → goblin → gremlin = depth 3
+    // Longest chain: scout → forager → wasp = depth 3
     assert.equal(report!.longestChain.length, 3);
-    assert.deepEqual(report!.longestChain.lootIds, [ra, ga, gra]);
+    assert.deepEqual(report!.longestChain.morselIds, [ra, ga, gra]);
     assert.equal(report!.warnings.length, 0);
   });
 
-  it("warns when ogre_fallback was declared but no ogre loot is present", async () => {
-    const goblinId = await hoard.stash(loot("goblin", "fail attempt"));
-    const rite: Rite = {
+  it("warns when soldier_fallback was declared but no soldier morsel is present", async () => {
+    const foragerId = await compost.stash(morsel("forager", "fail attempt"));
+    const flight: Flight = {
       id: "r2",
       task: "t",
       scanGlobs: [],
-      packSize: 1,
+      swarmSize: 1,
       personality: "nerdy",
-      goblinLootIds: [goblinId],
-      chaosLootIds: {},
-      trollVerdicts: {},
-      outcome: "ogre_fallback",
+      foragerMorselIds: [foragerId],
+      stingMorselIds: {},
+      guardVerdicts: {},
+      outcome: "soldier_fallback",
       startedAt: 0,
     };
-    await hoard.stashRite(rite);
-    const report = await auditRite(hoard, "r2");
+    await compost.stashFlight(flight);
+    const report = await auditFlight(compost, "r2");
     assert.ok(report);
     assert.ok(
-      report!.warnings.some((w) => w.includes("ogre")),
-      "should warn about missing ogre loot",
+      report!.warnings.some((w) => w.includes("soldier")),
+      "should warn about missing soldier morsel",
     );
   });
 });
 
-describe("collectRiteLootIds", () => {
-  it("dedupes across all loot id sources", () => {
-    const r: Rite = {
+describe("collectFlightMorselIds", () => {
+  it("dedupes across all morsel id sources", () => {
+    const r: Flight = {
       id: "r",
       task: "t",
       scanGlobs: [],
-      packSize: 2,
+      swarmSize: 2,
       personality: "nerdy",
-      contextLootId: "ctx",
-      goblinLootIds: ["g1", "g2", "g1"],
-      chaosLootIds: { g1: "x1", g2: "x2" },
-      ogreLootId: "o1",
-      trollVerdicts: {},
-      outcome: "ogre_fallback",
+      contextMorselId: "ctx",
+      foragerMorselIds: ["g1", "g2", "g1"],
+      stingMorselIds: { g1: "x1", g2: "x2" },
+      soldierMorselId: "o1",
+      guardVerdicts: {},
+      outcome: "soldier_fallback",
       startedAt: 0,
     };
-    const ids = collectRiteLootIds(r);
+    const ids = collectFlightMorselIds(r);
     assert.deepEqual(new Set(ids), new Set(["ctx", "g1", "g2", "x1", "x2", "o1"]));
   });
 });

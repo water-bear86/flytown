@@ -1,420 +1,166 @@
-<p align="center">
-  <img src="site/assets/gtownlogo.svg" alt="Goblintown" width="820">
-</p>
-
 # FLYTOWN
-
-> FLYTOWN is a connectome-derived AI-orchestration research project built on
-> a stripped derivative of [Goblintown](https://github.com/0xbl33p/goblintown)
-> (MIT licensed, copyright 0XBL33P — used here with the maintainer's explicit
-> permission). The crypto/trading, voice, peer-to-peer social/federation, and
-> Codex/ChatGPT-App/Vercel distribution bolt-ons have been removed; see
-> [NOTICE.md](./NOTICE.md) for exactly what and why.
-
-## FLYTOWN in one paragraph
 
 A real, public, static wiring diagram of a fruit-fly brain — the adult
 FlyWire FAFB v783 connectome collapsed to brain regions, or the whole
 first-instar larval brain (Winding et al. 2023) at single-neuron resolution —
 is the fixed topology of a small dynamical system. A task becomes a sensory
 pattern; activity propagates; a readout maps the pattern to one of thirteen
-orchestration actions; that action becomes a Goblintown `Plan`, and the
-existing worker pipeline executes it unchanged. It is **not** a mind, not a
-simulation of a living animal, and every quantity is tagged `MEASURED`,
-`INFERRED_FROM_LITERATURE`, `ENGINEERING_CHOICE` or `METAPHOR`. The
-evaluation harness compares every fly planner against shuffled and rewired
-copies of the same graph — and so far reports honest nulls, in the mock
-worker world and live. Design: [PROPOSAL.md](./PROPOSAL.md). Results:
+orchestration actions; that action becomes a `Plan`, which FLYTOWN's swarm of
+model-backed workers executes exactly as it would a plan from any other
+planner. It is **not** a mind, not a simulation of a living animal, and every
+quantity is tagged `MEASURED`, `INFERRED_FROM_LITERATURE`,
+`ENGINEERING_CHOICE` or `METAPHOR`. The evaluation harness compares every fly
+planner against shuffled and rewired copies of the same graph — and so far
+reports honest nulls, in the mock worker world and live. Design:
+[PROPOSAL.md](./PROPOSAL.md). Results:
 [docs/flytown/experiments](./docs/flytown/experiments/README.md).
 
 ```bash
-npm run build
-node dist/cli.js init                              # a Warren in this folder
-node dist/cli.js serve --port 7788                 # then open http://localhost:7788/fly
+npm install
+npm run build                                      # compiles to dist/; the flytown binary is dist/cli.js
+node dist/cli.js init                              # a terrarium in this folder: .flytown/terrarium.json
+node dist/cli.js serve                             # then open http://localhost:7777/
 node dist/cli.js fly plan "…" --planner fly:connectome=l1-larva-winding2023-1+plastic --dry-run
 node dist/cli.js fly eval --planners rules,random,fly,fly:shuffled --seeds 3      # mock worker world
-node dist/cli.js secret set DEEPSEEK_API_KEY       # then: fly eval --live --warren . …
+node dist/cli.js secret set DEEPSEEK_API_KEY       # stored in .flytown/provider-secrets.json; then: fly eval --live …
 ```
 
-The `/fly` page is the main control surface: choose a planner backend, decide
-(no workers) or decide-and-execute, watch the decision trace with the
-regional/population activity map and its plain-text twin, replay any stored
-decision deterministically, inspect the connectome artifacts and their
-provenance-tagged assumptions, and read every evaluation report including
-the null results. Connectome artifacts are built offline by
-[`connectome-etl/`](./connectome-etl/README.md) (Python); the runtime is
-TypeScript only.
+Run `npm link` once to put `flytown` on your PATH; the examples below use it.
 
-## FLYTOWN: connectome-derived planning
+## The swarm
 
-Goblintown's planner is one `PlannerBackend`; FLYTOWN adds others that
-consume the same task signals and emit the same `Plan`:
+Work is done by model-backed workers called **insects**. An insect's role is
+its **caste**, and there are six:
+
+| Caste | Job |
+| --- | --- |
+| **Forager** | Cheap, high-temperature worker. Many run in parallel as a **swarm**, each with a different personality, and each brings back a candidate answer. An optional debate round lets foragers revise once after seeing each other's drafts. |
+| **Wasp** | Adversary. Its sting pass attacks each candidate to find what is wrong with it. |
+| **Scout** | Gathers only the context a task needs, and loads relevant prior Artifacts when memory is enabled. |
+| **Guard** | Default-reject reviewer. Inspects every candidate and returns a JSON verdict, optionally after calling verifier tools (`json.parse`, `regex.match`, `http.head`). |
+| **Soldier** | Heavyweight, expensive, deep-reasoning escalation, used only when foragers and specialists have failed. |
+| **Messenger** | Carries and compresses artifacts; in Scribe mode it distils a finished flight into a typed Artifact. |
+
+When every candidate fails review, the failures are clustered by dominant
+failure mode and one to three **specialist foragers** each repair the best
+failed seed before the soldier is called.
+
+A **flight** is the full pipeline for one task; a plan is a DAG of flights:
+
+```text
+planner      Plan: a DAG of flights, or a halt (blocked / needs approval / already done)
+             replans after a node fails, max depth 2
+
+each flight
+  scout        task-relevant facts + relevant prior Artifacts
+  swarm        N foragers draft candidates in parallel, varied personalities
+  debate       optional: foragers see peers' drafts and revise once
+  wasps        sting pass: attack each candidate
+  guard        default-reject review, optional verifier tools
+  specialists  only if every candidate failed: 1-3 focused repairs, reviewed again
+  soldier      last-resort escalation
+  messenger    Scribe mode: distils the finished flight into a typed Artifact
+```
+
+Every step writes a Morsel to the Compost with parent links to its inputs, so
+a flight can be reconstructed from the Compost alone. Details:
+[docs/architecture/pipeline.md](./docs/architecture/pipeline.md).
+
+## Key concepts
+
+- **Flight** — the full pipeline for one task: scout → swarm → wasps → guard → specialists → soldier → scribe.
+- **Foray** — lightweight: a swarm plus guard review, no full pipeline.
+- **Morsel** — one model invocation, content-addressed and stored with its prompt, output, model, usage, drift and parent links.
+- **Compost** — the file-backed record store under `.flytown/compost/`.
+- **Terrarium** — a project root and its manifest, `.flytown/terrarium.json`, found by walking up from the current directory.
+- **Sugar** — the reward signal that picks each run's winner: the guard's score plus a pass bonus, clamped to 0..1. A terrarium can replace it with a reward plugin (`.flytown/reward.mjs`).
+- **Drift** — how often an output mentions the caste names, per output word. Measured and reported on every morsel as the instrument that catches the themed worker prompts leaking into outputs; it is not subtracted from Sugar.
+- **Artifact** — a typed JSON summary of a finished flight (claims, evidence, open questions, next steps, parent-artifact links), written by the messenger in Scribe mode. Future flights can cite one or auto-load relevant ones.
+- **Plan** — a DAG of flights emitted by the planner, executed topologically and replanned on node failure.
+
+## Planners: connectome-derived planning
+
+Who decides the `Plan` is pluggable. Every planner backend consumes the same
+task signals and emits the same `Plan`:
 
 | spec | what decides |
 | --- | --- |
-| `llm` | the conventional Goblintown planner (an LLM call) — always the fallback |
-| `rules` | hand-written rules over task/repo signals |
+| `rules` | hand-written rules over task/repo signals — **the default** |
+| `llm` | the conventional LLM planner — the fallback whenever a `fly` planner fails |
 | `random` | seeded random control |
 | `learned` | small logistic router, trainable in the harness |
 | `fly` | activation propagated through a real FlyWire connectome artifact, read out to actions |
 | `fly:shuffled`, `fly:random_degree`, `fly:norecurrence`, `fly:signless`, `fly:ablate=MB_CA,EB`, `fly:learning` | null models and ablations of the same |
 | `fly:connectome=l1-larva-winding2023-1+plastic` | the whole larval brain at single-neuron resolution, with dopamine-gated depression at the real KC→MBON synapses (`+learning` adds adapter learning; `:ablate=flag:MBIN` lesions the dopaminergic neurons) |
 
-```bash
-npm run build
-node dist/cli.js fly planners                      # list backends
-node dist/cli.js fly connectome                    # list connectome artifacts (built by connectome-etl/)
-node dist/cli.js fly plan "<task>" --planner fly --dry-run   # decide + write a trace, run nothing
-node dist/cli.js plan "<task>" --planner fly       # decide and execute with the real workers
-node dist/cli.js fly trace <runId>                 # plain-text trace: signals → activity → action → plan
-node dist/cli.js fly replay <runId>                # deterministic replay, diffs against the stored plan
-node dist/cli.js fly groups <connectomeId>         # node groups (regions / cell classes / sensory modalities) the adapters can address
-node dist/cli.js fly sensitivity --planners "fly,fly:shuffled"   # where task information survives: features → input → activity → scores
-node dist/cli.js fly eval --planners "rules,fly,fly:shuffled" --seeds 3 --epochs 8   # matched trials, mock worker world
-```
+`rules` is the default because, on the full live suite, it matched the LLM
+planner's quality on completable tasks with 39% fewer tokens and, unlike the
+LLM planner, halted when the right answer was to stop
+([live run 3](./docs/flytown/experiments/2026-09-12-live-run3-rules-vs-llm.md)).
 
-Set `flytown.planner` in `.goblintown/warren.json` (or POST `{ planner }` to
-`/api/plan`) to pick a backend; the LLM planner remains the fallback unless
-`flytown.fallbackToLlm` is `false`. Traces are written to
-`.flytown/traces/`. Connectome artifacts live under `connectome/` and are
-produced by the Python sidecar in `connectome-etl/` (see its README); the
-runtime has no Python dependency.
+Set `flytown.planner` in `.flytown/terrarium.json` (or pass `--planner`, or
+POST `{ planner }` to `/api/plan`) to pick a backend; the LLM planner stays
+the fallback for `fly` planners unless `flytown.fallbackToLlm` is `false`.
+Every backend except `llm` writes a decision trace to `.flytown/traces/`.
+Connectome artifacts live under `connectome/` and are produced offline by the
+Python sidecar in [`connectome-etl/`](./connectome-etl/README.md); the runtime
+is TypeScript only and has no Python dependency.
 
 Every biologically-flavoured component is tagged `MEASURED`,
 `INFERRED_FROM_LITERATURE`, `ENGINEERING_CHOICE` or `METAPHOR` in code and in
 traces. Nothing here is, or claims to be, a mind.
 
-Goblintown is a local-first, model-augmentable multi-agent orchestration
-core. Start with a single fast answer, then summon the full **town** when the
-work needs planning, memory, tools, debate, critique, and saved artifacts.
+## The web control surface
 
-The core is a planning multi-agent orchestrator: **Single Goblin** mode
-is one worker and one answer; **Goblintown** mode turns the prompt into a small
-fleet of specialized creatures that decompose the task into a DAG, scavenge
-context, race and debate, attack each other's outputs, spawn focused specialists
-when the pack fails, and hand back a signed, content-addressed artifact that
-future runs can build on.
+`flytown serve` (default port 7777) serves FLYTOWN's only UI at `/`: choose a
+planner backend, decide (no workers) or decide-and-execute with a live run
+stream, watch the decision trace with the regional/population activity map and
+its plain-text twin, replay any stored decision deterministically, inspect the
+connectome artifacts and their provenance-tagged assumptions, and read every
+evaluation report, including the null results. The same server exposes the
+[HTTP API](./docs/reference/http-api.md).
 
-## Install and run
-
-```bash
-npm install
-npm run build
-npm run dev          # runs the CLI directly from source with tsx
-# or, after building:
-npm start             # node dist/cli.js
-npm run serve         # node dist/cli.js serve — opens the GUI at http://localhost:7777/
-```
-
-## Background
-
-In April 2026, OpenAI published [*Where the goblins came from*](https://openai.com/index/where-the-goblins-came-from/),
-explaining how a reward signal trained for a "Nerdy" personality leaked across
-all of GPT-5.5's outputs and produced a noticeable surge in creature metaphors.
-Codex shipped with a hardcoded ban list — *goblins, gremlins, raccoons, trolls,
-ogres, pigeons*.
-
-This project takes that ban list as a roster.
-
-## Roster
-
-| Creature | Job |
-| --- | --- |
-| **Goblin** | Worker. Cheap, high-temperature, dispatched in packs. Each pack member gets a different personality; an optional debate round lets them revise after seeing each other's proposals. |
-| **Gremlin** | Adversarial. Tries to break each candidate output (per-goblin chaos pass). |
-| **Raccoon** | Scavenger. Returns only the facts a task actually needs. Also loads relevant prior **Artifacts** when memory is enabled. |
-| **Troll** | Reviewer. Default-rejects. Returns a JSON verdict. May invoke verifier tools (`json.parse`, `regex.match`, `http.head`) before scoring. |
-| **Ogre** | Heavyweight. Deep reasoning, called only when the pack and the **Specialists** both fail. |
-| **Pigeon** | **Scribe.** Distills each completed Rite into a typed Artifact (memory). |
-| **Specialist Goblin** | A focused recovery worker spawned when the pack fails Troll review. Each one targets a single dominant failure mode identified by clustering the gremlin's critiques. |
-
-A unit test pins the roster to the OpenAI ban list, so it can't drift quietly.
-The Specialist is a Goblin variant — same kind, focused system prompt — so the
-ban-list invariant still holds.
-
-## Bestiary
-
-<table>
-<tr>
-<td valign="top" align="center">
-
-```
-   ▄█▄        ▄█▄
-   ███        ███
-    ▀████████████▀
-     █  ▀▄  ▄▀  █
-     █   ●  ●   █
-     █    ▾▾    █
-     █▄▄▄▄▄▄▄▄▄▄█
-      █▌ █  █ ▐█
-      ▀▀ ▀  ▀ ▀▀
-```
-
-**Goblin**
-</td>
-<td valign="top" align="center">
-
-```
-   ▀▄ ▄▀ ▀▄ ▄▀
-     ▀█▄▄█▄▄█▀
-      █████████
-      █ ◉   ◉ █
-      █   ╳   █
-      █ ╲╱╲╱╲ █
-       ▀█████▀
-         █ █
-        ▀▀ ▀▀
-```
-
-**Gremlin**
-</td>
-<td valign="top" align="center">
-
-```
-    ▄█▄          ▄█▄
-    ███          ███
-     ▀████████████▀
-     █▌ ●▔     ▔● ▐█
-     █      ▾      █
-     █▄▄▄▄▄▄▄▄▄▄▄▄█
-     █▌█        █▐█
-     ▀▀▀        ▀▀▀
-```
-
-**Raccoon**
-</td>
-</tr>
-<tr>
-<td valign="top" align="center">
-
-```
-       ▄ ▄    ▄ ▄
-       █ █    █ █
-     ▄████████████▄
-     █  ●        ●  █
-     █     ▾▾▾▾    █
-     █  ──────────  █
-     ████████████████
-    █▌                ▐█
-    █▌                ▐█
-    ████          ████
-```
-
-**Troll**
-</td>
-<td valign="top" align="center">
-
-```
-        ▄▄▄▄▄▄▄▄▄▄
-       ████████████
-      ██  ▀▀    ▀▀  ██
-      █     ●    ●    █
-      █        ▽       █
-      █▄  ▼▼▼▼▼▼▼▼  ▄█
-       ████████████
-      ██████████████
-      ██          ██
-      ██          ██
-```
-
-**Ogre**
-</td>
-<td valign="top" align="center">
-
-```
-       ▄██▄
-      ██  ●█
-      █▌    █▶▶▶
-      ██████████
-      █▀▀▀▀▀▀▀▀█
-       ████████
-          █ █
-          █ █
-         ▀▀ ▀▀
-```
-
-**Pigeon**
-</td>
-</tr>
-</table>
-
-## Pipeline (the Rite)
-
-```
-  optional ─────────────────────────────────────────────────────
-  ┌──────────┐                                                 │
-  │ Planner  │ DAG of sub-rites, recursive replan on failure   │
-  └────┬─────┘                                                 │
-       ▼                                                       │
-  ┌──────────┐  facts +   ┌────────────┐  N parallel ┌──────────┐
-  │ Raccoon  │  prior    ▶│  Goblin    │═════════════▶│ Goblins  │
-  │ + memory │  artifacts │  pack      │  (per-goblin │  output  │
-  └──────────┘            │ (varied   │  personality) └────┬─────┘
-                          │  pers'ty) │                    │
-                          └────────────┘                   │
-                                  optional debate round    │
-                                  (peers see peers'        │
-                                   outputs, revise) ◀──────┘
-                                          │
-                                          ▼
-                                  ┌─────────────┐
-                                  │   Gremlin   │  per-goblin
-                                  │ chaos pass  │  adversarial attack
-                                  └──────┬──────┘
-                                         ▼
-                                  ┌─────────────┐  optional
-                                  │    Troll    │  verifier tool-use
-                                  │   review    │  (json/regex/http)
-                                  └──────┬──────┘
-                                         │
-                              any pass ──┴── all fail
-                                  │              │
-                                  │              ▼
-                                  │      ┌───────────────┐
-                                  │      │ Cluster fails │  identify dominant
-                                  │      │ (1 LLM call)  │  failure modes
-                                  │      └───────┬───────┘
-                                  │              ▼
-                                  │      ┌───────────────┐
-                                  │      │ Specialists   │  1-3 focused
-                                  │      │ + re-judge    │  recovery workers
-                                  │      └───────┬───────┘
-                                  │              │
-                                  │      passed/  │
-                                  │      improved over seed
-                                  │              ▼
-                                  │      ┌────────────┐
-                                  │      │   Ogre     │  last resort
-                                  │      │  fallback  │  (heavyweight)
-                                  │      └─────┬──────┘
-                                  │            │
-                                  ▼            ▼
-                                 winner ◀──────┘
-                                    │
-                                    ▼
-                              ┌─────────────┐
-                              │  Pigeon —   │  distills the rite into
-                              │   Scribe    │  a typed Artifact (memory)
-                              └─────────────┘
-```
-
-Every step writes a Loot drop to the Hoard with parent links to its inputs.
-A Rite is fully reconstructible from the Hoard alone. The Pigeon-Scribe also
-emits a typed **Artifact** (claims, evidence, open questions, next steps) that
-future rites can cite.
-
-## Concepts
-
-- **Loot** — one agent invocation, content-addressed by `sha256(model || prompt || output)`.
-- **Quest** — lightweight: Goblin pack + Troll arbitration.
-- **Rite** — full pipeline: Raccoon → pack → (debate?) → Gremlin → Troll → Specialists → Ogre fallback → Scribe.
-- **Hoard** — file-backed store under `.goblintown/hoard/`.
-- **Warren** — per-project root, found by walking up from cwd.
-- **Shinies** — reward signal: troll score − cross-creature drift penalty + pass bonus, clamped 0..1.
-- **Drift** — cross-creature word frequency. A Goblin output mentioning *raccoons* unprompted is the signal we measure.
-- **Artifact** — a typed JSON summary of a completed Rite: claims, evidence, open questions, next steps, parent-artifact links. Stored under `.goblintown/hoard/artifacts/`. Future rites can cite a prior artifact or auto-load relevant ones.
-- **Plan** — a DAG of sub-rites the Planner emits for complex tasks. Topologically executed; on a node failure the Planner can be re-invoked with the failure context (recursive replan, max depth 2).
-- **Trace** — the full run history, exportable to the [LLM-MAS Orchestration Trace schema](https://github.com/xxzcc/awesome-llm-mas-rl) for compatibility with academic tooling.
-
-## Using Goblintown
-
-`goblintown serve` opens **Goblin Mode** at `/`: one prompt, a **Single
-Goblin / Goblintown** mode switch, and a Tank checkbox.
-
-- **Single Goblin** runs one worker for one answer — fast chat.
-- **Goblintown** turns the prompt into a planner DAG with the full pack, memory,
-  and self-correction, streaming progress as it goes.
-- The **Tank** is a tamagotchi-style live diorama at `/tank`: each creature has
-  a home, tokens stream into per-creature thinking bubbles, the DAG panel lights
-  up node-by-node during a plan, and the result panel slides up with the winning
-  output. Sprites are the default presentation, with emoji fallback when an asset
-  is missing.
-
-Everything else lives behind **Settings**: API provider and per-creature model
-routing, imported context, cloud sign-in, and reset.
-
-Run state is persisted to `.goblintown/runs/<runId>.json`, so an interrupted run
-can be resumed from the Tank's recovery prompt after a restart.
-
-### First run
-
-On first launch, Goblin Mode asks two things: which **AI provider** should power
-chat, and whether this Warren should **Stay Local** or **Use Goblintown Cloud**.
-Both can be changed later from **Settings**.
-
-Set a provider API key for any creature call. You can set it in your shell, or
-save it from **Settings → API Provider** in the app. Local Ollama uses a
-harmless dummy key if none is set; LM Studio needs `LM_API_TOKEN` only when its
-server authentication is enabled.
-
-### Command line
-
-The same package still ships a CLI for development and automation — `goblintown
-serve`, `init`, `rite`, `plan`, `quest`, `context`, `route`, and more. Run
-`goblintown --help` for the full list.
-
-## Capabilities
-
-| Area | What it does |
-| --- | --- |
-| **Tank runtime** | Live creature diorama, default sprite sheets, centered wordmark, result panel, resumable runs, and reset. |
-| **Memory** | Pigeon-Scribe distills every Rite into a typed Artifact (claims, evidence, open questions, next steps, parent links). Local context ingestion imports old conversations/projects; Chat Hoard Import Mode imports Codex and ChatGPT chats as pre-vectorized root/chunk memory. |
-| **Planning** | Planner emits a typed DAG; the executor runs each node as a sub-rite, feeds artifacts forward, and replans after node failures. |
-| **Specialist recovery** | Failed packs are clustered by dominant failure mode, then 1-3 focused Specialist Goblins repair the best seed before Ogre escalation. |
-| **Debate** | Goblins can see peer proposals and revise once before Gremlin/Troll review. |
-| **Verifier tools** | Troll can invoke `json.parse`, `regex.match`, and gated `http.head` before scoring. |
-| **Provider routing** | OpenAI, OpenRouter, Ollama, LM Studio, Groq, Together, Mistral, DeepSeek, Anthropic, Gemini, and custom OpenAI-compatible endpoints, with per-creature routes. |
-| **Goblintown Cloud** | Optional Firebase-backed SSO for cloud sign-in, while local rite/run files stay in `.goblintown/`. |
-| **Trace & audit** | Run export to LLM-MAS trace schema, artifact lineage graphing, audit, compare, reroll, context search, and context folding. |
-
-## Providers, local inference, and output formats
-
-Goblintown talks to OpenAI by default, but the underlying client is just the
-`openai` SDK pointed at a base URL — anything that exposes an OpenAI-compatible
-API works. Choose a provider from **Settings → API Provider**; non-secret
-settings are saved to `.goblintown/warren.json`, and API keys are never written
-there.
-
-| Preset | Base URL | Key env var |
-| --- | --- | --- |
-| OpenAI | default SDK URL | `OPENAI_API_KEY` |
-| OpenRouter | `https://openrouter.ai/api/v1` | `OPENROUTER_API_KEY` |
-| Ollama | `http://localhost:11434/v1` | `OLLAMA_API_KEY` (optional; dummy key if unset) |
-| LM Studio | `http://localhost:1234/v1` | `LM_API_TOKEN` |
-| Groq | `https://api.groq.com/openai/v1` | `GROQ_API_KEY` |
-| Together AI | `https://api.together.ai/v1` | `TOGETHER_API_KEY` |
-| Mistral | `https://api.mistral.ai/v1` | `MISTRAL_API_KEY` |
-| DeepSeek | `https://api.deepseek.com` | `DEEPSEEK_API_KEY` |
-| Anthropic | `https://api.anthropic.com/v1/` | `ANTHROPIC_API_KEY` |
-| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GEMINI_API_KEY` |
-| Custom | user supplied | user supplied |
-
-Defaults: Goblin / Gremlin / Raccoon / Troll / Pigeon run on `gpt-5-mini`, Ogre
-on `gpt-5`. Per-creature provider routes let you mix backends — e.g. cheap
-local goblins with a hosted ogre. Output format can be `freeform`, `markdown`,
-or `json`. `gpt-5*`, `o*`, `deepseek-r*`, and `-thinking` models are detected
-and switched to reasoning-model parameters automatically.
-
-## Goblintown Cloud
-
-Goblintown is local by default. **Stay Local** keeps memory, runs, provider
-secrets, and reset state on the machine. **Use Goblintown Cloud** signs in
-through the bundled Firebase project for optional cloud sync, while local
-rite/run files still remain in `.goblintown/`. Normal users do not need
-Firebase keys; forks can override them via `FIREBASE_*` env vars.
-
-## Building from source
+## The `fly` research CLI
 
 ```bash
-npm install
-npm run build
-npm run serve -- --port 7777
+flytown fly planners                      # list backends
+flytown fly connectome                    # list connectome artifacts (built by connectome-etl/)
+flytown fly plan "<task>" --planner fly --dry-run   # decide + write a trace, run nothing
+flytown plan "<task>" --planner fly       # decide and execute with the real workers
+flytown fly trace <runId>                 # plain-text trace: signals → activity → action → plan
+flytown fly replay <runId>                # deterministic replay, diffs against the stored plan
+flytown fly groups <connectomeId>         # node groups (regions / cell classes / sensory modalities) the adapters can address
+flytown fly sensitivity --planners "fly,fly:shuffled"   # where task information survives: features → input → activity → scores
+flytown fly eval --planners "rules,fly,fly:shuffled" --seeds 3 --epochs 8   # matched trials, mock worker world
 ```
 
-Desktop packaging scripts (`npm run dist:mac`, `dist:win`, `dist:linux`,
-`dist:desktop`) are still present for local Electron builds (output goes to
-the gitignored `release/`), but this baseline does not ship any prebuilt
-installers — there is no release pipeline wired up in this fork yet.
+Evaluation reports are written to `.flytown/eval/`; `fly eval --live` runs the
+real pipeline against the configured provider under hard token caps.
+
+## Running the swarm directly
+
+The planner is optional; the same binary runs any part of the pipeline by hand:
+
+```bash
+flytown ask forager --task "…"            # one insect, one answer (any caste)
+flytown foray "…" --swarm 3               # a swarm plus guard review
+flytown flight "…" --swarm 3 --remember   # the full pipeline for one task
+flytown plan "…"                          # planner + flights
+flytown compost --limit 20                # browse stored records
+```
+
+Full command list: [docs/reference/cli.md](./docs/reference/cli.md). Modes:
+[ask](./docs/modes/ask.md) and [swarm](./docs/modes/swarm-mode.md).
+
+## Providers
+
+The model client is the `openai` SDK pointed at a base URL, so any
+OpenAI-compatible API works. Presets cover OpenAI, OpenRouter, Ollama,
+LM Studio, Groq, Together AI, Mistral, DeepSeek, Anthropic, Gemini and custom
+endpoints, with per-caste routes — for example cheap local foragers and a
+hosted soldier. Keys come from the environment or `flytown secret set` and are
+stored in `.flytown/provider-secrets.json`, never in `terrarium.json`. Details:
+[docs/reference/providers.md](./docs/reference/providers.md).
 
 ## Tests
 
@@ -422,63 +168,22 @@ installers — there is no release pipeline wired up in this fork yet.
 npm test
 ```
 
-The suite runs as pure functions with no OpenAI calls, covering drift, reward,
-Hoard content-addressing, audit, planner DAG validation, debate prompt
-construction, verifier tool dispatch, embeddings ranking, context folding,
-provider routing, output formatting, cloud mode, sprite assets, trace export,
-and the GUI/Settings wiring.
+The suite builds first, then runs as pure functions with no model calls.
 
-## Research foundations
+## Documentation
 
-Goblintown is an engineering project, not a research paper, but the
-orchestration design is opinionated by what's working in current LLM multi-agent
-systems. We deliberately stay in the **prompted, training-free** slice of the
-literature so everything runs with just an OpenAI-compatible API key.
+- [PROPOSAL.md](./PROPOSAL.md) — the architecture proposal, milestones and falsification plan
+- [docs/flytown/VOCABULARY.md](./docs/flytown/VOCABULARY.md) — every name, command and path
+- [docs/flytown/experiments](./docs/flytown/experiments/README.md) — the experiment log, null results included
+- [docs/](./docs/README.md) — the manual: pipeline, modes, CLI, HTTP API, providers, storage layout
 
-[1] **OpenAI**, *Where the goblins came from* (April 2026). The roster is taken
-straight from the hardcoded ban list described in this postmortem.
-<https://openai.com/index/where-the-goblins-came-from/>
+## Provenance and license
 
-[2] **Nielsen, S., et al.** *Learning to Orchestrate Agents in Natural Language
-with the Conductor.* arXiv:2512.04388 (2025). *Dynamic topology selection* and
-*recursive-self-as-worker* are borrowed as prompted heuristics in the Planner.
+FLYTOWN is derived from [Goblintown](https://github.com/0xbl33p/goblintown)
+(MIT licensed, © 0XBL33P), used with the maintainer's permission. The fork
+removed the crypto/trading, voice, peer-to-peer social/federation,
+third-party distribution and local telemetry subsystems it started with, and
+on 2026-09-12 replaced every inherited name, prompt, piece of branding and art
+with FLYTOWN's own vocabulary. [NOTICE.md](./NOTICE.md) records exactly what changed.
 
-[3] **Zhou, & Chan.** *ADEMA: Knowledge-State Orchestration for Long-Horizon
-Synthesis.* arXiv:2604.25849 (2026). The typed Artifact memory adapts ADEMA's
-"epistemic bookkeeping."
-
-[4] **Saeidi, et al.** *FAMA: Failure-Aware Meta-Agentic Framework.*
-arXiv:2604.25135 (2026). The Specialist re-rite layer follows FAMA's pattern of
-spawning a minimal specialist that targets the dominant error.
-
-[5] **Parmar.** *MCP Workflow Engine: Separating Intelligence from Execution.*
-arXiv:2605.00827 (2026). The plan-then-execute split comes from this paper.
-
-[6] **Zou, J., et al.** *Latent Collaboration in Multi-Agent Systems.*
-arXiv:2511.20639 (2025). The optional debate round is inspired by this
-training-free latent-communication result.
-
-[7] **Peng, Z., et al.** *CriticLean: Critic-Guided Reinforcement Learning for
-Mathematical Formalization.* arXiv:2507.06181 (2025). The verifier-as-reward
-pattern in the Troll's tool-use round comes from here.
-
-[8] **xxzcc.** *Awesome LLM-MAS RL.* <https://github.com/xxzcc/awesome-llm-mas-rl>
-(May 2026). The survey's five orchestration sub-decisions (spawn / delegate /
-communicate / aggregate / stop) motivated the debate round, and its JSON trace
-schema is adopted as Goblintown's `export-trace` output format.
-
-## Citing
-
-```bibtex
-@software{goblintown,
-  author  = {0XBL33P},
-  title   = {Goblintown: a planning multi-agent orchestration protocol on top of OpenAI},
-  year    = {2026},
-  url     = {https://github.com/0xbl33p/goblintown}
-}
-```
-
-## License
-
-MIT — see [LICENSE](./LICENSE). See [NOTICE.md](./NOTICE.md) for what this
-FLYTOWN baseline removed from upstream Goblintown and why.
+MIT — see [LICENSE](./LICENSE).

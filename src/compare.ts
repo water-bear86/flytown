@@ -1,65 +1,65 @@
-import type { Hoard } from "./hoard.js";
-import type { Loot, Rite } from "./types.js";
+import type { Compost } from "./compost.js";
+import type { Morsel, Flight } from "./types.js";
 
-export interface RiteSnapshot {
-  rite: Rite;
+export interface FlightSnapshot {
+  flight: Flight;
   totalTokens: number;
-  totalLoot: number;
+  totalMorsels: number;
   avgDriftRate: number;
   passRate: number;
-  winner?: Loot;
+  winner?: Morsel;
 }
 
 export interface ComparisonReport {
-  a: RiteSnapshot;
-  b: RiteSnapshot;
+  a: FlightSnapshot;
+  b: FlightSnapshot;
   taskMatches: boolean;
 }
 
-export async function compareRites(
-  hoard: Hoard,
-  riteIdA: string,
-  riteIdB: string,
+export async function compareFlights(
+  compost: Compost,
+  flightIdA: string,
+  flightIdB: string,
 ): Promise<ComparisonReport | null> {
   const [snapA, snapB] = await Promise.all([
-    snapshot(hoard, riteIdA),
-    snapshot(hoard, riteIdB),
+    snapshot(compost, flightIdA),
+    snapshot(compost, flightIdB),
   ]);
   if (!snapA || !snapB) return null;
   return {
     a: snapA,
     b: snapB,
-    taskMatches: snapA.rite.task === snapB.rite.task,
+    taskMatches: snapA.flight.task === snapB.flight.task,
   };
 }
 
-async function snapshot(hoard: Hoard, riteId: string): Promise<RiteSnapshot | null> {
-  const rite = await hoard.getRite(riteId);
-  if (!rite) return null;
-  const all = await hoard.allLoot();
-  const inRite = all.filter((l) => l.riteId === riteId);
+async function snapshot(compost: Compost, flightId: string): Promise<FlightSnapshot | null> {
+  const flight = await compost.getFlight(flightId);
+  if (!flight) return null;
+  const all = await compost.allMorsels();
+  const inFlight = all.filter((l) => l.flightId === flightId);
 
-  const totalTokens = inRite.reduce(
+  const totalTokens = inFlight.reduce(
     (s, l) => s + (l.usage?.totalTokens ?? 0),
     0,
   );
-  const driftSum = inRite.reduce((s, l) => s + l.drift.driftRate, 0);
-  const avgDriftRate = inRite.length > 0 ? driftSum / inRite.length : 0;
+  const driftSum = inFlight.reduce((s, l) => s + l.drift.driftRate, 0);
+  const avgDriftRate = inFlight.length > 0 ? driftSum / inFlight.length : 0;
 
-  const verdicts = Object.values(rite.trollVerdicts);
+  const verdicts = Object.values(flight.guardVerdicts);
   const passes = verdicts.filter((v) => v.passed).length;
   const passRate = verdicts.length > 0 ? passes / verdicts.length : 0;
 
-  const winner = rite.winnerLootId
-    ? inRite.find((l) => l.id === rite.winnerLootId) ??
-      (await hoard.getLoot(rite.winnerLootId)) ??
+  const winner = flight.winnerMorselId
+    ? inFlight.find((l) => l.id === flight.winnerMorselId) ??
+      (await compost.getMorsel(flight.winnerMorselId)) ??
       undefined
     : undefined;
 
   return {
-    rite,
+    flight,
     totalTokens,
-    totalLoot: inRite.length,
+    totalMorsels: inFlight.length,
     avgDriftRate,
     passRate,
     winner: winner ?? undefined,

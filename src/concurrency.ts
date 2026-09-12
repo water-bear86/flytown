@@ -36,7 +36,7 @@ let _shared: Semaphore | null = null;
 
 export function sharedSemaphore(): Semaphore {
   if (_shared) return _shared;
-  const raw = process.env.GOBLINTOWN_MAX_CONCURRENCY;
+  const raw = process.env.FLYTOWN_MAX_CONCURRENCY;
   const parsed = raw ? Number(raw) : 5;
   const capacity = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 5;
   _shared = new Semaphore(capacity);

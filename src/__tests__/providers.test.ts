@@ -17,12 +17,12 @@ import {
   readProviderSecretsForRootSync,
   setProviderSecretForRoot,
 } from "../provider-secrets.js";
-import { initWarren, loadWarren } from "../warren.js";
+import { initTerrarium, loadTerrarium } from "../terrarium.js";
 
 let dir: string;
 
 beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), "goblintown-provider-"));
+  dir = await mkdtemp(join(tmpdir(), "flytown-provider-"));
 });
 
 afterEach(async () => {
@@ -55,14 +55,14 @@ describe("provider presets", () => {
       baseURL: "   ",
       apiKeyEnv: "not a valid env var",
       outputFormat: "xml",
-      models: { goblin: "  custom-goblin  ", nope: "bad" },
+      models: { forager: "  custom-forager  ", nope: "bad" },
     });
 
     assert.equal(cfg.preset, "openai");
     assert.equal(cfg.baseURL, undefined);
     assert.equal(cfg.apiKeyEnv, "OPENAI_API_KEY");
     assert.equal(cfg.outputFormat, "freeform");
-    assert.deepEqual(cfg.models, { goblin: "custom-goblin" });
+    assert.deepEqual(cfg.models, { forager: "custom-forager" });
   });
 
   it("resolves local providers with a dummy API key when no key is set", () => {
@@ -164,35 +164,35 @@ describe("provider presets", () => {
   it("resolves model slots from explicit config before preset defaults", () => {
     const cfg = normalizeProviderConfig({
       preset: "deepseek",
-      models: { goblin: "deepseek-v4-flash", ogre: "deepseek-v4-pro" },
+      models: { forager: "deepseek-v4-flash", soldier: "deepseek-v4-pro" },
     });
 
-    assert.equal(resolveModelForSlot("goblin", "gpt-5-mini", cfg), "deepseek-v4-flash");
-    assert.equal(resolveModelForSlot("ogre", "gpt-5", cfg), "deepseek-v4-pro");
+    assert.equal(resolveModelForSlot("forager", "gpt-5-mini", cfg), "deepseek-v4-flash");
+    assert.equal(resolveModelForSlot("soldier", "gpt-5", cfg), "deepseek-v4-pro");
     assert.ok(MODEL_SLOTS.includes("scribe"));
   });
 
   it("supports per-slot provider routes", () => {
     const cfg = normalizeProviderConfig({
       preset: "openai",
-      models: { goblin: "gpt-5-mini" },
+      models: { forager: "gpt-5-mini" },
       routes: {
-        goblin: {
+        forager: {
           preset: "ollama",
           model: "gemma3:27b",
           baseURL: "http://localhost:11434/v1",
         },
       },
     });
-    const goblinRuntime = resolveProviderRuntimeForSlot("goblin", cfg, {});
-    assert.equal(goblinRuntime.id, "ollama");
-    assert.equal(goblinRuntime.baseURL, "http://localhost:11434/v1");
+    const foragerRuntime = resolveProviderRuntimeForSlot("forager", cfg, {});
+    assert.equal(foragerRuntime.id, "ollama");
+    assert.equal(foragerRuntime.baseURL, "http://localhost:11434/v1");
     assert.equal(
-      resolveModelForSlot("goblin", "gpt-5-mini", cfg, {}),
+      resolveModelForSlot("forager", "gpt-5-mini", cfg, {}),
       "gemma3:27b",
     );
-    const ogreRuntime = resolveProviderRuntimeForSlot("ogre", cfg, {});
-    assert.equal(ogreRuntime.id, "openai");
+    const soldierRuntime = resolveProviderRuntimeForSlot("soldier", cfg, {});
+    assert.equal(soldierRuntime.id, "openai");
   });
 
   it("uses routed provider key defaults instead of inheriting the global key env", () => {
@@ -200,14 +200,14 @@ describe("provider presets", () => {
       preset: "openai",
       apiKeyEnv: "OPENAI_API_KEY",
       routes: {
-        goblin: {
+        forager: {
           preset: "deepseek",
           model: "deepseek-chat",
         },
       },
     });
 
-    const runtime = resolveProviderRuntimeForSlot("goblin", cfg, {
+    const runtime = resolveProviderRuntimeForSlot("forager", cfg, {
       DEEPSEEK_API_KEY: "deepseek-key",
       OPENAI_API_KEY: "openai-key",
     });
@@ -215,43 +215,43 @@ describe("provider presets", () => {
     assert.equal(runtime.id, "deepseek");
     assert.equal(runtime.apiKeyEnv, "DEEPSEEK_API_KEY");
     assert.equal(runtime.apiKey, "deepseek-key");
-    assert.equal(resolveModelForSlot("goblin", "gpt-5-mini", cfg, {}), "deepseek-chat");
+    assert.equal(resolveModelForSlot("forager", "gpt-5-mini", cfg, {}), "deepseek-chat");
   });
 });
 
-describe("Warren provider config", () => {
-  it("initializes new warrens with provider config and no stored secrets", async () => {
-    const w = await initWarren(dir);
+describe("Terrarium provider config", () => {
+  it("initializes new terrariums with provider config and no stored secrets", async () => {
+    const w = await initTerrarium(dir);
 
     assert.equal(w.manifest.provider?.preset, "openai");
     assert.equal(w.manifest.provider?.apiKeyEnv, "OPENAI_API_KEY");
     assert.equal("apiKey" in (w.manifest.provider as object), false);
 
-    const raw = await readFile(join(dir, ".goblintown", "warren.json"), "utf8");
+    const raw = await readFile(join(dir, ".flytown", "terrarium.json"), "utf8");
     assert.equal(raw.includes("sk-"), false);
   });
 
-  it("loads older warrens by adding an in-memory provider default", async () => {
-    await initWarren(dir);
-    const manifestPath = join(dir, ".goblintown", "warren.json");
+  it("loads older terrariums by adding an in-memory provider default", async () => {
+    await initTerrarium(dir);
+    const manifestPath = join(dir, ".flytown", "terrarium.json");
     const raw = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
     delete raw.provider;
     await import("node:fs/promises").then(({ writeFile }) =>
       writeFile(manifestPath, JSON.stringify(raw, null, 2), "utf8"),
     );
 
-    const loaded = await loadWarren(dir);
+    const loaded = await loadTerrarium(dir);
     assert.equal(loaded.manifest.provider?.preset, "openai");
   });
 
-  it("stores and clears provider secrets in a local file outside warren.json", async () => {
-    await initWarren(dir);
+  it("stores and clears provider secrets in a local file outside terrarium.json", async () => {
+    await initTerrarium(dir);
     const secretPath = providerSecretsPathForRoot(dir);
     await setProviderSecretForRoot(dir, "GROQ_API_KEY", "sk-local");
     const secrets = readProviderSecretsForRootSync(dir);
     assert.equal(secrets.GROQ_API_KEY, "sk-local");
 
-    const manifestRaw = await readFile(join(dir, ".goblintown", "warren.json"), "utf8");
+    const manifestRaw = await readFile(join(dir, ".flytown", "terrarium.json"), "utf8");
     assert.equal(manifestRaw.includes("sk-local"), false);
 
     await clearProviderSecretForRoot(dir, "GROQ_API_KEY");

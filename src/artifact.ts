@@ -1,14 +1,14 @@
 import { createHash } from "node:crypto";
-import { makeScribe } from "./creatures.js";
+import { makeScribe } from "./castes.js";
 import { extractFirstJsonObject } from "./json-extract.js";
-import { callCreature } from "./openai-client.js";
+import { callInsect } from "./openai-client.js";
 import type {
   Artifact,
   ArtifactClaim,
   ArtifactEvidence,
-  Loot,
-  Rite,
-  TrollVerdict,
+  Morsel,
+  Flight,
+  GuardVerdict,
 } from "./types.js";
 
 const STOPWORDS = new Set([
@@ -23,58 +23,58 @@ const STOPWORDS = new Set([
  * Build the user prompt the Scribe receives. Pure; safe to test.
  */
 export function buildScribePrompt(opts: {
-  rite: Pick<Rite, "id" | "task" | "outcome">;
-  winnerLoot?: Loot | null;
-  goblinLoot: Loot[];
-  gremlinLoot: Loot[];
-  ogreLoot?: Loot | null;
-  verdicts: TrollVerdict[];
+  flight: Pick<Flight, "id" | "task" | "outcome">;
+  winnerMorsel?: Morsel | null;
+  foragerMorsels: Morsel[];
+  waspMorsels: Morsel[];
+  soldierMorsel?: Morsel | null;
+  verdicts: GuardVerdict[];
   parentArtifacts: Artifact[];
 }): string {
   const lines: string[] = [];
-  lines.push(`Rite ${opts.rite.id} — outcome=${opts.rite.outcome}`);
+  lines.push(`Flight ${opts.flight.id} — outcome=${opts.flight.outcome}`);
   lines.push(`Task:`);
-  lines.push(opts.rite.task);
+  lines.push(opts.flight.task);
   lines.push("");
 
   if (opts.parentArtifacts.length > 0) {
     lines.push(`Prior artifacts cited (${opts.parentArtifacts.length}):`);
     for (const a of opts.parentArtifacts) {
-      lines.push(`- artifact ${a.id} (rite ${a.riteId}): ${a.task.slice(0, 120)}`);
+      lines.push(`- artifact ${a.id} (flight ${a.flightId}): ${a.task.slice(0, 120)}`);
     }
     lines.push("");
   }
 
-  if (opts.winnerLoot) {
-    lines.push(`Winning output (loot ${opts.winnerLoot.id}):`);
-    lines.push(opts.winnerLoot.output);
+  if (opts.winnerMorsel) {
+    lines.push(`Winning output (morsel ${opts.winnerMorsel.id}):`);
+    lines.push(opts.winnerMorsel.output);
     lines.push("");
   }
 
-  if (opts.ogreLoot && opts.ogreLoot.id !== opts.winnerLoot?.id) {
-    lines.push(`Ogre fallback output (loot ${opts.ogreLoot.id}):`);
-    lines.push(opts.ogreLoot.output);
+  if (opts.soldierMorsel && opts.soldierMorsel.id !== opts.winnerMorsel?.id) {
+    lines.push(`Soldier fallback output (morsel ${opts.soldierMorsel.id}):`);
+    lines.push(opts.soldierMorsel.output);
     lines.push("");
   }
 
   if (opts.verdicts.length > 0) {
-    lines.push(`Troll verdicts:`);
+    lines.push(`Guard verdicts:`);
     for (const v of opts.verdicts) {
-      lines.push(`- loot ${v.lootId}: passed=${v.passed} score=${v.score.toFixed(2)} — ${v.critique}`);
+      lines.push(`- morsel ${v.morselId}: passed=${v.passed} score=${v.score.toFixed(2)} — ${v.critique}`);
     }
     lines.push("");
   }
 
-  if (opts.gremlinLoot.length > 0) {
-    lines.push(`Gremlin critiques (${opts.gremlinLoot.length}):`);
-    for (const g of opts.gremlinLoot) {
+  if (opts.waspMorsels.length > 0) {
+    lines.push(`Wasp critiques (${opts.waspMorsels.length}):`);
+    for (const g of opts.waspMorsels) {
       lines.push(`- ${g.output.slice(0, 400)}`);
     }
     lines.push("");
   }
 
   lines.push(
-    `Now emit the Artifact JSON. Cite loot ids in evidence where appropriate.`,
+    `Now emit the Artifact JSON. Cite morsel ids in evidence where appropriate.`,
   );
   return lines.join("\n");
 }
@@ -86,10 +86,10 @@ export function buildScribePrompt(opts: {
 export function parseArtifactJson(
   raw: string,
   meta: {
-    riteId: string;
+    flightId: string;
     task: string;
-    outcome: Rite["outcome"];
-    winnerLootId?: string;
+    outcome: Flight["outcome"];
+    winnerMorselId?: string;
     parentArtifactIds: string[];
   },
 ): Artifact {
@@ -129,7 +129,7 @@ export function parseArtifactJson(
         const obj = e as Record<string, unknown>;
         const kindRaw = obj.kind;
         const kind: ArtifactEvidence["kind"] =
-          kindRaw === "loot" || kindRaw === "file" || kindRaw === "url" || kindRaw === "external"
+          kindRaw === "morsel" || kindRaw === "file" || kindRaw === "url" || kindRaw === "external"
             ? kindRaw
             : "external";
         const ref = typeof obj.ref === "string" ? obj.ref : "";
@@ -147,14 +147,14 @@ export function parseArtifactJson(
   let keywords = stringList("keywords").map((k) => k.toLowerCase());
   if (keywords.length === 0) keywords = extractKeywords(meta.task);
 
-  const id = artifactId(meta.riteId, claims);
+  const id = artifactId(meta.flightId, claims);
 
   return {
     id,
-    riteId: meta.riteId,
+    flightId: meta.flightId,
     task: meta.task,
     outcome: meta.outcome,
-    winnerLootId: meta.winnerLootId,
+    winnerMorselId: meta.winnerMorselId,
     claims,
     evidence,
     openQuestions: stringList("openQuestions"),
@@ -167,33 +167,33 @@ export function parseArtifactJson(
 
 /** Run the Scribe LLM call and return the parsed Artifact. */
 export async function scribe(opts: {
-  rite: Rite;
-  winnerLoot?: Loot | null;
-  goblinLoot: Loot[];
-  gremlinLoot: Loot[];
-  ogreLoot?: Loot | null;
-  verdicts: TrollVerdict[];
+  flight: Flight;
+  winnerMorsel?: Morsel | null;
+  foragerMorsels: Morsel[];
+  waspMorsels: Morsel[];
+  soldierMorsel?: Morsel | null;
+  verdicts: GuardVerdict[];
   parentArtifacts: Artifact[];
   maxOutputTokens?: number;
 }): Promise<{ artifact: Artifact; usage: ReturnType<typeof Object> }> {
-  const scribeCreature = makeScribe();
+  const scribeInsect = makeScribe();
   const prompt = buildScribePrompt({
-    rite: opts.rite,
-    winnerLoot: opts.winnerLoot,
-    goblinLoot: opts.goblinLoot,
-    gremlinLoot: opts.gremlinLoot,
-    ogreLoot: opts.ogreLoot,
+    flight: opts.flight,
+    winnerMorsel: opts.winnerMorsel,
+    foragerMorsels: opts.foragerMorsels,
+    waspMorsels: opts.waspMorsels,
+    soldierMorsel: opts.soldierMorsel,
     verdicts: opts.verdicts,
     parentArtifacts: opts.parentArtifacts,
   });
-  const { text, usage } = await callCreature(scribeCreature, prompt, {
+  const { text, usage } = await callInsect(scribeInsect, prompt, {
     maxOutputTokens: opts.maxOutputTokens ?? 1500,
   });
   const artifact = parseArtifactJson(text, {
-    riteId: opts.rite.id,
-    task: opts.rite.task,
-    outcome: opts.rite.outcome,
-    winnerLootId: opts.winnerLoot?.id,
+    flightId: opts.flight.id,
+    task: opts.flight.task,
+    outcome: opts.flight.outcome,
+    winnerMorselId: opts.winnerMorsel?.id,
     parentArtifactIds: opts.parentArtifacts.map((a) => a.id),
   });
   return { artifact, usage };
@@ -247,12 +247,12 @@ export function findRelevantArtifacts(
 }
 
 /**
- * Render an artifact as a compact "Prior context" block to prepend to a goblin
+ * Render an artifact as a compact "Prior context" block to prepend to a forager
  * prompt. Designed to stay under ~500 tokens per artifact.
  */
 export function renderArtifactContext(artifact: Artifact): string {
   const lines: string[] = [];
-  lines.push(`### Prior artifact ${artifact.id} (rite ${artifact.riteId})`);
+  lines.push(`### Prior artifact ${artifact.id} (flight ${artifact.flightId})`);
   lines.push(`Task: ${artifact.task}`);
   lines.push(`Outcome: ${artifact.outcome}`);
   if (artifact.claims.length > 0) {
@@ -274,7 +274,7 @@ export function renderArtifactContext(artifact: Artifact): string {
 
 /* --------- internal helpers --------- */
 
-function artifactId(riteId: string, claims: ArtifactClaim[]): string {
+function artifactId(flightId: string, claims: ArtifactClaim[]): string {
   const sig = claims.map((c) => c.text).join("|");
-  return `${riteId.slice(0, 8)}-${createHash("sha256").update(sig).digest("hex").slice(0, 8)}`;
+  return `${flightId.slice(0, 8)}-${createHash("sha256").update(sig).digest("hex").slice(0, 8)}`;
 }

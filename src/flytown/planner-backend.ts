@@ -1,7 +1,7 @@
 /**
  * PlannerBackend — the FLYTOWN integration seam.
  *
- * Goblintown's executor consumes a Plan (DAG of sub-rites). Anything that can
+ * The plan executor consumes a Plan (DAG of flights). Anything that can
  * produce a valid Plan can drive the existing worker pipeline unchanged. The
  * conventional LLM planner is one backend; rules/random/learned baselines and
  * the connectome-derived fly planner are others.
@@ -15,7 +15,7 @@ import type { DecisionTrace } from "./trace.js";
 
 export interface PlanRequest {
   task: string;
-  /** Warren root / repository the task is about. Used for repo signals. */
+  /** Terrarium root / repository the task is about. Used for repo signals. */
   cwd: string;
   parentArtifacts?: Artifact[];
   failureContext?: { failedNodeId: string; reason: string; partialPlan: Plan };

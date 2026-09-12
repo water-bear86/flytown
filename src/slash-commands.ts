@@ -1,10 +1,16 @@
-export type GoblinMode = "single" | "town";
+/**
+ * Slash commands for the CLI (`flytown /ask ...`, `flytown /swarm ...`).
+ *
+ *   /ask <task>     single mode: one forager, one answer (`flytown ask forager`)
+ *   /swarm <task>   swarm mode: planner DAG plus multi-agent flights (`flytown plan`)
+ *   /run <task>     the selected default mode
+ */
+export type SlashMode = "single" | "swarm";
 
-export type GoblinCommandKind =
+export type SlashCommandKind =
   | "run"
   | "ask"
-  | "town"
-  | "tank"
+  | "swarm"
   | "plan"
   | "history"
   | "resume"
@@ -13,41 +19,36 @@ export type GoblinCommandKind =
   | "context"
   | "help";
 
-export interface GoblinCommandDefaults {
-  mode?: GoblinMode;
-  tank?: boolean;
+export interface SlashCommandDefaults {
+  mode?: SlashMode;
 }
 
-export interface ParsedGoblinCommand {
-  kind: GoblinCommandKind;
-  mode: GoblinMode;
-  tank: boolean;
+export interface ParsedSlashCommand {
+  kind: SlashCommandKind;
+  mode: SlashMode;
   task: string;
   args: string[];
 }
 
-export interface GoblinRunRequest {
-  endpoint: "/api/goblin/single" | "/api/plan";
+export interface SlashRunRequest {
+  endpoint: "/api/ask" | "/api/plan";
   payload: Record<string, unknown>;
-  mode: GoblinMode;
-  tank: boolean;
+  mode: SlashMode;
 }
 
 const DEFAULT_MAX_NODES = 6;
 const DEFAULT_MAX_REPLAN = 2;
 
-export function parseGoblinCommand(
+export function parseSlashCommand(
   line: string,
-  defaults: GoblinCommandDefaults = {},
-): ParsedGoblinCommand {
+  defaults: SlashCommandDefaults = {},
+): ParsedSlashCommand {
   const trimmed = line.trim();
   const fallbackMode = defaults.mode ?? "single";
-  const fallbackTank = defaults.tank ?? false;
   if (!trimmed.startsWith("/")) {
     return {
       kind: "run",
       mode: fallbackMode,
-      tank: fallbackMode === "town" && fallbackTank,
       task: trimmed,
       args: trimmed ? [trimmed] : [],
     };
@@ -56,23 +57,20 @@ export function parseGoblinCommand(
   const tokens = parseCommandLine(trimmed);
   const commandToken = tokens.shift() ?? "/run";
   const command = normalizeCommandKind(commandToken.slice(1));
-  const explicitTank = tokens.includes("--tank");
-  const args = tokens.filter((token) => token !== "--tank");
+  const args = tokens;
   const task = args.join(" ").trim();
   const mode = modeForCommand(command, fallbackMode);
-  const tank = mode === "town" && (command === "tank" || explicitTank || fallbackTank);
 
   return {
     kind: command,
     mode,
-    tank,
     task,
     args,
   };
 }
 
-export function commandToRunRequest(command: ParsedGoblinCommand): GoblinRunRequest {
-  if (command.mode === "town") {
+export function commandToRunRequest(command: ParsedSlashCommand): SlashRunRequest {
+  if (command.mode === "swarm") {
     return {
       endpoint: "/api/plan",
       payload: {
@@ -82,27 +80,25 @@ export function commandToRunRequest(command: ParsedGoblinCommand): GoblinRunRequ
         remember: true,
         outputFormat: "markdown",
       },
-      mode: "town",
-      tank: command.tank,
+      mode: "swarm",
     };
   }
   return {
-    endpoint: "/api/goblin/single",
+    endpoint: "/api/ask",
     payload: {
       task: command.task,
       remember: true,
       outputFormat: "markdown",
     },
     mode: "single",
-    tank: false,
   };
 }
 
-export function commandToCliArgs(command: ParsedGoblinCommand): string[] {
-  if (command.mode === "town") {
+export function commandToCliArgs(command: ParsedSlashCommand): string[] {
+  if (command.mode === "swarm") {
     return ["plan", command.task, "--remember", "--format", "markdown"];
   }
-  return ["summon", "goblin", "--task", command.task, "--format", "markdown"];
+  return ["ask", "forager", "--task", command.task, "--format", "markdown"];
 }
 
 export function parseCommandLine(line: string): string[] {
@@ -142,17 +138,15 @@ export function parseCommandLine(line: string): string[] {
   return out;
 }
 
-function normalizeCommandKind(value: string): GoblinCommandKind {
+function normalizeCommandKind(value: string): SlashCommandKind {
   switch (value.toLowerCase()) {
     case "ask":
     case "single":
-    case "goblin":
+    case "forager":
       return "ask";
-    case "town":
-    case "goblintown":
-      return "town";
-    case "tank":
-      return "tank";
+    case "swarm":
+    case "flytown":
+      return "swarm";
     case "plan":
       return "plan";
     case "history":
@@ -176,14 +170,13 @@ function normalizeCommandKind(value: string): GoblinCommandKind {
   }
 }
 
-function modeForCommand(command: GoblinCommandKind, fallback: GoblinMode): GoblinMode {
+function modeForCommand(command: SlashCommandKind, fallback: SlashMode): SlashMode {
   switch (command) {
     case "ask":
       return "single";
-    case "town":
-    case "tank":
+    case "swarm":
     case "plan":
-      return "town";
+      return "swarm";
     default:
       return fallback;
   }

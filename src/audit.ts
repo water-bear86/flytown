@@ -1,50 +1,50 @@
-import { CREATURE_KINDS, type Artifact, type CreatureKind, type Loot, type Rite } from "./types.js";
-import type { Hoard } from "./hoard.js";
+import { CASTES, type Artifact, type Caste, type Morsel, type Flight } from "./types.js";
+import type { Compost } from "./compost.js";
 
 export interface AuditReport {
-  rite: Rite;
-  totalLoot: number;
+  flight: Flight;
+  totalMorsels: number;
   totalTokens: number;
   promptTokens: number;
   completionTokens: number;
-  byKind: Record<CreatureKind, KindStats>;
-  highestDrift: { lootId: string; rate: number; kind: CreatureKind } | null;
-  longestChain: { length: number; lootIds: string[] };
+  byCaste: Record<Caste, CasteStats>;
+  highestDrift: { morselId: string; rate: number; caste: Caste } | null;
+  longestChain: { length: number; morselIds: string[] };
   warnings: string[];
-  /** Phase 1+ artifact lineage attached to this rite. */
+  /** Phase 1+ artifact lineage attached to this flight. */
   artifact?: Artifact | null;
   /** Other artifacts that cite this one (children). */
   artifactChildren?: Artifact[];
 }
 
-export interface KindStats {
+export interface CasteStats {
   count: number;
   totalTokens: number;
   avgDriftRate: number;
   avgRewardOrZero: number;
 }
 
-export async function auditRite(
-  hoard: Hoard,
-  riteId: string,
+export async function auditFlight(
+  compost: Compost,
+  flightId: string,
 ): Promise<AuditReport | null> {
-  const rite = await hoard.getRite(riteId);
-  if (!rite) return null;
+  const flight = await compost.getFlight(flightId);
+  if (!flight) return null;
 
-  const ids = collectRiteLootIds(rite);
-  const loot: Loot[] = [];
+  const ids = collectFlightMorselIds(flight);
+  const morsels: Morsel[] = [];
   for (const id of ids) {
-    const l = await hoard.getLoot(id);
-    if (l) loot.push(l);
+    const l = await compost.getMorsel(id);
+    if (l) morsels.push(l);
   }
 
-  const byKind = emptyKindStats();
+  const byCaste = emptyCasteStats();
   let totalTokens = 0;
   let promptTokens = 0;
   let completionTokens = 0;
   let highestDrift: AuditReport["highestDrift"] = null;
-  for (const l of loot) {
-    const stats = byKind[l.creatureKind];
+  for (const l of morsels) {
+    const stats = byCaste[l.caste];
     stats.count += 1;
     if (l.usage) {
       stats.totalTokens += l.usage.totalTokens;
@@ -56,56 +56,56 @@ export async function auditRite(
     stats.avgRewardOrZero += l.reward ?? 0;
     if (!highestDrift || l.drift.driftRate > highestDrift.rate) {
       highestDrift = {
-        lootId: l.id,
+        morselId: l.id,
         rate: l.drift.driftRate,
-        kind: l.creatureKind,
+        caste: l.caste,
       };
     }
   }
-  for (const k of CREATURE_KINDS) {
-    const stats = byKind[k];
+  for (const k of CASTES) {
+    const stats = byCaste[k];
     if (stats.count > 0) {
       stats.avgDriftRate /= stats.count;
       stats.avgRewardOrZero /= stats.count;
     }
   }
 
-  const lootById = new Map(loot.map((l) => [l.id, l]));
-  const longestChain = findLongestChain(lootById);
+  const morselById = new Map(morsels.map((l) => [l.id, l]));
+  const longestChain = findLongestChain(morselById);
 
   const warnings: string[] = [];
-  if (rite.outcome === "ogre_fallback" && !rite.ogreLootId) {
-    warnings.push("rite declared ogre_fallback but no ogre loot was stashed");
+  if (flight.outcome === "soldier_fallback" && !flight.soldierMorselId) {
+    warnings.push("flight declared soldier_fallback but no soldier morsel was stashed");
   }
-  if (rite.winnerLootId && !lootById.has(rite.winnerLootId)) {
-    warnings.push(`winner loot ${rite.winnerLootId} is not in the Hoard`);
+  if (flight.winnerMorselId && !morselById.has(flight.winnerMorselId)) {
+    warnings.push(`winner morsel ${flight.winnerMorselId} is not in the Compost`);
   }
-  for (const l of loot) {
-    for (const pid of l.parentLootIds ?? []) {
-      if (!lootById.has(pid)) {
-        const orphan = await hoard.getLoot(pid);
+  for (const l of morsels) {
+    for (const pid of l.parentMorselIds ?? []) {
+      if (!morselById.has(pid)) {
+        const orphan = await compost.getMorsel(pid);
         if (!orphan) {
-          warnings.push(`loot ${l.id} references missing parent ${pid}`);
+          warnings.push(`morsel ${l.id} references missing parent ${pid}`);
         }
       }
     }
   }
 
   // Phase 6: artifact lineage.
-  const artifact = await hoard.getArtifactByRiteId(riteId);
+  const artifact = await compost.getArtifactByFlightId(flightId);
   let artifactChildren: Artifact[] = [];
   if (artifact) {
-    const all = await hoard.allArtifacts();
+    const all = await compost.allArtifacts();
     artifactChildren = all.filter((a) => a.parentArtifactIds.includes(artifact.id));
   }
 
   return {
-    rite,
-    totalLoot: loot.length,
+    flight,
+    totalMorsels: morsels.length,
     totalTokens,
     promptTokens,
     completionTokens,
-    byKind,
+    byCaste,
     highestDrift,
     longestChain,
     warnings,
@@ -114,19 +114,19 @@ export async function auditRite(
   };
 }
 
-export function collectRiteLootIds(rite: Rite): string[] {
+export function collectFlightMorselIds(flight: Flight): string[] {
   const ids = new Set<string>();
-  if (rite.contextLootId) ids.add(rite.contextLootId);
-  for (const id of rite.goblinLootIds) ids.add(id);
-  for (const id of Object.values(rite.chaosLootIds)) ids.add(id);
-  if (rite.ogreLootId) ids.add(rite.ogreLootId);
-  for (const id of rite.specialistLootIds ?? []) ids.add(id);
+  if (flight.contextMorselId) ids.add(flight.contextMorselId);
+  for (const id of flight.foragerMorselIds) ids.add(id);
+  for (const id of Object.values(flight.stingMorselIds)) ids.add(id);
+  if (flight.soldierMorselId) ids.add(flight.soldierMorselId);
+  for (const id of flight.specialistMorselIds ?? []) ids.add(id);
   return [...ids];
 }
 
-function emptyKindStats(): Record<CreatureKind, KindStats> {
-  const out = {} as Record<CreatureKind, KindStats>;
-  for (const k of CREATURE_KINDS) {
+function emptyCasteStats(): Record<Caste, CasteStats> {
+  const out = {} as Record<Caste, CasteStats>;
+  for (const k of CASTES) {
     out[k] = {
       count: 0,
       totalTokens: 0,
@@ -138,8 +138,8 @@ function emptyKindStats(): Record<CreatureKind, KindStats> {
 }
 
 function findLongestChain(
-  lootById: Map<string, Loot>,
-): { length: number; lootIds: string[] } {
+  morselById: Map<string, Morsel>,
+): { length: number; morselIds: string[] } {
   const depth = new Map<string, number>();
   const choice = new Map<string, string | null>();
   const visiting = new Set<string>();
@@ -151,11 +151,11 @@ function findLongestChain(
       return 1;
     }
     visiting.add(id);
-    const l = lootById.get(id);
+    const l = morselById.get(id);
     let best = 0;
     let bestParent: string | null = null;
-    for (const pid of l?.parentLootIds ?? []) {
-      if (!lootById.has(pid)) continue;
+    for (const pid of l?.parentMorselIds ?? []) {
+      if (!morselById.has(pid)) continue;
       const d = compute(pid);
       if (d > best) {
         best = d;
@@ -170,14 +170,14 @@ function findLongestChain(
 
   let bestId: string | null = null;
   let bestDepth = 0;
-  for (const id of lootById.keys()) {
+  for (const id of morselById.keys()) {
     const d = compute(id);
     if (d > bestDepth) {
       bestDepth = d;
       bestId = id;
     }
   }
-  if (!bestId) return { length: 0, lootIds: [] };
+  if (!bestId) return { length: 0, morselIds: [] };
 
   const chain: string[] = [];
   let cur: string | null = bestId;
@@ -186,5 +186,5 @@ function findLongestChain(
     cur = choice.get(cur) ?? null;
   }
   chain.reverse();
-  return { length: bestDepth, lootIds: chain };
+  return { length: bestDepth, morselIds: chain };
 }

@@ -1,11 +1,13 @@
 # FLYTOWN — Architecture Proposal (v0.1, draft for approval)
 
-**Working title:** FLYTOWN
-**Pitch:** Goblintown was a society of AI agents. FLYTOWN is a real animal connectome dreaming through them.
-**Status:** Proposal only. No implementation code has been written. Nothing here is approved.
-**Author context:** Produced after (a) a full source-level audit of the local Goblintown repository at `~/goblintown/backrooms-0.7-telemetry` (v0.7.0-beta.1, MIT), and (b) primary-source research into the current (September 2026) state of the FlyWire connectome dataset, its successors, licensing, and access mechanisms.
+> **Names:** on 2026-09-12 FLYTOWN replaced every inherited Goblintown term (goblin, troll, rite, hoard, warren, …) with the swarm vocabulary in [`docs/flytown/VOCABULARY.md`](./docs/flytown/VOCABULARY.md). Sections that record work done before the rename keep the names that were true at the time; all current-behaviour descriptions use the new ones. Pre-rename records are marked where they begin: the author context and revision log below, the Goblintown audit (Sections 4–5), the dated live-result notes in Section 20, the fork-and-strip record in Section 21, the open questions in Section 27, and the closing note.
 
-**Revision log:**
+**Working title:** FLYTOWN
+**Pitch:** FLYTOWN is a real animal connectome dreaming through a swarm of AI agents.
+**Status:** Proposal only. No implementation code has been written. Nothing here is approved.
+**Author context (pre-rename record):** Produced after (a) a full source-level audit of the local Goblintown repository at `~/goblintown/backrooms-0.7-telemetry` (v0.7.0-beta.1, MIT), and (b) primary-source research into the current (September 2026) state of the FlyWire connectome dataset, its successors, licensing, and access mechanisms.
+
+**Revision log (pre-rename record):**
 - **v0.1** — initial draft, all 27 sections, pending review.
 - **v0.2 (this revision)** — folds in your answers to the first round of open questions: (1) project is non-commercial, open-source, research/education — resolves the CC-BY-NC licensing concern outright (Section 10, 24); (2) FLYTOWN gets its own repo at `~/flytown/` (confirmed, already created, empty); (3) confirmed intent to strip Goblintown back to its core orchestration pipeline, now backed by verified git history from the real upstream repo, `github.com/0xbl33p/goblintown` (public, MIT, 40 stars, confirmed consent to do this work) rather than guesswork (Section 21); (4) no preference on baseline build order; (5) evaluation task suite will draw from real repos on this machine; (6) biological-circuit citations will be drafted by Claude, validated after the fact by a neuroscience collaborator (async, not a pre-ship gate) (Section 6/27); (7) full neuron-level fidelity (Option C) is explicitly the long-term destination, not a contingent stretch goal — see the cost comparison added to Section 19, which shows this costs little beyond engineering time at the scale this project actually runs at (a personal machine, non-commercial, no cloud-scale infra).
 
@@ -13,16 +15,16 @@
 
 ## 1. Concise interpretation of the product
 
-FLYTOWN takes a **static, public, real fruit-fly connectome** (a wiring diagram — which neurons synapse onto which, roughly how many synapses, and a statistical guess at each neuron's neurotransmitter) and uses it as the **fixed topology of a small dynamical system**. A task's structured signals are injected into that system as "sensory" input; activation propagates through the biological graph for a bounded number of discrete steps; a readout layer maps the resulting activity pattern to a small, fixed vocabulary of **orchestration actions** (spawn a worker, retry, escalate, stop, ...). Those actions become a `Plan` — Goblintown's own DAG-of-sub-rites data type — which Goblintown's existing, untouched execution engine (`performRite`, workers, tools, artifacts, recovery) carries out exactly as it does today. Results flow back as reward that updates only a small number of explicitly-designated trainable parameters (never the biological topology itself).
+FLYTOWN takes a **static, public, real fruit-fly connectome** (a wiring diagram — which neurons synapse onto which, roughly how many synapses, and a statistical guess at each neuron's neurotransmitter) and uses it as the **fixed topology of a small dynamical system**. A task's structured signals are injected into that system as "sensory" input; activation propagates through the biological graph for a bounded number of discrete steps; a readout layer maps the resulting activity pattern to a small, fixed vocabulary of **orchestration actions** (spawn a worker, retry, escalate, stop, ...). Those actions become a `Plan` — the orchestrator's own DAG-of-flights data type — which the existing, untouched execution engine (`performFlight`, workers, tools, artifacts, recovery) carries out exactly as it does for any other planner. Results flow back as reward that updates only a small number of explicitly-designated trainable parameters (never the biological topology itself).
 
-FLYTOWN is not "Goblintown with insect nouns." It is a new control-plane component — a `PlannerBackend` in Goblintown's own terms — whose *decision substrate* is derived from real anatomical data rather than an LLM call. Everything downstream of "what should happen next" stays Goblintown.
+FLYTOWN's substance is not its insect nouns. It is a new control-plane component — a `PlannerBackend` — whose *decision substrate* is derived from real anatomical data rather than an LLM call. Everything downstream of "what should happen next" stays the existing orchestration pipeline.
 
 ## 2. What is genuinely novel
 
 - **Using a real, published, versioned connectome as production control-plane topology**, not as a visual theme or a random-graph generator with biological branding. The prior art we found (Jin/Zhu/Zhang/Sui, Feb 2026, arXiv 2602.17997) uses the FlyWire connectome as an RL controller for *body locomotion* — the same "connectome-as-fixed-graph-for-control" idea, but for a robot, not for an AI-agent orchestrator. We are not aware of a prior system that routes *software agents* through connectome-derived dynamics.
 - **A falsifiability harness built into the architecture from day one** — every biologically-derived component ships with a same-shaped ablation (shuffled graph, random-degree graph, region-deleted graph, recurrence-off, learning-off) as a first-class experiment, not an afterthought.
 - **A hard, auditable boundary between "structure we measured," "parameters we inferred from literature," "engineering choices we made," and "product-language metaphor"** (Section 3), maintained in the trace format itself, not just in prose documentation.
-- **Reuse, not replacement, of a working multi-agent system.** The Goblintown audit found a genuinely clean, narrow seam (Section 5 / 9) — this is a real integration, not a rewrite-from-scratch dressed up as one.
+- **Reuse, not replacement, of a working multi-agent system.** The source audit (Sections 4–5) found a genuinely clean, narrow seam (Section 5 / 9) — this is a real integration, not a rewrite-from-scratch dressed up as one.
 
 ## 3. What is scientifically real versus metaphorical
 
@@ -40,6 +42,8 @@ Every FLYTOWN component we build will be tagged in its own code comments and in 
 
 ## 4. Summary of the existing Goblintown architecture
 
+*Pre-rename record: Goblintown as audited before the fork, in its own terms.*
+
 (Full source-cited detail available on request; this is the load-bearing summary.)
 
 Goblintown (`~/goblintown/backrooms-0.7-telemetry`, npm package `goblintown`, MIT, copyright 0XBL33P, v0.7.0-beta.1) is a **local-first Node/TypeScript app** (Express server + optional Electron shell) that turns a task into either:
@@ -54,6 +58,8 @@ Everything is content-addressed and file-backed under `.goblintown/hoard/` (`Loo
 Two things worth flagging for scope: the repo also bundles substantial **crypto/trading-research features** (Solana RPC client, "investment thesis" generation, sentiment aggregation) and a **peer-to-peer federation/social layer** (HMAC-signed inter-Warren messaging, friends/DMs) that are unrelated to the orchestration core and out of scope for FLYTOWN unless you say otherwise.
 
 ## 5. The cleanest integration seam
+
+*Pre-rename record: the seam analysis of the audited Goblintown code, in its own terms. As built, the seam is `PlannerBackend` in `src/flytown/planner-backend.ts`, and plan nodes are `kind: "flight" | "synthesize"` with `swarmSize` and `flightId`.*
 
 There is **no existing planner interface** to implement — `executePlan()` hardcodes a direct import of `planTask()` (`src/plan-executor.ts:7,173`). But the data it produces and consumes is already clean and LLM-agnostic:
 
@@ -114,9 +120,9 @@ export interface PlannerBackend {
 
 ## 7. Recommended architecture
 
-**Confirms your instinct, with one addition the Goblintown audit revealed.** Start at **Option A**, graduate to **Option B**, treat **Option C** as a Milestone-4 stretch goal gated on A/B actually beating baselines. The addition: because Goblintown's integration seam sits at the **DAG/planning layer** (Section 5), not inside individual worker calls, the orchestration decisions FLYTOWN needs to make ("how many sub-rites," "what kind of node," "retry or escalate or stop") are inherently **coarse-grained**. A region-level graph is not just the cheapest starting point — it is *architecturally well-matched* to the actual decision resolution Goblintown's planner seam requires. Neuron-level resolution (Option C) buys the most scientific credibility but is not needed to make the first falsifiable test meaningful, and premature neuron-level complexity risks obscuring whether the *routing decisions* are doing anything different at all.
+**Confirms your instinct, with one addition the source audit revealed.** Start at **Option A**, graduate to **Option B**, treat **Option C** as a Milestone-4 stretch goal gated on A/B actually beating baselines. The addition: because the orchestrator's integration seam sits at the **DAG/planning layer** (Section 5), not inside individual worker calls, the orchestration decisions FLYTOWN needs to make ("how many flights," "what kind of node," "retry or escalate or stop") are inherently **coarse-grained**. A region-level graph is not just the cheapest starting point — it is *architecturally well-matched* to the actual decision resolution the planner seam requires. Neuron-level resolution (Option C) buys the most scientific credibility but is not needed to make the first falsifiable test meaningful, and premature neuron-level complexity risks obscuring whether the *routing decisions* are doing anything different at all.
 
-**Structural recommendation for where preprocessing happens:** a **Python ETL sidecar, run offline/occasionally, producing versioned, checksummed runtime artifacts** consumed by a **TypeScript runtime module inside/beside Goblintown, with no Python dependency at request time.** This follows your own engineering principles directly: the FlyWire ecosystem (`caveclient`, `navis`, `fafbseg-py` — Section 10) is Python-only and not worth reimplementing in TS; but the *runtime* operation (loading a small versioned sparse graph and propagating activation for a few hundred milliseconds per request) has no dependency on that ecosystem once the artifact exists, so it does not need to drag a mandatory Python service into Goblintown's deployment story. This also directly satisfies "define a stable artifact format so runtime operation does not depend on the preprocessing environment."
+**Structural recommendation for where preprocessing happens:** a **Python ETL sidecar, run offline/occasionally, producing versioned, checksummed runtime artifacts** consumed by a **TypeScript runtime module inside the orchestrator, with no Python dependency at request time.** This follows your own engineering principles directly: the FlyWire ecosystem (`caveclient`, `navis`, `fafbseg-py` — Section 10) is Python-only and not worth reimplementing in TS; but the *runtime* operation (loading a small versioned sparse graph and propagating activation for a few hundred milliseconds per request) has no dependency on that ecosystem once the artifact exists, so it does not need to drag a mandatory Python service into FLYTOWN's deployment story. This also directly satisfies "define a stable artifact format so runtime operation does not depend on the preprocessing environment."
 
 ## 8. Component diagram
 
@@ -140,7 +146,7 @@ OFFLINE / PREPROCESSING (Python sidecar, run rarely, not part of the deployed ap
 └────────────────────────────────────────────────────────────────────────┘
                               │  artifact copied/synced, no live Python dep
                               ▼
-RUNTIME (TypeScript, inside/beside Goblintown, no Python at request time)
+RUNTIME (TypeScript, inside the orchestrator, no Python at request time)
 ┌────────────────────────────────────────────────────────────────────────┐
 │  Sensory Encoder        task text, repo signals, test results, etc.    │
 │  (ENGINEERING_CHOICE)   → sparse "odor" input vector over glomerulus-  │
@@ -158,15 +164,15 @@ RUNTIME (TypeScript, inside/beside Goblintown, no Python at request time)
 │         │                                                                │
 │         ▼                                                               │
 │  PlannerBackend adapter  maps action distribution → Plan{nodes,edges}  │
-│  (new, ~1 file)          validated by Goblintown's own validatePlan()  │
+│  (new, ~1 file)          validated by the existing validatePlan()      │
 │         │                                                                │
 │         ▼                                                               │
-│  ═══ existing, UNCHANGED Goblintown ═══                                │
-│  executePlan → performRite → Raccoon/pack/Gremlin/Troll/Specialist/   │
-│  Ogre/Scribe → Hoard/Artifact/RunRecord/SSE                            │
+│  ═══ existing, UNCHANGED orchestration pipeline ═══                    │
+│  executePlan → performFlight → Scout/swarm/Wasp/Guard/Specialist/      │
+│  Soldier/Scribe → Compost/Artifact/RunRecord/SSE                       │
 │         │                                                                │
 │         ▼                                                               │
-│  Reward ingestion         Shinies + test/tool/cost/latency outcomes     │
+│  Reward ingestion         Sugar + test/tool/cost/latency outcomes      │
 │         │                                                                │
 │         ▼                                                               │
 │  Learned adapters          reward-modulated update, ONLY: input         │
@@ -183,15 +189,15 @@ RUNTIME (TypeScript, inside/beside Goblintown, no Python at request time)
 
 ## 9. End-to-end data flow
 
-1. User submits a task (via Goblintown's existing CLI/HTTP entry points, unchanged).
+1. User submits a task (via the existing CLI/HTTP entry points, unchanged).
 2. **Sensory encoding** (new): task text, repo structure, test failures, prior-attempt outcomes, uncertainty signals, etc. are mapped to a sparse activation vector over a fixed set of input nodes (`ENGINEERING_CHOICE`, analogous to antennal-lobe glomeruli — Section 12).
 3. **Propagation** (new): the input vector is injected into the connectome-derived graph; activation propagates for a bounded number of discrete timesteps under fixed topology + signed weights + a simple leaky decay rule (`ENGINEERING_CHOICE` dynamics on top of `MEASURED` structure — Section 11).
-4. **Readout** (new, trainable): aggregate per-region (or per-curated-circuit) terminal activity is mapped by a small trained head to a distribution over a fixed orchestration-action vocabulary (spawn sub-rite, allocate more pack size, request specific artifact, invoke reviewer, retry, escalate, stop-success, stop-blocked, ...).
-5. **Plan construction** (new, thin): the action distribution is turned into a `Plan{nodes, edges}` using Goblintown's existing types; validated with Goblintown's existing `validatePlan`/`topologicalOrder` before anything runs.
-6. **Execution** (existing, unchanged): `executePlan` → `performRite` per node → all of Goblintown's existing worker pipeline, tools, budget/concurrency limits, Hoard persistence, SSE streaming.
-7. **Outcome capture** (existing + new): Goblintown's existing Shinies/troll-score/test-pass signals, plus cost/latency/retry counts, become the reward signal for step 8.
+4. **Readout** (new, trainable): aggregate per-region (or per-curated-circuit) terminal activity is mapped by a small trained head to a distribution over a fixed orchestration-action vocabulary (spawn flight, allocate a larger swarm, request specific artifact, invoke reviewer, retry, escalate, stop-success, stop-blocked, ...).
+5. **Plan construction** (new, thin): the action distribution is turned into a `Plan{nodes, edges}` using the existing `Plan` types; validated with the existing `validatePlan`/`topologicalOrder` before anything runs.
+6. **Execution** (existing, unchanged): `executePlan` → `performFlight` per node → the existing worker pipeline, tools, budget/concurrency limits, Compost persistence, SSE streaming.
+7. **Outcome capture** (existing + new): the existing Sugar/guard-score/test-pass signals, plus cost/latency/retry counts, become the reward signal for step 8.
 8. **Learning** (new, off by default): reward updates only the trainable input/readout parameters from step 2/4 (and optionally a small explicitly-designated plastic-edge set inside a curated mushroom-body-like circuit in Milestone 3 — biologically, this is *where* real fly associative plasticity actually lives, so it is the one place "engineering choice" and "real biology" meaningfully overlap).
-9. **Brain trace + Goblintown trace both written**, cross-linked by run id, for full replay and side-by-side comparison against the conventional planner.
+9. **Brain trace + run trace both written**, cross-linked by run id, for full replay and side-by-side comparison against the conventional planner.
 
 ## 10. Connectome dataset and exact version
 
@@ -247,7 +253,7 @@ A structured feature vector (semantic task embedding, deliverable type, repo lan
 Terminal (or time-averaged) activity of a small set of designated **readout regions** (in Option A, a handful of the 78 neuropils chosen for plausible correspondence to motor/descending output per the literature; in Option B, actual descending-neuron-like cell types) is mapped by a small trained linear/softmax head to a distribution over:
 
 ```
-spawn_subrite | increase_pack_size | request_artifact_investigation |
+spawn_flight | increase_swarm_size | request_artifact_investigation |
 invoke_reviewer | merge_results | run_tool | run_tests | retry_new_approach |
 search_memory | surface_uncertainty | request_human_approval |
 terminate_success | terminate_blocked
@@ -262,40 +268,42 @@ Each action, plus the current activity snapshot, deterministically compiles into
 - **Trainable:** input-encoder projection weights, readout weights, per-action decision thresholds, and — starting Milestone 3 only — a small, explicitly-designated set of "plastic" edges inside the curated mushroom-body-like circuit (Kenyon-cell → MBON-equivalent connections), which is the one place in the real fly brain where dopaminergic reinforcement is understood to act on synaptic weights during associative learning — an unusually well-motivated place for us to also permit plasticity.
 - **Fixed, never modified in v1:** the connectome topology itself, all other synaptic weights, decay/nonlinearity parameters.
 - **Update rule:** reward-modulated, simple to start — treat action selection as a contextual bandit over connectome-engine state, use a standard bandit update (e.g., a linear/softmax policy gradient step) on the readout weights only; explore local Hebbian-style updates restricted to the designated plastic edges as a Milestone-3 experiment, not a v1 requirement.
-- **Reward signal:** reuse Goblintown's existing outcome data (troll pass/fail, Shinies score, test pass/fail, cost, latency, retry count, human accept/revise/reject) rather than inventing a new one — this also means FLYTOWN's reward is exposed to the exact same reward-hacking surface Goblintown already has (Section 16), so hardening one hardens both.
-- **All learned state:** versioned, inspectable (plain JSON, diffable), resettable (delete the file, fall back to untrained/zero-init weights), exportable, reproducible given a seed, and **disabled by default whenever a run requests deterministic evaluation** (matching Goblintown's own `RunRecord`/replay philosophy).
+- **Reward signal:** reuse the orchestrator's existing outcome data (guard pass/fail, Sugar score, test pass/fail, cost, latency, retry count, human accept/revise/reject) rather than inventing a new one — this also means FLYTOWN's reward is exposed to the exact same reward-hacking surface the worker pipeline already has (Section 16), so hardening one hardens both.
+- **All learned state:** versioned, inspectable (plain JSON, diffable), resettable (delete the file, fall back to untrained/zero-init weights), exportable, reproducible given a seed, and **disabled by default whenever a run requests deterministic evaluation** (matching the run store's own `RunRecord`/replay philosophy).
 - **Explicitly not claimed:** that a task embedding model "understands" language because it's attached to a fly graph. The embedding is a prosthesis we built; the fly graph never sees natural language.
 
 ## 14. Worker-orchestration contracts
 
-No new contract needed — this is the payoff of the integration seam (Section 5). FLYTOWN's `PlannerBackend` implementation produces exactly the `Plan`/`PlanNode`/`PlanEdge` shapes Goblintown's `executePlan`/`performRite` already consume. Worker activation, context allocation, concurrency (global semaphore, `GOBLINTOWN_MAX_CONCURRENCY`), tool permissions, retry limits, evidence requirements (Troll verdicts), and final synthesis (`synthesize` sink node + Scribe) are **100% Goblintown's existing machinery, untouched.** FLYTOWN adds exactly one new decision point upstream of all of that.
+No new contract needed — this is the payoff of the integration seam (Section 5). FLYTOWN's `PlannerBackend` implementation produces exactly the `Plan`/`PlanNode`/`PlanEdge` shapes `executePlan`/`performFlight` already consume. Worker activation, context allocation, concurrency (global semaphore, `FLYTOWN_MAX_CONCURRENCY`), tool permissions, retry limits, evidence requirements (guard verdicts), and final synthesis (`synthesize` sink node + Scribe) are **100% the existing orchestration machinery, untouched.** FLYTOWN adds exactly one new decision point upstream of all of that.
 
-One gap the audit surfaced that FLYTOWN should *not* inherit silently: Goblintown currently has **no per-model-call timeout** and a **single global concurrency semaphore** with no per-slot/per-cost-tier distinction. If FLYTOWN's routing starts allocating pack sizes and worker counts more dynamically than the conventional planner does today, this existing gap becomes more consequential (Section 23) — worth fixing regardless of FLYTOWN, and cheap to fix now.
+One gap the audit surfaced that FLYTOWN should *not* inherit silently: the audited pipeline has **no per-model-call timeout** and a **single global concurrency semaphore** with no per-slot/per-cost-tier distinction. If FLYTOWN's routing starts allocating swarm sizes and worker counts more dynamically than the conventional planner does today, this existing gap becomes more consequential (Section 23) — worth fixing regardless of FLYTOWN, and cheap to fix now.
 
 ## 15. Persistence and artifact formats
 
-New, additive, namespaced separately from Goblintown's own Hoard so nothing existing is touched:
+New, additive, namespaced separately from the Compost so nothing existing is touched:
 
 ```
-<warren>/.flytown/
+<terrarium>/.flytown/
   connectome/<version>/manifest.json     # source dataset version, checksum, every
                                           # preprocessing decision, license terms
   connectome/<version>/graph.json        # sparse signed edge list (Option A/B/C)
   connectome/<version>/regions.json      # names + MEASURED/INFERRED/ENGINEERING/METAPHOR tags
   learned-weights/<weightsVersion>.json  # versioned, resettable, exportable
-  brain-traces/<runId>.json              # full trace, keyed to Goblintown's own runId
+  brain-traces/<runId>.json              # full trace, keyed to the orchestrator's runId
 ```
 
-`brain-traces/<runId>.json` cross-references Goblintown's existing `RunRecord`/`Rite`/`Plan` ids so a single `runId` reconstructs both "what the fly-derived network did" and "what Goblintown did as a result" from two small, independently-readable JSON trees — mirroring the "fully reconstructible from records alone" property the existing Hoard already has (with the same caveat the audit found in Goblintown itself: no corruption/integrity checking beyond best-effort warnings, which FLYTOWN should not make worse).
+`brain-traces/<runId>.json` cross-references the existing `RunRecord`/`Flight`/`Plan` ids so a single `runId` reconstructs both "what the fly-derived network did" and "what the swarm did as a result" from two small, independently-readable JSON trees — mirroring the "fully reconstructible from records alone" property the Compost already has (with the same caveat the audit found in the inherited store: no corruption/integrity checking beyond best-effort warnings, which FLYTOWN should not make worse).
+
+*As built:* connectome artifacts live in the repository's `connectome/<id>/` (built by `connectome-etl/`), and a terrarium keeps decision traces in `.flytown/traces/`, learned weights in `.flytown/weights/` and evaluation reports in `.flytown/eval/`, beside its Compost in `.flytown/compost/` — see [docs/reference/storage-layout.md](./docs/reference/storage-layout.md).
 
 ## 16. Security and permission boundaries
 
 - The connectome engine **only ever produces a `Plan`** — a pure data structure, not code, not a tool call, not a prompt fed directly to a worker as an instruction. It cannot execute anything.
-- Every `Plan` FLYTOWN produces passes through Goblintown's **existing, unmodified** `validatePlan`/`topologicalOrder` (cycle rejection, single-sink enforcement, `maxNodes` cap) before a single node executes — this is a real, pre-existing safety backstop we inherit for free, not something FLYTOWN has to build.
-- Tool permissions, sandboxing (such as it is — Section 4's "no shell/file-write tool" finding), budget enforcement, and concurrency limits are 100% Goblintown's existing code path, unchanged.
-- `node.task` strings FLYTOWN's planner writes are treated exactly as planner-authored task strings are treated today — they still go through ordinary creature prompting with no elevated trust, so FLYTOWN introduces no new prompt-injection surface beyond what a task string already has.
-- Reward signals inherit Goblintown's existing reward-hacking exposure (Shinies is drift-penalized but not adversarially hardened) — flagged as a shared risk, not a new one, in Section 23.
-- Hard caps, independent of any connectome-derived decision: max nodes per plan, max replans (existing default 2), max total budget (existing `Budget`/`enforceOrThrow`), and a **kill switch** — an explicit "fall back to the conventional planner" flip, both as a Warren-level config default and as a runtime override, satisfied trivially by the `PlannerBackend` injection point itself (swap the implementation, no other change needed).
+- Every `Plan` FLYTOWN produces passes through the **existing, unmodified** `validatePlan`/`topologicalOrder` (cycle rejection, single-sink enforcement, `maxNodes` cap) before a single node executes — this is a real, pre-existing safety backstop we inherit for free, not something FLYTOWN has to build.
+- Tool permissions, sandboxing (such as it is — Section 4's "no shell/file-write tool" finding), budget enforcement, and concurrency limits are 100% the existing orchestration code path, unchanged.
+- `node.task` strings FLYTOWN's planner writes are treated exactly as planner-authored task strings are treated today — they still go through ordinary worker prompting with no elevated trust, so FLYTOWN introduces no new prompt-injection surface beyond what a task string already has.
+- Reward signals inherit the worker pipeline's existing reward-hacking exposure (Sugar is not adversarially hardened, and since 2026-09-12 it no longer carries a drift penalty either) — flagged as a shared risk, not a new one, in Section 23.
+- Hard caps, independent of any connectome-derived decision: max nodes per plan, max replans (existing default 2), max total budget (existing `Budget`/`enforceOrThrow`), and a **kill switch** — an explicit "fall back to the conventional planner" flip, both as a terrarium-level config default and as a runtime override, satisfied trivially by the `PlannerBackend` injection point itself (swap the implementation, no other change needed).
 - The system must never claim sentience/consciousness in any user-facing string, log, or trace — enforced by a copy-review checklist at ship time, not just this document.
 
 ## 17. Observability and brain-trace format
@@ -304,7 +312,7 @@ Every FLYTOWN decision is traceable end-to-end via `brain-traces/<runId>.json`:
 
 ```jsonc
 {
-  "runId": "...",                         // shared with Goblintown's RunRecord/Rite/Plan
+  "runId": "...",                         // shared with the RunRecord/Flight/Plan
   "connectomeVersion": "fafb-v783-optionA-1",
   "weightsVersion": "readout-v3" ,        // or "untrained" if learning disabled
   "seed": 12345,
@@ -314,22 +322,24 @@ Every FLYTOWN decision is traceable end-to-end via `brain-traces/<runId>.json`:
     { "t": 1, "regionActivity": {...} }
     // ... bounded T steps
   ],
-  "readout": { "actionDistribution": {"spawn_subrite": 0.62, "retry": 0.2, ...},
-               "actionTaken": "spawn_subrite" },
+  "readout": { "actionDistribution": {"spawn_flight": 0.62, "retry": 0.2, ...},
+               "actionTaken": "spawn_flight" },
   "planProduced": { "planId": "...", "nodes": [...], "edges": [...] },
-  "goblintownOutcome": { "riteId": "...", "outcome": "winner", "shinies": 0.81 },
+  "flightOutcome": { "flightId": "...", "outcome": "winner", "sugar": 0.81 },
   "reward": { "value": 0.81, "appliedTo": ["readoutWeights"], "learningEnabled": true },
-  "provenance": { "AL_glom_3": "MEASURED", "readoutMapping_spawn_subrite": "ENGINEERING_CHOICE" }
+  "provenance": { "AL_glom_3": "MEASURED", "readoutMapping_spawn_flight": "ENGINEERING_CHOICE" }
 }
 ```
 
 A plain-text/technical trace view (this JSON, or a rendered table) is **always** available; the biological/artistic visualization (Section "observability" in your brief — dark 3D/2D brain, glowing regions, workers-as-flies) is an optional layer on top, never the only way to see what happened. CLI/API parity with the visual mode is a Milestone-5 requirement, not an afterthought. Deterministic replay = re-run with the same `connectomeVersion` + `weightsVersion` + `seed` + `input`.
 
+*As built:* the trace type is `DecisionTrace` in `src/flytown/trace.ts`, written to `.flytown/traces/<runId>.json`, rendered as plain text by `flytown fly trace` and replayed by `flytown fly replay`.
+
 ## 18. Evaluation and ablation methodology
 
 Every FLYTOWN planner variant is run against the **same task suite, same budgets**, and compared against:
 
-1. Goblintown's existing LLM-based planner (`planTask`, unmodified) — the real baseline that matters commercially.
+1. The existing LLM-based planner (`planTask`, unmodified) — the real baseline that matters commercially.
 2. A conventional rules-based router (simple heuristics over the same input signals).
 3. A small learned neural router (dense/MLP, no biological topology) trained on the same reward.
 4. A random graph with FLYTOWN's actual degree distribution.
@@ -346,7 +356,7 @@ Every FLYTOWN planner variant is run against the **same task suite, same budgets
 
 ## 19. Performance and cost expectations
 
-- **Option A runtime:** sub-millisecond graph propagation per request (≤78-node sparse graph, ≤~20 timesteps); dominant latency is still the LLM calls inside `performRite`, which FLYTOWN does not change. FLYTOWN's own overhead should be negligible against existing Rite latency.
+- **Option A runtime:** sub-millisecond graph propagation per request (≤78-node sparse graph, ≤~20 timesteps); dominant latency is still the LLM calls inside `performFlight`, which FLYTOWN does not change. FLYTOWN's own overhead should be negligible against existing flight latency.
 - **Option A memory/storage:** connectome runtime artifact on the order of tens of KB to low MB; trivial to bundle, version, and diff.
 - **Option C (neuron-level, Milestone 4+):** raw synapse table 9.5 GB on disk (Zenodo v783), consolidated edge list (~3.7M edges) plausibly 70–100 MB as a sparse columnar structure — **this specific size estimate is our own order-of-magnitude calculation, not a published benchmark**, and should be validated against a real preprocessing run before being treated as a planning number. In-memory sparse-graph propagation at this scale is still CPU-feasible (tens to low hundreds of ms per request is a reasonable target, to be measured, not assumed).
 - **No GPU required** for v1 or v2 (Options A/B); GPU acceleration is a possible later optimization for Option C, never a hard requirement per your engineering principles.
@@ -371,7 +381,7 @@ You asked for concrete cost differences before deciding whether full neuron-leve
 
 ## 20. Milestone-by-milestone implementation plan
 
-Revised from your draft based on what the audit found — Milestone numbers preserved, content adjusted where the Goblintown seam or FlyWire data landscape changes the shape of the work.
+Revised from your draft based on what the audit found — Milestone numbers preserved, content adjusted where the planner seam or FlyWire data landscape changes the shape of the work.
 
 **Milestone 0 — Audit & research (this document + its two source reports).** Done pending your approval. Deliverable: this proposal + the falsifiable hypothesis (Section 25) + the ADR this document effectively is.
 
@@ -395,11 +405,11 @@ Revised from your draft based on what the audit found — Milestone numbers pres
 
 **✅ Milestone 3 status (2026-09-11, late):** larval artifact built and verified (2,952 neurons, 110,677 edges, 2,746 plastic KC→MBON synapses, 2 appetitive / 6 aversive DANs, MBON valence labels); runtime generalised to neuron-level substrates (node groups, synapse-type channels, curated signs, k-WTA sparse coding, per-neuron learned readout, DAN-gated plasticity). **Pre-registered primary test: null twice** (`plastic` vs `shuffled+plastic`, p = 1.0 in both the pre-registered and the post-hoc configuration). Suggestive but uncorrected signals in the predicted direction (plasticity helps adapter learning p = 0.014; dopaminergic lesion hurts p = 0.017); removing KC sparsening unexpectedly gave the best larval variant (78%); the rules baseline (82%) still beats everything. Full account with every post-hoc change listed: `docs/flytown/experiments/README.md`.
 
-**✅ First live-model evaluation (2026-09-12):** real Goblintown pipeline on DeepSeek `v4-flash` (thinking disabled via the new `provider.requestParams`), 10 fixtures × 4 planners, 2.57M tokens, 69 min. Real larva vs shuffled larva: termination accuracy 80% vs 80%, **p = 1.0** — the pre-registered null holds live; both transferred constant policies from mock training. `rules` 90%, Goblintown's `llm` planner 100% on what it completed at 2–5× the cost. Goblintown's troll-gated "success" proved non-discriminative live (every plan shape gets rescued by specialists/ogre), so the next requirement is an LLM-judge quality score, more seeds, and live reward. Details: `docs/flytown/experiments/2026-09-12-live-run1-deepseek.md`.
+**✅ First live-model evaluation (2026-09-12; pre-rename record):** real Goblintown pipeline on DeepSeek `v4-flash` (thinking disabled via the new `provider.requestParams`), 10 fixtures × 4 planners, 2.57M tokens, 69 min. Real larva vs shuffled larva: termination accuracy 80% vs 80%, **p = 1.0** — the pre-registered null holds live; both transferred constant policies from mock training. `rules` 90%, Goblintown's `llm` planner 100% on what it completed at 2–5× the cost. Goblintown's troll-gated "success" proved non-discriminative live (every plan shape gets rescued by specialists/ogre), so the next requirement is an LLM-judge quality score, more seeds, and live reward. Details: `docs/flytown/experiments/2026-09-12-live-run1-deepseek.md`.
 
-**✅ Shipped (2026-09-12): `rules` is the default planner.** Full-suite live comparison against Goblintown's own LLM planner (20 fixtures × 2 seeds, 6.88M tokens, n=37 pairs): on completable tasks quality is **indistinguishable** (+0.010, p = 0.89) — correcting an earlier small-sample overstatement — but `rules` uses **39% fewer tokens** (p < 0.0001) and wins **7 of 7** pairs where the right answer is to stop (p = 0.015), because the LLM planner picks `spawn_subrite` for 100% of tasks and has no halt vocabulary. Same answers, meaningfully cheaper, and it knows when to stop. Details: `docs/flytown/experiments/2026-09-12-live-run3-rules-vs-llm.md`.
+**✅ Shipped (2026-09-12; pre-rename record): `rules` is the default planner.** Full-suite live comparison against Goblintown's own LLM planner (20 fixtures × 2 seeds, 6.88M tokens, n=37 pairs): on completable tasks quality is **indistinguishable** (+0.010, p = 0.89) — correcting an earlier small-sample overstatement — but `rules` uses **39% fewer tokens** (p < 0.0001) and wins **7 of 7** pairs where the right answer is to stop (p = 0.015), because the LLM planner picks `spawn_subrite` for 100% of tasks and has no halt vocabulary. Same answers, meaningfully cheaper, and it knows when to stop. Details: `docs/flytown/experiments/2026-09-12-live-run3-rules-vs-llm.md`.
 
-**✅ Live run 2 with the LLM judge (2026-09-12):** 5 planners × 10 fixtures × 2 seeds, 5.24M tokens. Real vs shuffled larva: identical decisions on every task, quality 0.44 vs 0.58 (p = 0.20, i.e. worker noise on identical plans). **`rules` 0.69 quality / 100% termination / 58k tokens beat Goblintown's own `llm` planner (0.39 / 78% / 121k) on every axis.** Third consecutive null for the wiring; the constant-policy collapse under learning is the identified obstacle. The web control surface (`/fly`) is built and verified. Details and proposals: `docs/flytown/experiments/README.md`.
+**✅ Live run 2 with the LLM judge (2026-09-12; pre-rename record):** 5 planners × 10 fixtures × 2 seeds, 5.24M tokens. Real vs shuffled larva: identical decisions on every task, quality 0.44 vs 0.58 (p = 0.20, i.e. worker noise on identical plans). **`rules` 0.69 quality / 100% termination / 58k tokens beat Goblintown's own `llm` planner (0.39 / 78% / 121k) on every axis.** Third consecutive null for the wiring; the constant-policy collapse under learning is the identified obstacle. The web control surface (`/fly`) is built and verified. Details and proposals: `docs/flytown/experiments/README.md`.
 
 **Milestone 3 — Curated circuits (Option B) + restrained learning.**
 - Add mushroom-body / central-complex / dopaminergic / descending-neuron curated subcircuits at cell-type resolution where literature support is real (documented per-circuit, with citations, in the `provenance` trace tags).
@@ -420,9 +430,11 @@ Revised from your draft based on what the audit found — Milestone numbers pres
 
 ## 21. Every file expected to be created, modified, or removed
 
+*Pre-rename record: the fork status, the source-of-truth decision and the strip table describe the Goblintown tree as it was. The list of kept files uses the file names in use since the rename.*
+
 **✅ Status (2026-09-11): the fork-and-strip baseline is done.** `~/flytown/` was built from a fresh `git clone --filter=blob:none` sparse checkout of `0xbl33p/goblintown@main` (not the stale local worktree, which predated the Codex/ChatGPT/Vercel commits and was missing 7 files this section's removal list covers). Result: 48 kept `src/*.ts` files + 38 test files, `npm run build` clean, `npm test` 299/299 passing, single initial commit `fe5dd12` on a fresh `git init` (no remote, nothing pushed). Package provisionally renamed `flytown-core` pending final naming (Section 27). Open follow-ups from that pass, not yet resolved:
 - `site/index.html`'s marketing copy still describes Solana/Thesis/Sentiment/ChatGPT/Codex features that no longer exist in this fork (cosmetic only, not code/tested — left as-is, needs a copy pass).
-- The Firebase Cloud Mode schema (`countries`/`countryJoinRequests` Firestore collections, `profile.countryId`) and its user-facing copy still describe the removed country/federation feature server-side, because `nukeCloudAccountData` (kept, Asteroid Mode) depends on that exact schema to scrub cloud data correctly. Not broken, but describes a feature with no local UI anymore — needs a decision once Cloud Mode itself is revisited.
+- The Firebase Cloud Mode schema (`countries`/`countryJoinRequests` Firestore collections, `profile.countryId`) and its user-facing copy still describe the removed country/federation feature server-side, because `nukeCloudAccountData` (kept, Asteroid Mode) depends on that exact schema to scrub cloud data correctly. Not broken, but describes a feature with no local UI anymore — needs a decision once Cloud Mode itself is revisited. *(Resolved 2026-09-12: the Goblintown Firebase cloud configuration was removed — see [NOTICE.md](./NOTICE.md).)*
 - 4 orphaned static pages (`site/admin.html`, `dashboard.html`, `privacy.html`, `terms.html`) were dropped as an inferred extension of the ChatGPT-App removal (their only referrer was `chatgpt-app.ts`) — not explicitly on the original removal list, flagging for awareness.
 
 
@@ -442,7 +454,7 @@ Revised from your draft based on what the audit found — Milestone numbers pres
 | `src/telemetry.ts` | local-only, not upstream | **Keep, tentatively** — crash-report infra, not a themed bolt-on feature; flagging for your confirmation rather than assuming. |
 | Corresponding test files for every stripped module (`src/__tests__/solana*.test.ts`, `thesis*.test.ts`, `sentiment*.test.ts`, `voice.test.ts`, `federation.test.ts`, `country.test.ts`, `onchain-ui.test.ts`, `addons.test.ts`) and doc pages (`docs/features/cloud-country.md`, `docs/features/research-tools.md` — audit before removing, may contain non-bolt-on content) | — | **Strip alongside their source files**, and remove the now-45-entries-shorter list from `package.json`'s `scripts.test` (Section 4 of the original audit flagged this list as hand-maintained, not a glob — easy to leave stale entries pointing at deleted files if this isn't done carefully). |
 
-**Everything else — the full Loot/Quest/Rite/Plan/Hoard/Artifact/Warren orchestration core, `creatures.ts`, `openai-client.ts`, `providers.ts`, `tools.ts`, `budget.ts`, `concurrency.ts`, `reward.ts`/`reward-plugin.ts`, `run-store.ts`, `chat.ts` (minus its voice dependency), `server.ts` (minus the stripped routes), `cli.ts` (minus the stripped subcommands) — stays, matching what the README itself documents as the product.**
+**Everything else — the full Morsel/Foray/Flight/Plan/Compost/Artifact/Terrarium orchestration core (file names as renamed on 2026-09-12): `castes.ts`, `flight.ts`, `foray.ts`, `compost.ts`, `terrarium.ts`, `scout.ts`, `sting.ts`, `guard-review.ts`, `specialist.ts`, `planner.ts`/`plan-executor.ts`, `artifact.ts`, `openai-client.ts`, `providers.ts`, `tools.ts`, `budget.ts`, `concurrency.ts`, `reward.ts`/`reward-plugin.ts`, `run-store.ts`, `chat.ts` (minus its voice dependency), `server.ts` (minus the stripped routes), `cli.ts` (minus the stripped subcommands) — stays, matching what the README itself documents as the product.**
 
 **Modified (in the new stripped fork, once created) — Milestone 1:**
 - `src/plan-executor.ts` — extract `PlannerBackend` interface, accept it as an injected option, default to wrapped `planTask`. (~20–40 line diff.)
@@ -452,7 +464,7 @@ Revised from your draft based on what the audit found — Milestone numbers pres
 **New (in `~/flytown/`, confirmed as its own repo):**
 - `connectome-etl/` (Python) — CAVE/fafbseg/navis-based preprocessing scripts, one per extraction stage (region aggregation, curated-circuit extraction in Milestone 3, provenance/checksum manifest writer).
 - `src/flytown-planner.ts` (or a small package) — `PlannerBackend` implementation: sensory encoder, connectome engine (graph load + propagation), readout, Plan compiler.
-- `src/connectome-engine.ts` — sparse graph propagation core, dependency-light, unit-testable in isolation from Goblintown.
+- `src/connectome-engine.ts` — sparse graph propagation core, dependency-light, unit-testable in isolation from the worker pipeline.
 - `src/sensory-encoder.ts`, `src/action-readout.ts` — the two trainable-parameter modules.
 - `src/brain-trace.ts` — trace writer/reader matching Section 17's schema.
 - `src/baselines/` — rules-based router, small learned router, random-graph, shuffled-graph, ablated-graph implementations (all `PlannerBackend`s, for the evaluation harness).
@@ -460,24 +472,26 @@ Revised from your draft based on what the audit found — Milestone numbers pres
 - `docs/adr/0001-flytown-integration-seam.md` — this proposal, formalized as an ADR once approved.
 - No files are removed from either repo.
 
+*As built:* the FLYTOWN runtime lives under `src/flytown/` — `planner-backend.ts` and `registry.ts` (the seam), `fly-planner.ts`, `connectome/` (artifact loader, engine, adapters, plasticity), `signals.ts`, `actions.ts`, `trace.ts`, `memory.ts`, `baselines/`, `eval/` (fixtures, harness, judge, mock worker world), `cli.ts` (the `fly` commands) and `web.ts` (the control surface).
+
 ## 22. Dependencies expected to be added
 
 **Python (ETL sidecar only, not shipped with the running product):** `caveclient`, `navis`, `fafbseg`, `pandas`, `pyarrow` (feather/parquet), `numpy`, `scipy` (sparse), `networkx` (baseline degree-distribution/random-graph generation for evaluation).
 
-**TypeScript/Node (runtime, minimal by design):** a sparse-matrix/graph utility if we don't hand-roll one (candidates to evaluate at implementation time, not pre-committed: `graphology` or a small hand-written sparse adjacency-list module — given "keep dependencies minimal," leaning toward hand-rolled given the graph sizes involved at Option A/B). No new LLM/provider dependencies — FLYTOWN reuses Goblintown's existing `openai-client.ts`/`providers.ts` untouched for anything that still needs a model call (e.g. the sensory encoder's embedding step, if we reuse Goblintown's existing embeddings.ts rather than adding a second embedding pipeline — recommended, to avoid two parallel embedding-model configs).
+**TypeScript/Node (runtime, minimal by design):** a sparse-matrix/graph utility if we don't hand-roll one (candidates to evaluate at implementation time, not pre-committed: `graphology` or a small hand-written sparse adjacency-list module — given "keep dependencies minimal," leaning toward hand-rolled given the graph sizes involved at Option A/B). No new LLM/provider dependencies — FLYTOWN reuses the existing `openai-client.ts`/`providers.ts` untouched for anything that still needs a model call (e.g. the sensory encoder's embedding step, if we reuse the existing `embeddings.ts` rather than adding a second embedding pipeline — recommended, to avoid two parallel embedding-model configs).
 
-**No new mandatory runtime service.** No GPU dependency. No new database (flat JSON, matching Goblintown's own persistence philosophy).
+**No new mandatory runtime service.** No GPU dependency. No new database (flat JSON, matching the Compost's own persistence philosophy).
 
 ## 23. Major unknowns, risks, and possible failure modes
 
 - **The headline scientific risk:** FLYTOWN performs statistically indistinguishably from the shuffled-graph baseline. This is a real, live possibility, explicitly designed for in Section 18, and must be reported honestly if it happens.
 - **Licensing risk (Section 10, 24):** CC-BY vs. CC-BY-NC conflict between the archival synapse data and the live annotation layer is unresolved and could block commercial shipping entirely until FlyWire/Princeton clarifies or grants an exception.
 - **"Themed state machine" risk:** Option A alone, without the evaluation harness actually being run and reported honestly, would be indistinguishable in spirit from "a themed random-number generator" — the harness is not optional scaffolding, it is the thing that makes this project defensible at all.
-- **Reward-hacking risk is inherited, not new:** Goblintown's own Shinies signal has no adversarial hardening beyond a drift penalty; FLYTOWN's reward-modulated learning (Section 13) makes this matter more once anything is actually trainable, so hardening it becomes higher priority once Milestone 3 begins.
-- **Existing Goblintown gaps that become more consequential under FLYTOWN:** no per-model-call timeout, single global (not per-slot) concurrency semaphore, no tool-argument schema validation (Section 14/4) — none of these are FLYTOWN's fault, but a more dynamically-routing planner will exercise them harder than the current LLM planner does.
+- **Reward-hacking risk is inherited, not new:** the worker pipeline's Sugar signal has no adversarial hardening (and since 2026-09-12 no drift penalty either); FLYTOWN's reward-modulated learning (Section 13) makes this matter more once anything is actually trainable, so hardening it becomes higher priority once Milestone 3 begins.
+- **Inherited pipeline gaps that become more consequential under FLYTOWN:** no per-model-call timeout, single global (not per-slot) concurrency semaphore, no tool-argument schema validation (Section 14/4) — none of these are FLYTOWN's fault, but a more dynamically-routing planner will exercise them harder than the current LLM planner does.
 - **Root-ID drift:** any FLYTOWN artifact built from live Codex queries rather than the pinned Zenodo v783 snapshot risks silent desynchronization as community proofreading continues; mitigated by pinning to the archival snapshot (Section 10) but must be enforced in the ETL tooling, not just documented.
 - **Neurotransmitter-sign risk:** ~94% per-neuron accuracy with known systematic misidentification in some populations means the excitatory/inhibitory sign layer is the least trustworthy `INFERRED_FROM_LITERATURE` component in the whole system — worth a dedicated ablation (sign-randomized graph) in addition to Section 18's list if early results are sign-sensitive.
-- **Scope-creep risk from Goblintown itself:** the crypto/trading and federation/social subsystems the audit surfaced are large, unrelated surface area; explicitly out of scope unless you say otherwise, but easy to accidentally couple to if FLYTOWN development happens inside the same repo rather than the separate `~/flytown/` tree recommended in Section 21.
+- **Scope-creep risk from the upstream codebase:** the crypto/trading and federation/social subsystems the audit surfaced are large, unrelated surface area; explicitly out of scope unless you say otherwise, but easy to accidentally couple to if FLYTOWN development happens inside the same repo rather than the separate `~/flytown/` tree recommended in Section 21.
 - **FlyBrainLab is not a viable dependency** (last meaningful commit ~Sept 2025, last PyPI release June 2024) — already reflected in Section 22's dependency list (we go directly to `caveclient`/`navis`/`fafbseg-py`), flagged here as a risk in case anyone on the team assumed otherwise from the original brief's reading list.
 
 ## 24. Licensing and attribution considerations
@@ -494,15 +508,17 @@ Run **Milestone 2 only** (Option A, no learning, no curated circuits) through th
 
 ## 26. Clear acceptance criteria for the first prototype (end of Milestone 2)
 
-1. `PlannerBackend` interface exists in Goblintown, default behavior unchanged for existing users, verified by Goblintown's own existing test suite still passing unmodified.
+1. `PlannerBackend` interface exists in the orchestrator, default behavior unchanged for existing users, verified by the existing test suite still passing unmodified.
 2. FAFB v783 region-level (Option A) runtime artifact is built, versioned, checksummed, and reproducible from a documented, re-runnable ETL script.
-3. FLYTOWN-A `PlannerBackend` runs the full fixed task suite end-to-end, producing valid `Plan`s that pass Goblintown's existing `validatePlan`, with zero crashes/invalid-activity fallbacks required.
+3. FLYTOWN-A `PlannerBackend` runs the full fixed task suite end-to-end, producing valid `Plan`s that pass the existing `validatePlan`, with zero crashes/invalid-activity fallbacks required.
 4. Baselines #1, #2, #3, #4, #5 all implemented and run on the identical task suite/budgets.
-5. Brain-trace JSON produced for every run, cross-linked to Goblintown's own `RunRecord`, and independently replayable (same seed/version/input → identical trace).
+5. Brain-trace JSON produced for every run, cross-linked to the orchestrator's own `RunRecord`, and independently replayable (same seed/version/input → identical trace).
 6. Evaluation report published with honest metrics per Section 18 — including explicit reporting of the shuffled-graph comparison regardless of outcome.
 7. No claim anywhere in code, docs, or UI copy of consciousness, sentience, or a "captured mind."
 
 ## 27. Questions that genuinely require your decision
+
+*Pre-rename record: the questions as posed before the fork. They have since been settled — see the Section 20 and 21 status notes and [NOTICE.md](./NOTICE.md).*
 
 **Resolved this round:** licensing risk tolerance (non-commercial, no blocker), repo placement (`~/flytown/`, own repo), Milestone 1 baseline order (no preference — I'll build the rules-based router first since it's the simpler groundwork, then the small learned router, unless you object), task-suite realism (real repos on this machine), curation review process (draft-then-async-validate), and fidelity ambition (Option C is the committed destination, cost-justified in Section 19a).
 
@@ -515,5 +531,7 @@ Run **Milestone 2 only** (Option A, no learning, no curated circuits) through th
 5. **Green light to actually start:** you asked me to revise the proposal first rather than touch any repo — this revision is that. Once you've read it, do you want me to (a) do the 7-file upstream audit next, (b) go ahead and fork+strip into `~/flytown/` now, or (c) something else first?
 
 ---
+
+*Pre-rename record — the original v0.2 closing note:*
 
 *No implementation code exists yet. Nothing above is approved except where explicitly marked "Resolved this round." This document and its two source research passes (Goblintown source audit; FlyWire dataset/licensing research) are available in full if you want the underlying citations or file:line references for any claim above.*

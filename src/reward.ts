@@ -1,12 +1,20 @@
-import { crossCreatureDrift } from "./drift.js";
-import type { Loot, TrollVerdict } from "./types.js";
+import type { Morsel, GuardVerdict } from "./types.js";
 
-export function shinies(loot: Loot, verdict: TrollVerdict): number {
-  const cross = crossCreatureDrift(loot.output, loot.creatureKind);
-  const driftPenalty = Math.min(0.5, cross * 4);
-  const trollScore = clamp01(verdict.score);
+/**
+ * Sugar — the default reward for a candidate morsel:
+ *
+ *   sugar = clamp01(guardScore + passBonus)    passBonus = 0.1 when the guard passed it
+ *
+ * Sugar deliberately does not subtract a drift penalty. The caste names are
+ * ordinary English words ("add a guard clause", "scout the codebase"), so
+ * penalising outputs that mention them would punish correct answers. Drift is
+ * still measured and recorded on every morsel (see drift.ts) as the detector
+ * for the themed worker prompts leaking into outputs.
+ */
+export function sugar(_morsel: Morsel, verdict: GuardVerdict): number {
+  const guardScore = clamp01(verdict.score);
   const passBonus = verdict.passed ? 0.1 : 0;
-  return clamp01(trollScore - driftPenalty + passBonus);
+  return clamp01(guardScore + passBonus);
 }
 
 function clamp01(n: number): number {

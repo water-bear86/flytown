@@ -3,7 +3,7 @@
  * stripping a leading ```json code fence if present. Returns the matched
  * substring (still unparsed) or null when no balanced object is found.
  *
- * Shared by the creatures that ask a model for a single JSON object
+ * Shared by the insects that ask a model for a single JSON object
  * (artifact, planner, specialist) and by the output formatter.
  */
 export function extractFirstJsonObject(s: string): string | null {

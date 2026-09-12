@@ -1,104 +1,104 @@
-import type { Hoard } from "./hoard.js";
-import type { Loot, Rite, TrollVerdict } from "./types.js";
+import type { Compost } from "./compost.js";
+import type { Morsel, Flight, GuardVerdict } from "./types.js";
 
-export async function renderRiteGraph(
-  hoard: Hoard,
-  riteId: string,
+export async function renderFlightGraph(
+  compost: Compost,
+  flightId: string,
 ): Promise<string | null> {
-  const rite = await hoard.getRite(riteId);
-  if (!rite) return null;
+  const flight = await compost.getFlight(flightId);
+  if (!flight) return null;
 
   const ids = new Set<string>();
-  if (rite.contextLootId) ids.add(rite.contextLootId);
-  for (const id of rite.goblinLootIds) ids.add(id);
-  for (const id of Object.values(rite.chaosLootIds)) ids.add(id);
-  if (rite.ogreLootId) ids.add(rite.ogreLootId);
-  // trolls aren't in the rite manifest by id — find them via parent links
-  const allLoot = await hoard.allLoot();
-  const trollByGoblin = new Map<string, Loot>();
-  for (const l of allLoot) {
-    if (l.creatureKind !== "troll" || l.riteId !== riteId) continue;
-    const goblinId = l.parentLootIds?.[0];
-    if (goblinId) trollByGoblin.set(goblinId, l);
+  if (flight.contextMorselId) ids.add(flight.contextMorselId);
+  for (const id of flight.foragerMorselIds) ids.add(id);
+  for (const id of Object.values(flight.stingMorselIds)) ids.add(id);
+  if (flight.soldierMorselId) ids.add(flight.soldierMorselId);
+  // guards aren't in the flight manifest by id — find them via parent links
+  const allMorsels = await compost.allMorsels();
+  const guardByForager = new Map<string, Morsel>();
+  for (const l of allMorsels) {
+    if (l.caste !== "guard" || l.flightId !== flightId) continue;
+    const foragerId = l.parentMorselIds?.[0];
+    if (foragerId) guardByForager.set(foragerId, l);
   }
 
-  const lootById = new Map<string, Loot>();
+  const morselById = new Map<string, Morsel>();
   for (const id of ids) {
-    const l = await hoard.getLoot(id);
-    if (l) lootById.set(id, l);
+    const l = await compost.getMorsel(id);
+    if (l) morselById.set(id, l);
   }
-  for (const t of trollByGoblin.values()) lootById.set(t.id, t);
+  for (const t of guardByForager.values()) morselById.set(t.id, t);
 
   const lines: string[] = [];
-  lines.push(`rite ${rite.id}  outcome=${rite.outcome}  pack=${rite.packSize}  personality=${rite.personality}`);
-  lines.push(`task: ${truncate(rite.task, 100)}`);
+  lines.push(`flight ${flight.id}  outcome=${flight.outcome}  swarm=${flight.swarmSize}  personality=${flight.personality}`);
+  lines.push(`task: ${truncate(flight.task, 100)}`);
   lines.push("");
 
-  if (rite.contextLootId) {
-    const r = lootById.get(rite.contextLootId);
-    lines.push(`├─ raccoon  ${rite.contextLootId}${formatTokens(r)}`);
+  if (flight.contextMorselId) {
+    const r = morselById.get(flight.contextMorselId);
+    lines.push(`├─ scout    ${flight.contextMorselId}${formatTokens(r)}`);
   }
 
-  for (let i = 0; i < rite.goblinLootIds.length; i++) {
-    const gid = rite.goblinLootIds[i];
-    const goblin = lootById.get(gid);
-    const chaosId = rite.chaosLootIds[gid];
-    const troll = trollByGoblin.get(gid);
-    const verdict = rite.trollVerdicts[gid];
-    const isWinner = gid === rite.winnerLootId;
+  for (let i = 0; i < flight.foragerMorselIds.length; i++) {
+    const gid = flight.foragerMorselIds[i];
+    const forager = morselById.get(gid);
+    const stingId = flight.stingMorselIds[gid];
+    const guard = guardByForager.get(gid);
+    const verdict = flight.guardVerdicts[gid];
+    const isWinner = gid === flight.winnerMorselId;
 
-    const head = `${i === rite.goblinLootIds.length - 1 && !rite.ogreLootId ? "└─" : "├─"} goblin   ${gid}${formatRewardOrTokens(goblin)}${isWinner ? "  ★ winner" : ""}`;
+    const head = `${i === flight.foragerMorselIds.length - 1 && !flight.soldierMorselId ? "└─" : "├─"} forager  ${gid}${formatRewardOrTokens(forager)}${isWinner ? "  ★ winner" : ""}`;
     lines.push(head);
-    if (chaosId) {
-      lines.push(`│   ├─ gremlin ${chaosId}${formatTokens(lootById.get(chaosId))}`);
+    if (stingId) {
+      lines.push(`│   ├─ wasp    ${stingId}${formatTokens(morselById.get(stingId))}`);
     }
-    if (troll) {
+    if (guard) {
       lines.push(
-        `│   └─ troll   ${troll.id}${formatVerdict(verdict)}${formatTokens(troll)}`,
+        `│   └─ guard   ${guard.id}${formatVerdict(verdict)}${formatTokens(guard)}`,
       );
     } else {
-      lines.push(`│   └─ troll   (no verdict)`);
+      lines.push(`│   └─ guard   (no verdict)`);
     }
   }
 
-  if (rite.ogreLootId) {
-    const ogre = lootById.get(rite.ogreLootId);
+  if (flight.soldierMorselId) {
+    const soldier = morselById.get(flight.soldierMorselId);
     lines.push(
-      `└─ ogre     ${rite.ogreLootId}${formatTokens(ogre)}  ★ winner (fallback)`,
+      `└─ soldier  ${flight.soldierMorselId}${formatTokens(soldier)}  ★ winner (fallback)`,
     );
   }
 
   // Phase 1+6 artifact lineage block
-  const artifact = await hoard.getArtifactByRiteId(riteId);
+  const artifact = await compost.getArtifactByFlightId(flightId);
   if (artifact) {
     lines.push("");
     lines.push("artifact lineage:");
     if (artifact.parentArtifactIds.length > 0) {
-      const all = await hoard.allArtifacts();
+      const all = await compost.allArtifacts();
       const byId = new Map(all.map((a) => [a.id, a] as const));
       for (const pid of artifact.parentArtifactIds) {
         const p = byId.get(pid);
-        if (p) lines.push(`  ⤴ parent ${p.id}  rite=${p.riteId}  task="${truncate(p.task, 60)}"`);
+        if (p) lines.push(`  ⤴ parent ${p.id}  flight=${p.flightId}  task="${truncate(p.task, 60)}"`);
         else lines.push(`  ⤴ parent ${pid}  (missing)`);
       }
     }
     lines.push(`  ★ this  ${artifact.id}  claims=${artifact.claims.length}  open=${artifact.openQuestions.length}`);
-    const all = await hoard.allArtifacts();
+    const all = await compost.allArtifacts();
     const children = all.filter((a) => a.parentArtifactIds.includes(artifact.id));
     for (const c of children) {
-      lines.push(`  ⤵ child  ${c.id}  rite=${c.riteId}  task="${truncate(c.task, 60)}"`);
+      lines.push(`  ⤵ child  ${c.id}  flight=${c.flightId}  task="${truncate(c.task, 60)}"`);
     }
   }
 
   return lines.join("\n");
 }
 
-export async function renderLootAncestry(
-  hoard: Hoard,
+export async function renderMorselAncestry(
+  compost: Compost,
   rootId: string,
   maxDepth = 12,
 ): Promise<string | null> {
-  const root = await hoard.getLoot(rootId);
+  const root = await compost.getMorsel(rootId);
   if (!root) return null;
   const seen = new Set<string>();
   const lines: string[] = [];
@@ -113,13 +113,13 @@ export async function renderLootAncestry(
       return;
     }
     seen.add(id);
-    const l = await hoard.getLoot(id);
+    const l = await compost.getMorsel(id);
     if (!l) {
       lines.push(prefix + `(missing ${id})`);
       return;
     }
-    lines.push(`${prefix}${l.creatureKind.padEnd(8)} ${l.id}${formatRewardOrTokens(l)}`);
-    const parents = l.parentLootIds ?? [];
+    lines.push(`${prefix}${l.caste.padEnd(9)} ${l.id}${formatRewardOrTokens(l)}`);
+    const parents = l.parentMorselIds ?? [];
     for (let i = 0; i < parents.length; i++) {
       const isLast = i === parents.length - 1;
       const newPrefix = prefix + (isLast ? "└─ " : "├─ ");
@@ -138,19 +138,19 @@ export async function renderLootAncestry(
   return lines.join("\n");
 }
 
-function formatVerdict(v?: TrollVerdict): string {
+function formatVerdict(v?: GuardVerdict): string {
   if (!v) return "";
   return `  [${v.passed ? "PASS" : "FAIL"} score=${v.score.toFixed(2)}]`;
 }
 
-function formatTokens(l: Loot | undefined): string {
+function formatTokens(l: Morsel | undefined): string {
   if (!l?.usage) return "";
   return `  (${l.usage.totalTokens} tok)`;
 }
 
-function formatRewardOrTokens(l: Loot | undefined): string {
+function formatRewardOrTokens(l: Morsel | undefined): string {
   if (!l) return "";
-  const r = l.reward !== undefined ? `  shinies=${l.reward.toFixed(3)}` : "";
+  const r = l.reward !== undefined ? `  sugar=${l.reward.toFixed(3)}` : "";
   return r + formatTokens(l);
 }
 

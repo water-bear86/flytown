@@ -4,7 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { executePlan } from "../plan-executor.js";
-import { Hoard } from "../hoard.js";
+import { Compost } from "../compost.js";
 import type { Plan } from "../types.js";
 import { withFallback, type PlannerBackend } from "../flytown/planner-backend.js";
 import { rulesPlannerBackend } from "../flytown/baselines/rules.js";
@@ -14,7 +14,7 @@ import { FlyPlannerBackend } from "../flytown/fly-planner.js";
 import { makeGraph } from "../flytown/connectome/artifact.js";
 import { DEFAULT_ENGINE_PARAMS } from "../flytown/connectome/engine.js";
 import { resolvePlannerBackend, parsePlannerSpec } from "../flytown/registry.js";
-import { makeMockRiteRunner } from "../flytown/eval/mock-rite.js";
+import { makeMockFlightRunner } from "../flytown/eval/mock-flight.js";
 import { FIXTURES } from "../flytown/eval/fixtures.js";
 import { readTrace, writeTrace } from "../flytown/trace.js";
 import { replayTrace, diffPlans } from "../flytown/cli.js";
@@ -41,42 +41,42 @@ export function miniBrain() {
   return makeGraph({ id: "mini-brain-1", nodes, edges, nt });
 }
 
-async function tmpHoard() {
+async function tmpCompost() {
   const dir = await mkdtemp(join(tmpdir(), "flytown-plan-"));
-  const hoard = new Hoard(join(dir, "hoard"));
-  await hoard.init();
-  return { dir, hoard };
+  const compost = new Compost(join(dir, "compost"));
+  await compost.init();
+  return { dir, compost };
 }
 
 describe("executePlan seam", () => {
-  it("honours a halted plan without running any rite", async () => {
-    const { dir, hoard } = await tmpHoard();
+  it("honours a halted plan without running any flight", async () => {
+    const { dir, compost } = await tmpCompost();
     const plan: Plan = { id: "p", rootTask: "t", nodes: [], edges: [], replanDepth: 0, createdAt: 0, halt: { kind: "blocked", reason: "no access" } };
-    let rites = 0;
+    let flights = 0;
     const events: string[] = [];
-    const res = await executePlan({ plan, cwd: dir, hoard, riteRunner: async () => { rites++; throw new Error("should not run"); }, onPlanEvent: (e) => events.push(e.kind) });
+    const res = await executePlan({ plan, cwd: dir, compost, flightRunner: async () => { flights++; throw new Error("should not run"); }, onPlanEvent: (e) => events.push(e.kind) });
     assert.equal(res.outcome, "halted");
     assert.equal(res.halt?.kind, "blocked");
-    assert.equal(rites, 0);
+    assert.equal(flights, 0);
     assert.deepEqual(events, ["plan:start", "plan:halt", "plan:done"]);
   });
   it("replans through the injected planner backend and counts replans", async () => {
-    const { dir, hoard } = await tmpHoard();
+    const { dir, compost } = await tmpCompost();
     const fixture = FIXTURES.find((f) => f.id === "misleading-cache")!;
-    const runner = makeMockRiteRunner({ fixture, seed: 1 });
+    const runner = makeMockFlightRunner({ fixture, seed: 1 });
     const calls: number[] = [];
     const planner: PlannerBackend = {
       id: "stub",
       plan: async (req) => {
         calls.push(req.replanDepth ?? 0);
         return { plan: { id: `p${req.replanDepth}`, rootTask: req.task, replanDepth: req.replanDepth ?? 0, createdAt: 0, edges: [{ from: "investigate", to: "main" }], nodes: [
-          { id: "investigate", task: "look", inputs: [], kind: "sub_rite", status: "pending", packSize: 2, hints: { action: "request_artifact_investigation" } },
-          { id: "main", task: "do", inputs: ["investigate"], kind: "sub_rite", status: "pending", packSize: 3, hints: { action: "spawn_subrite" } },
+          { id: "investigate", task: "look", inputs: [], kind: "flight", status: "pending", swarmSize: 2, hints: { action: "request_artifact_investigation" } },
+          { id: "main", task: "do", inputs: ["investigate"], kind: "flight", status: "pending", swarmSize: 3, hints: { action: "spawn_flight" } },
         ] } };
       },
     };
-    const first: Plan = { id: "p-first", rootTask: fixture.task, nodes: [{ id: "main", task: "do", inputs: [], kind: "sub_rite", status: "pending", packSize: 3, hints: { action: "spawn_subrite" } }], edges: [], replanDepth: 0, createdAt: 0 };
-    const res = await executePlan({ plan: first, cwd: fixture.repo, hoard, planner, riteRunner: runner, maxReplanDepth: 2 });
+    const first: Plan = { id: "p-first", rootTask: fixture.task, nodes: [{ id: "main", task: "do", inputs: [], kind: "flight", status: "pending", swarmSize: 3, hints: { action: "spawn_flight" } }], edges: [], replanDepth: 0, createdAt: 0 };
+    const res = await executePlan({ plan: first, cwd: fixture.repo, compost, planner, flightRunner: runner, maxReplanDepth: 2 });
     assert.ok(res.replans >= 1, "the misleading fixture forces at least one replan");
     assert.deepEqual(calls.slice(0, 1), [1]);
     assert.ok(["success", "failed"].includes(res.outcome));
@@ -88,7 +88,7 @@ describe("baseline backends", () => {
     const rules = rulesPlannerBackend();
     const expect = async (id: string, kind: string | undefined) => {
       const f = FIXTURES.find((x) => x.id === id)!;
-      const prior = Array.from({ length: f.priorArtifacts ?? 0 }, (_, i) => ({ id: `a${i}`, riteId: "r", task: "t", outcome: "winner" as const, claims: [], evidence: [], openQuestions: [], nextSteps: [], parentArtifactIds: [], keywords: [], timestamp: 0 }));
+      const prior = Array.from({ length: f.priorArtifacts ?? 0 }, (_, i) => ({ id: `a${i}`, flightId: "r", task: "t", outcome: "winner" as const, claims: [], evidence: [], openQuestions: [], nextSteps: [], parentArtifactIds: [], keywords: [], timestamp: 0 }));
       const { plan, trace } = await rules.plan({ task: f.task, cwd: f.repo, extraSignals: f.extra, parentArtifacts: prior, runId: `t-${id}`, repo: { present: true, fileCount: 100, languages: {}, hasTests: true, hasPackageManifest: true, frameworks: [], truncated: false } });
       assert.equal(plan.halt?.kind, kind, `${id}: expected halt ${kind}, got ${plan.halt?.kind} (primary ${trace?.decision.primary})`);
       assert.ok(trace, "rules emits a trace");
@@ -111,10 +111,10 @@ describe("baseline backends", () => {
   it("learned: untrained is uniform, training moves probability toward rewarded actions", async () => {
     const x = new Float64Array(FEATURE_NAMES.length); x[FEATURE_NAMES.indexOf("cue_blocked")] = 1;
     const before = linearScores(uniformWeights(), x);
-    assert.ok(Math.abs(before.terminate_blocked - before.spawn_subrite) < 1e-9);
-    const w = trainLinearRouter([{ features: Array.from(x), action: "terminate_blocked", reward: 1 }, { features: Array.from(x), action: "spawn_subrite", reward: -1 }], { epochs: 50 });
+    assert.ok(Math.abs(before.terminate_blocked - before.spawn_flight) < 1e-9);
+    const w = trainLinearRouter([{ features: Array.from(x), action: "terminate_blocked", reward: 1 }, { features: Array.from(x), action: "spawn_flight", reward: -1 }], { epochs: 50 });
     const after = linearScores(w, x);
-    assert.ok(after.terminate_blocked > after.spawn_subrite * 2);
+    assert.ok(after.terminate_blocked > after.spawn_flight * 2);
     const backend = learnedPlannerBackend({ weights: w });
     const res = await backend.plan({ task: "We are blocked on access to the vault", cwd: "/nope", runId: "l1" });
     assert.equal(res.plan.halt?.kind, "blocked");

@@ -21,30 +21,30 @@
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { Express, Request, Response } from "express";
-import type { Warren } from "../warren.js";
+import type { Terrarium } from "../terrarium.js";
 import { DEFAULT_PLANNER, KNOWN_PLANNER_SPECS, resolvePlannerBackend } from "./registry.js";
 import { listTraces, readTrace, renderTraceText, writeTrace } from "./trace.js";
 import { defaultConnectomeRoot, degreeStats, groupIndex, listConnectomes, loadConnectome } from "./connectome/artifact.js";
 import { diffPlans, replayTrace } from "./cli.js";
 
-export function registerFlyRoutes(app: Express, warren: Warren): void {
-  const root = warren.root;
+export function registerFlyRoutes(app: Express, terrarium: Terrarium): void {
+  const root = terrarium.root;
 
   app.get("/fly", (_req, res) => {
-    res.type("html").send(flyPageHtml(warren.manifest.name));
+    res.type("html").send(flyPageHtml(terrarium.manifest.name));
   });
 
   app.get("/api/fly/planners", async (_req, res) => {
-    res.json({ planners: KNOWN_PLANNER_SPECS, connectomes: await listConnectomes(), default: warren.manifest.flytown?.planner ?? DEFAULT_PLANNER });
+    res.json({ planners: KNOWN_PLANNER_SPECS, connectomes: await listConnectomes(), default: terrarium.manifest.flytown?.planner ?? DEFAULT_PLANNER });
   });
 
   app.post("/api/fly/plan", async (req: Request, res: Response) => {
     const body = (req.body ?? {}) as { task?: unknown; planner?: unknown; maxNodes?: unknown };
     const task = typeof body.task === "string" ? body.task.trim() : "";
     if (!task) { res.status(400).json({ error: "task is required" }); return; }
-    const spec = typeof body.planner === "string" && body.planner.trim() ? body.planner.trim() : (warren.manifest.flytown?.planner ?? DEFAULT_PLANNER);
+    const spec = typeof body.planner === "string" && body.planner.trim() ? body.planner.trim() : (terrarium.manifest.flytown?.planner ?? DEFAULT_PLANNER);
     try {
-      const backend = resolvePlannerBackend(spec, { root, seed: warren.manifest.flytown?.seed, connectome: warren.manifest.flytown?.connectome, learning: warren.manifest.flytown?.learning, fallback: false });
+      const backend = resolvePlannerBackend(spec, { root, seed: terrarium.manifest.flytown?.seed, connectome: terrarium.manifest.flytown?.connectome, learning: terrarium.manifest.flytown?.learning, fallback: false });
       const runId = `${spec.replace(/[^a-z0-9]+/gi, "_")}-${Date.now().toString(36)}`;
       const out = await backend.plan({ task, cwd: root, maxNodes: typeof body.maxNodes === "number" ? body.maxNodes : 6, runId });
       if (out.trace) await writeTrace(root, out.trace);
@@ -142,13 +142,13 @@ export function registerFlyRoutes(app: Express, warren: Warren): void {
   });
 }
 
-export function flyPageHtml(warrenName: string): string {
+export function flyPageHtml(terrariumName: string): string {
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FLYTOWN · ${escapeHtml(warrenName)}</title>
+<title>FLYTOWN · ${escapeHtml(terrariumName)}</title>
 <style>
   :root { color-scheme: dark; --bg:#07090d; --panel:#0e1219; --panel2:#131a24; --line:#1f2a38; --ink:#dfe7f1; --muted:#8a98ab; --acc:#7cf3c9; --warn:#f6c177; --bad:#ff7b8a; --mono: ui-monospace, SFMono-Regular, Menlo, monospace; }
   * { box-sizing: border-box; }
@@ -220,7 +220,7 @@ export function flyPageHtml(warrenName: string): string {
 </style>
 </head>
 <body>
-<header><h1>FLYTOWN</h1><span class="sub">a real animal connectome routing a synthetic swarm</span><span class="meta">warren: ${escapeHtml(warrenName)}</span></header>
+<header><h1>FLYTOWN</h1><span class="sub">a real animal connectome routing a synthetic swarm</span><span class="meta">terrarium: ${escapeHtml(terrariumName)}</span></header>
 <nav class="tabs">
   <button class="active" data-tab="run">Run</button>
   <button data-tab="traces">Traces</button>
@@ -292,7 +292,7 @@ export function flyPageHtml(warrenName: string): string {
 <section class="tab" id="tab-about">
   <div class="card">
     <h2>What this is</h2>
-    <p>A published, static wiring diagram of a fruit-fly brain (FlyWire FAFB v783 collapsed to brain regions, or the whole first-instar larval brain from Winding et al. 2023) is used as the fixed topology of a small dynamical system. A task becomes a sensory pattern; activity propagates; a readout maps the resulting pattern to one of thirteen orchestration actions; that action becomes a Goblintown plan and the existing worker pipeline executes it unchanged.</p>
+    <p>A published, static wiring diagram of a fruit-fly brain (FlyWire FAFB v783 collapsed to brain regions, or the whole first-instar larval brain from Winding et al. 2023) is used as the fixed topology of a small dynamical system. A task becomes a sensory pattern; activity propagates; a readout maps the resulting pattern to one of thirteen orchestration actions; that action becomes a FLYTOWN plan and the existing worker pipeline executes it unchanged.</p>
     <h2>What it is not</h2>
     <p>Not a mind, not a simulation of a living animal, not conscious. The connectome is anatomy: it carries no firing thresholds, receptor kinetics, learning history or internal state. Every quantity here is tagged <span class="tag MEASURED">MEASURED</span> (from the data), <span class="tag INFERRED_FROM_LITERATURE">INFERRED_FROM_LITERATURE</span>, <span class="tag ENGINEERING_CHOICE">ENGINEERING_CHOICE</span> or <span class="tag METAPHOR">METAPHOR</span> so you can see which is which.</p>
     <h2>Where the evidence stands</h2>
@@ -353,7 +353,7 @@ function brainSvg(brain, t) {
 function traceHtml(t, text) {
   let h = "";
   h += '<div class="row"><b>' + esc(t.plannerId) + '</b><span class="tag">' + esc(t.runId) + '</span></div>';
-  h += '<p><b>Decision:</b> ' + esc(t.decision.primary) + (t.decision.included.length ? ' + ' + esc(t.decision.included.join(", ")) : "") + ' · pack ' + t.decision.packSize + ' · ' + esc(t.decision.personality) + '</p>';
+  h += '<p><b>Decision:</b> ' + esc(t.decision.primary) + (t.decision.included.length ? ' + ' + esc(t.decision.included.join(", ")) : "") + ' · swarm ' + t.decision.swarmSize + ' · ' + esc(t.decision.personality) + '</p>';
   const scores = Object.entries(t.actionScores).sort((a, b) => b[1] - a[1]);
   h += '<table><tr><th>action</th><th style="width:55%">score</th></tr>' + scores.slice(0, 8).map(([a, v]) => '<tr><td>' + esc(a) + '</td><td><div class="bar"><i style="width:' + (v * 100).toFixed(1) + '%"></i></div><span class="muted">' + v.toFixed(3) + '</span></td></tr>').join("") + '</table>';
   if (t.brain) {
@@ -363,7 +363,7 @@ function traceHtml(t, text) {
     h += '<p class="muted">' + esc(t.decision.primary) + ' ← ' + contrib.slice(0, 5).map(([g, c]) => esc(g) + ' (' + c.toFixed(2) + ')').join(', ') + '</p>';
     if (t.brain.plastic) h += '<p class="muted">plastic synapses: ' + t.brain.plastic.edges + ' · depressed ' + t.brain.plastic.depressedEdges + ' · mean×' + t.brain.plastic.meanMultiplier.toFixed(3) + '</p>';
   }
-  h += '<p><b>Plan:</b> ' + (t.plan.halt ? 'HALT ' + esc(t.plan.halt.kind) + ' — ' + esc(t.plan.halt.reason) : esc(t.plan.nodes.map((n) => n.id + '[' + (n.hints && n.hints.action || n.kind) + ',pack=' + n.packSize + ']').join(' → '))) + '</p>';
+  h += '<p><b>Plan:</b> ' + (t.plan.halt ? 'HALT ' + esc(t.plan.halt.kind) + ' — ' + esc(t.plan.halt.reason) : esc(t.plan.nodes.map((n) => n.id + '[' + (n.hints && n.hints.action || n.kind) + ',swarm=' + n.swarmSize + ']').join(' → '))) + '</p>';
   h += '<details><summary class="muted">Provenance tags</summary><p>' + Object.entries(t.provenance).map(([k, v]) => esc(k) + ' <span class="tag ' + esc(v) + '">' + esc(v) + '</span>').join('<br>') + '</p></details>';
   h += '<h2 style="margin-top:12px">Plain text</h2><pre>' + esc(text) + '</pre>';
   return h;
@@ -412,11 +412,11 @@ function renderDag(plan) {
   d.innerHTML = nodes.map((n, i) => {
     const st = dagState.get(n.id) || {};
     const cls = st.status ? " " + st.status : "";
-    const flies = st.status === "running" ? Number(n.packSize || 1) : st.status === "done" ? Number(n.packSize || 1) : 0;
+    const flies = st.status === "running" ? Number(n.swarmSize || 1) : st.status === "done" ? Number(n.swarmSize || 1) : 0;
     return (i ? '<span class="arrow">→</span>' : "") +
       '<div class="dagnode' + cls + '" id="dagnode-' + esc(n.id) + '"><div class="nid">' + esc(n.id) + (st.status ? " · " + esc(st.status) : "") + '</div>' +
       '<div class="nact">' + esc((n.hints && n.hints.action) || n.kind) + '</div>' +
-      '<div class="nmeta">pack ' + esc(String(n.packSize || 1)) + ' · ' + esc(n.personality || "?") + (st.outcome ? '<br>' + esc(st.outcome) : "") + (st.step ? '<br>' + esc(st.step) : "") + '</div>' +
+      '<div class="nmeta">swarm ' + esc(String(n.swarmSize || 1)) + ' · ' + esc(n.personality || "?") + (st.outcome ? '<br>' + esc(st.outcome) : "") + (st.step ? '<br>' + esc(st.step) : "") + '</div>' +
       '<div class="swarm">' + Array.from({ length: flies }, () => '<span class="fly' + (st.status === "done" ? " rest" : "") + '"></span>').join("") + '</div></div>';
   }).join("");
 }
@@ -451,7 +451,7 @@ $("btn-exec").addEventListener("click", async () => {
     const r = await api("/api/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task: $("task").value, planner: $("planner").value, maxNodes: Number($("maxNodes").value) }) });
     statusLabel("run " + r.runId);
     line("run " + r.runId + " started");
-    const es = new EventSource("/api/rite/" + r.runId + "/stream");
+    const es = new EventSource("/api/flight/" + r.runId + "/stream");
     const finish = (label, cls) => { showPending(false); setPhase("done"); setBusy(false, label); es.close(); line(label, cls); };
     for (const kind of ["plan:planning", "plan:trace", "plan:built", "plan:halt", "plan:node:start", "plan:node:done", "plan:node:failed", "plan:replan", "plan:fallback", "plan:done", "done", "error"]) {
       es.addEventListener(kind, async (ev) => {
@@ -542,13 +542,13 @@ async function loadConnectomes() {
 async function loadEvals() {
   try {
     const rows = await api("/api/fly/evals");
-    if (!rows.length) { $("eval-list").innerHTML = '<p class="muted">No reports under this warren. Run <code>fly eval</code>.</p>'; return; }
+    if (!rows.length) { $("eval-list").innerHTML = '<p class="muted">No reports under this terrarium. Run <code>fly eval</code>.</p>'; return; }
     $("eval-list").innerHTML = '<table><tr><th>when</th><th>mode</th><th>planners</th><th>runs</th></tr>' + rows.map((r) => '<tr class="click" data-name="' + esc(r.name) + '"><td class="muted">' + esc(r.createdAt.slice(0, 16).replace("T", " ")) + '</td><td>' + (r.live ? '<b>live</b>' : 'mock') + (r.epochs ? ' +train' : '') + '</td><td class="muted">' + esc(r.planners.join(", ")) + '</td><td>' + r.runs + '</td></tr>').join("") + '</table>';
     $("eval-list").querySelectorAll("tr.click").forEach((tr) => tr.addEventListener("click", async () => {
       const r = await api("/api/fly/eval/" + encodeURIComponent(tr.dataset.name));
       const s = r.report.summaries;
       const judged = s.some((x) => x.meanQuality !== undefined);
-      let h = '<table><tr><th>planner</th>' + (judged ? '<th>quality</th>' : '') + '<th>termination</th><th>tokens</th><th>rites</th><th>sensitivity</th></tr>' + s.map((x) => '<tr><td>' + esc(x.planner) + '</td>' + (judged ? '<td>' + (x.meanQuality !== undefined ? x.meanQuality.toFixed(2) : '–') + '</td>' : '') + '<td>' + (x.terminationAccuracy * 100).toFixed(0) + '%</td><td>' + x.meanTokens.toFixed(0) + '</td><td>' + x.meanRites.toFixed(2) + '</td><td>' + x.sensitivity.distinctPrimaries + ' / ' + x.sensitivity.meanPairwiseJs.toFixed(3) + '</td></tr>').join("") + '</table>';
+      let h = '<table><tr><th>planner</th>' + (judged ? '<th>quality</th>' : '') + '<th>termination</th><th>tokens</th><th>flights</th><th>sensitivity</th></tr>' + s.map((x) => '<tr><td>' + esc(x.planner) + '</td>' + (judged ? '<td>' + (x.meanQuality !== undefined ? x.meanQuality.toFixed(2) : '–') + '</td>' : '') + '<td>' + (x.terminationAccuracy * 100).toFixed(0) + '%</td><td>' + x.meanTokens.toFixed(0) + '</td><td>' + Number(x.meanFlights ?? x.meanRites ?? 0).toFixed(2) + '</td><td>' + x.sensitivity.distinctPrimaries + ' / ' + x.sensitivity.meanPairwiseJs.toFixed(3) + '</td></tr>').join("") + '</table>';
       const c = r.report.comparison;
       if (c) h += '<p><b>' + esc(c.a) + '</b> vs <b>' + esc(c.b) + '</b> (n=' + c.pairs + '): termination Δ ' + (c.completionDiff * 100).toFixed(1) + ' pts, p=' + c.completionP.toFixed(3) + (c.qualityP !== undefined ? ' · quality Δ ' + c.qualityDiff.toFixed(3) + ', p=' + c.qualityP.toFixed(3) : '') + ' · tokens Δ ' + c.tokensDiff.toFixed(0) + ', p=' + c.tokensP.toFixed(3) + '</p>';
       h += '<details><summary class="muted">Full markdown report</summary><pre>' + esc(r.markdown) + '</pre></details>';

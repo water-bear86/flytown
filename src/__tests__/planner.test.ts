@@ -14,7 +14,7 @@ describe("buildPlannerPrompt", () => {
     const out = buildPlannerPrompt({ task: "ROOT_TASK_X" });
     assert.ok(out.includes("ROOT_TASK_X"));
     assert.ok(out.includes("synthesize"));
-    assert.ok(out.includes("packSize"));
+    assert.ok(out.includes("swarmSize"));
     assert.ok(out.includes("personality"));
     assert.ok(out.includes("nodes"));
     assert.ok(out.includes("edges"));
@@ -22,7 +22,7 @@ describe("buildPlannerPrompt", () => {
 
   it("includes parent artifact summaries when provided", () => {
     const a: Artifact = {
-      id: "a-1", riteId: "r-1", task: "PRIOR", outcome: "winner",
+      id: "a-1", flightId: "r-1", task: "PRIOR", outcome: "winner",
       claims: [{ text: "key claim", confidence: "established" }],
       evidence: [], openQuestions: [], nextSteps: [], parentArtifactIds: [],
       keywords: [], timestamp: 0,
@@ -38,16 +38,16 @@ describe("buildPlannerPrompt", () => {
     };
     const out = buildPlannerPrompt({
       task: "T",
-      failureContext: { failedNodeId: "n5", reason: "ogre fallback failed", partialPlan },
+      failureContext: { failedNodeId: "n5", reason: "soldier fallback failed", partialPlan },
     });
     assert.ok(out.includes("n5"));
-    assert.ok(out.includes("ogre fallback failed"));
+    assert.ok(out.includes("soldier fallback failed"));
     assert.ok(out.includes("revised plan"));
   });
 
   it("respects max-nodes cap", () => {
     const out = buildPlannerPrompt({ task: "T", maxNodes: 4 });
-    assert.ok(/1-4 sub-rites/.test(out));
+    assert.ok(/1-4 flights/.test(out));
   });
 });
 
@@ -55,9 +55,9 @@ describe("parsePlanJson", () => {
   it("parses a clean linear plan", () => {
     const json = JSON.stringify({
       nodes: [
-        { id: "n1", task: "scavenge", inputs: [], kind: "sub_rite", packSize: 2, personality: "stoic" },
-        { id: "n2", task: "design", inputs: ["n1"], kind: "sub_rite", packSize: 3, personality: "nerdy" },
-        { id: "n3", task: "synthesize", inputs: ["n2"], kind: "synthesize", packSize: 1, personality: "stoic" },
+        { id: "n1", task: "scout", inputs: [], kind: "flight", swarmSize: 2, personality: "stoic" },
+        { id: "n2", task: "design", inputs: ["n1"], kind: "flight", swarmSize: 3, personality: "nerdy" },
+        { id: "n3", task: "synthesize", inputs: ["n2"], kind: "synthesize", swarmSize: 1, personality: "stoic" },
       ],
       edges: [{ from: "n1", to: "n2" }, { from: "n2", to: "n3" }],
     });
@@ -65,13 +65,13 @@ describe("parsePlanJson", () => {
     assert.equal(plan.nodes.length, 3);
     assert.equal(plan.edges.length, 2);
     assert.equal(plan.rootTask, "ROOT");
-    assert.equal(plan.nodes[0].packSize, 2);
+    assert.equal(plan.nodes[0].swarmSize, 2);
     assert.equal(plan.nodes[2].kind, "synthesize");
   });
 
   it("strips fences and tolerates leading prose", () => {
     const json = "Here is the plan:\n```json\n" + JSON.stringify({
-      nodes: [{ id: "a", task: "do", inputs: [], kind: "sub_rite" }],
+      nodes: [{ id: "a", task: "do", inputs: [], kind: "flight" }],
       edges: [],
     }) + "\n```";
     const plan = parsePlanJson(json, "X");
@@ -81,8 +81,8 @@ describe("parsePlanJson", () => {
   it("auto-fills edges from node.inputs when planner forgot the edges array", () => {
     const json = JSON.stringify({
       nodes: [
-        { id: "a", task: "first", inputs: [], kind: "sub_rite" },
-        { id: "b", task: "second", inputs: ["a"], kind: "sub_rite" },
+        { id: "a", task: "first", inputs: [], kind: "flight" },
+        { id: "b", task: "second", inputs: ["a"], kind: "flight" },
       ],
       edges: [],
     });
@@ -95,8 +95,8 @@ describe("parsePlanJson", () => {
   it("auto-fills node.inputs from edges when planner forgot inputs", () => {
     const json = JSON.stringify({
       nodes: [
-        { id: "a", task: "first", inputs: [], kind: "sub_rite" },
-        { id: "b", task: "second", inputs: [], kind: "sub_rite" },
+        { id: "a", task: "first", inputs: [], kind: "flight" },
+        { id: "b", task: "second", inputs: [], kind: "flight" },
       ],
       edges: [{ from: "a", to: "b" }],
     });
@@ -106,41 +106,41 @@ describe("parsePlanJson", () => {
 
   it("drops edges that reference unknown nodes", () => {
     const json = JSON.stringify({
-      nodes: [{ id: "a", task: "x", inputs: [], kind: "sub_rite" }],
+      nodes: [{ id: "a", task: "x", inputs: [], kind: "flight" }],
       edges: [{ from: "a", to: "ghost" }],
     });
     const plan = parsePlanJson(json, "X");
     assert.equal(plan.edges.length, 0);
   });
 
-  it("accepts goblin_mode as a valid planner personality", () => {
+  it("accepts frenzied as a valid planner personality", () => {
     const json = JSON.stringify({
       nodes: [
-        { id: "n", task: "t", inputs: [], kind: "sub_rite", packSize: 3, personality: "goblin_mode" },
+        { id: "n", task: "t", inputs: [], kind: "flight", swarmSize: 3, personality: "frenzied" },
       ],
       edges: [],
     });
     const plan = parsePlanJson(json, "X");
-    assert.equal(plan.nodes[0].personality, "goblin_mode");
+    assert.equal(plan.nodes[0].personality, "frenzied");
   });
 
-  it("coerces unknown personality to undefined and clamps packSize", () => {
+  it("coerces unknown personality to undefined and clamps swarmSize", () => {
     const json = JSON.stringify({
       nodes: [
-        { id: "n", task: "t", inputs: [], kind: "sub_rite", packSize: 99, personality: "elven" },
+        { id: "n", task: "t", inputs: [], kind: "flight", swarmSize: 99, personality: "elven" },
       ],
       edges: [],
     });
     const plan = parsePlanJson(json, "X");
     assert.equal(plan.nodes[0].personality, undefined);
-    assert.equal(plan.nodes[0].packSize, undefined, "out-of-range packSize dropped");
+    assert.equal(plan.nodes[0].swarmSize, undefined, "out-of-range swarmSize dropped");
   });
 
   it("dedupes nodes by id", () => {
     const json = JSON.stringify({
       nodes: [
-        { id: "a", task: "first", inputs: [], kind: "sub_rite" },
-        { id: "a", task: "duplicate", inputs: [], kind: "sub_rite" },
+        { id: "a", task: "first", inputs: [], kind: "flight" },
+        { id: "a", task: "duplicate", inputs: [], kind: "flight" },
       ],
       edges: [],
     });
@@ -176,7 +176,7 @@ describe("validatePlan", () => {
     const v = validatePlan(make(
       [
         { id: "a", task: "x", inputs: [], kind: "synthesize", status: "pending" },
-        { id: "b", task: "y", inputs: ["a"], kind: "sub_rite", status: "pending" },
+        { id: "b", task: "y", inputs: ["a"], kind: "flight", status: "pending" },
       ],
       [{ from: "a", to: "b" }],
     ));
@@ -185,8 +185,8 @@ describe("validatePlan", () => {
   it("flags cycles", () => {
     const v = validatePlan(make(
       [
-        { id: "a", task: "x", inputs: ["b"], kind: "sub_rite", status: "pending" },
-        { id: "b", task: "y", inputs: ["a"], kind: "sub_rite", status: "pending" },
+        { id: "a", task: "x", inputs: ["b"], kind: "flight", status: "pending" },
+        { id: "b", task: "y", inputs: ["a"], kind: "flight", status: "pending" },
       ],
       [{ from: "a", to: "b" }, { from: "b", to: "a" }],
     ));
@@ -196,7 +196,7 @@ describe("validatePlan", () => {
   it("accepts a valid linear plan", () => {
     const v = validatePlan(make(
       [
-        { id: "a", task: "x", inputs: [], kind: "sub_rite", status: "pending" },
+        { id: "a", task: "x", inputs: [], kind: "flight", status: "pending" },
         { id: "b", task: "y", inputs: ["a"], kind: "synthesize", status: "pending" },
       ],
       [{ from: "a", to: "b" }],
@@ -213,9 +213,9 @@ describe("topologicalOrder", () => {
   it("orders a diamond DAG correctly", () => {
     const plan = make(
       [
-        { id: "a", task: "1", inputs: [], kind: "sub_rite", status: "pending" },
-        { id: "b", task: "2", inputs: ["a"], kind: "sub_rite", status: "pending" },
-        { id: "c", task: "3", inputs: ["a"], kind: "sub_rite", status: "pending" },
+        { id: "a", task: "1", inputs: [], kind: "flight", status: "pending" },
+        { id: "b", task: "2", inputs: ["a"], kind: "flight", status: "pending" },
+        { id: "c", task: "3", inputs: ["a"], kind: "flight", status: "pending" },
         { id: "d", task: "4", inputs: ["b", "c"], kind: "synthesize", status: "pending" },
       ],
       [
@@ -234,8 +234,8 @@ describe("topologicalOrder", () => {
   it("throws on a cyclic plan", () => {
     const plan = make(
       [
-        { id: "a", task: "x", inputs: [], kind: "sub_rite", status: "pending" },
-        { id: "b", task: "y", inputs: [], kind: "sub_rite", status: "pending" },
+        { id: "a", task: "x", inputs: [], kind: "flight", status: "pending" },
+        { id: "b", task: "y", inputs: [], kind: "flight", status: "pending" },
       ],
       [{ from: "a", to: "b" }, { from: "b", to: "a" }],
     );
@@ -247,7 +247,7 @@ describe("hasCycle", () => {
   it("detects a self-loop", () => {
     const plan: Plan = {
       id: "p", rootTask: "t", replanDepth: 0, createdAt: 0,
-      nodes: [{ id: "a", task: "x", inputs: [], kind: "sub_rite", status: "pending" }],
+      nodes: [{ id: "a", task: "x", inputs: [], kind: "flight", status: "pending" }],
       edges: [{ from: "a", to: "a" }],
     };
     assert.equal(hasCycle(plan), true);

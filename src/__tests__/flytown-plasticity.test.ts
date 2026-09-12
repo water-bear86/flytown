@@ -224,7 +224,7 @@ describe("odour code and per-node readout", () => {
     const before = readout(activity, ad, g).scores.retry_new_approach;
     const learned = applyReward({ ...ad, learning: { updates: 0, baseline: 0 } }, { action: "retry_new_approach", scores, activityByGroup: { "flag:MBON": 0.33 }, reward: 1, readoutNodeActivity: { "MBON-a1": 1 } });
     assert.ok(learned.nodeReadout?.retry_new_approach?.["MBON-a1"]! > 0, "rewarded action gains weight on the active MBON");
-    assert.ok((learned.nodeReadout?.spawn_subrite?.["MBON-a1"] ?? 0) < 0, "competitors lose weight on it");
+    assert.ok((learned.nodeReadout?.spawn_flight?.["MBON-a1"] ?? 0) < 0, "competitors lose weight on it");
     const after = readout(activity, ad, g).scores.retry_new_approach;
     assert.equal(after, before, "original table untouched");
     const afterLearned = readout(activity, learned, g).scores.retry_new_approach;

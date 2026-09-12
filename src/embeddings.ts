@@ -18,9 +18,9 @@ import {
   resolveProviderRuntimeForSlot,
 } from "./providers.js";
 import type { Artifact } from "./types.js";
-import type { Hoard } from "./hoard.js";
+import type { Compost } from "./compost.js";
 
-const EMBED_MODEL = process.env.GOBLINTOWN_EMBEDDING_MODEL ?? "text-embedding-3-small";
+const EMBED_MODEL = process.env.FLYTOWN_EMBEDDING_MODEL ?? "text-embedding-3-small";
 
 let _client: OpenAI | null = null;
 let _clientSignature: string | null = null;
@@ -99,7 +99,7 @@ export function mergeRanks(
  *
  * - Computes an embedding of `queryText` (one API call).
  * - For each artifact missing an embedding, computes one and persists it via
- *   `hoard.stashArtifact`. Uses `Promise.allSettled` so a single failure
+ *   `compost.stashArtifact`. Uses `Promise.allSettled` so a single failure
  *   doesn't break the whole retrieval.
  * - Falls back to keyword retrieval if the query embed itself fails.
  */
@@ -107,7 +107,7 @@ export async function findRelevantArtifactsEmbedded(opts: {
   artifacts: Artifact[];
   queryText: string;
   limit: number;
-  hoard: Hoard;
+  compost: Compost;
   now?: number;
   /** If true, blends embedding ranking with keyword ranking via RRF. Default true. */
   blendWithKeywords?: boolean;
@@ -141,7 +141,7 @@ export async function findRelevantArtifactsEmbedded(opts: {
         try {
           const text = artifactRetrievalText(a);
           a.embedding = await embed(text);
-          await opts.hoard.stashArtifact(a);
+          await opts.compost.stashArtifact(a);
         } catch {
           // ignore — we'll just skip this one
         }

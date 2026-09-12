@@ -3,59 +3,52 @@ import { describe, it } from "node:test";
 import {
   commandToCliArgs,
   commandToRunRequest,
-  parseGoblinCommand,
+  parseSlashCommand,
 } from "../slash-commands.js";
 
-describe("Goblin Mode slash commands", () => {
+describe("slash commands", () => {
   it("treats plain text as the selected default mode", () => {
-    const parsed = parseGoblinCommand("summarize this repository", {
+    const parsed = parseSlashCommand("summarize this repository", {
       mode: "single",
-      tank: false,
     });
 
     assert.equal(parsed.kind, "run");
     assert.equal(parsed.mode, "single");
     assert.equal(parsed.task, "summarize this repository");
-    assert.equal(parsed.tank, false);
   });
 
-  it("parses quoted /ask tasks as Single Goblin runs", () => {
-    const parsed = parseGoblinCommand('/ask "write the shortest useful answer" --tank', {
-      mode: "town",
-      tank: true,
+  it("parses quoted /ask tasks as single-forager runs", () => {
+    const parsed = parseSlashCommand('/ask "write the shortest useful answer"', {
+      mode: "swarm",
     });
 
     assert.equal(parsed.kind, "ask");
     assert.equal(parsed.mode, "single");
     assert.equal(parsed.task, "write the shortest useful answer");
-    assert.equal(parsed.tank, false);
   });
 
-  it("parses /town as Goblintown mode and preserves tank intent", () => {
-    const parsed = parseGoblinCommand('/town --tank "ship a desktop app wrapper"', {
+  it("parses /swarm as swarm mode", () => {
+    const parsed = parseSlashCommand('/swarm "ship a desktop app wrapper"', {
       mode: "single",
-      tank: false,
     });
 
-    assert.equal(parsed.kind, "town");
-    assert.equal(parsed.mode, "town");
+    assert.equal(parsed.kind, "swarm");
+    assert.equal(parsed.mode, "swarm");
     assert.equal(parsed.task, "ship a desktop app wrapper");
-    assert.equal(parsed.tank, true);
   });
 
-  it("builds server run requests for single and town commands", () => {
+  it("builds server run requests for single and swarm commands", () => {
     assert.deepEqual(
-      commandToRunRequest(parseGoblinCommand("/ask fix docs")),
+      commandToRunRequest(parseSlashCommand("/ask fix docs")),
       {
-        endpoint: "/api/goblin/single",
+        endpoint: "/api/ask",
         payload: { task: "fix docs", remember: true, outputFormat: "markdown" },
         mode: "single",
-        tank: false,
       },
     );
 
     assert.deepEqual(
-      commandToRunRequest(parseGoblinCommand("/town --tank fix docs")),
+      commandToRunRequest(parseSlashCommand("/swarm fix docs")),
       {
         endpoint: "/api/plan",
         payload: {
@@ -65,22 +58,21 @@ describe("Goblin Mode slash commands", () => {
           remember: true,
           outputFormat: "markdown",
         },
-        mode: "town",
-        tank: true,
+        mode: "swarm",
       },
     );
   });
 
   it("maps slash commands to existing CLI commands", () => {
-    assert.deepEqual(commandToCliArgs(parseGoblinCommand("/ask hello")), [
-      "summon",
-      "goblin",
+    assert.deepEqual(commandToCliArgs(parseSlashCommand("/ask hello")), [
+      "ask",
+      "forager",
       "--task",
       "hello",
       "--format",
       "markdown",
     ]);
-    assert.deepEqual(commandToCliArgs(parseGoblinCommand("/town --tank hello")), [
+    assert.deepEqual(commandToCliArgs(parseSlashCommand("/swarm hello")), [
       "plan",
       "hello",
       "--remember",
@@ -90,14 +82,14 @@ describe("Goblin Mode slash commands", () => {
   });
 
   it("parses context ingest and search commands without forcing an AI run", () => {
-    const ingest = parseGoblinCommand('/context ingest "./old conversations" --limit 12');
+    const ingest = parseSlashCommand('/context ingest "./old conversations" --limit 12');
     assert.equal(ingest.kind, "context");
     assert.equal(ingest.task, 'ingest ./old conversations --limit 12');
     assert.deepEqual(ingest.args, ["ingest", "./old conversations", "--limit", "12"]);
 
-    const search = parseGoblinCommand('/context search "desktop app tank"');
+    const search = parseSlashCommand('/context search "desktop app swarm"');
     assert.equal(search.kind, "context");
-    assert.equal(search.task, "search desktop app tank");
-    assert.deepEqual(search.args, ["search", "desktop app tank"]);
+    assert.equal(search.task, "search desktop app swarm");
+    assert.deepEqual(search.args, ["search", "desktop app swarm"]);
   });
 });
