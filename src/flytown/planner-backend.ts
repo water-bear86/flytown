@@ -52,6 +52,19 @@ export interface PlannerBackend {
   plan(req: PlanRequest): Promise<PlanResponse>;
 }
 
+/**
+ * A backend that takes feedback on a completed run: fly adapter learning and
+ * plasticity, or the mushroom-body memory. Only evaluation harnesses call it;
+ * nothing in the product learns from a run on its own.
+ */
+export interface LearningPlannerBackend extends PlannerBackend {
+  learn(trace: DecisionTrace, reward: number): Promise<unknown>;
+}
+
+export function canLearn(backend: PlannerBackend): backend is LearningPlannerBackend {
+  return typeof (backend as Partial<LearningPlannerBackend>).learn === "function";
+}
+
 /** Wraps the conventional LLM planner (planTask) as a PlannerBackend. */
 export function llmPlannerBackend(): PlannerBackend {
   return {

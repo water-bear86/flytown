@@ -38,7 +38,7 @@
  * table (PlasticState), which is versioned, inspectable and resettable.
  */
 import { groupIndex, normalizeGroupKey, type ConnectomeGraph } from "./connectome/artifact.js";
-import { buildSignedGraph, propagate, DEFAULT_ENGINE_PARAMS, type EngineParams, type SignedGraph } from "./connectome/engine.js";
+import { buildSignedGraph, propagate, DEFAULT_ENGINE_PARAMS, type EngineParams, type SignedGraph, designatePlasticEdges } from "./connectome/engine.js";
 import { applyPlasticity, emptyPlasticState, DEFAULT_PLASTICITY_PARAMS, type PlasticityParams, type PlasticState } from "./connectome/plasticity.js";
 import { defaultAdaptersFor, encode, resolveGroupKey, type AdapterWeights } from "./connectome/adapters.js";
 import { featurize, type TaskSignals } from "./signals.js";
@@ -280,6 +280,14 @@ export class FlyMemory {
     this.state = emptyPlasticState();
     if (this.signed.plastic) this.signed.plastic.multiplier.fill(1);
     this.episodes = 0;
+  }
+
+  /** Replace the stored associations with a saved state (same graph only; see memory-rules.ts). */
+  restore(state: PlasticState, episodes: number): void {
+    const saved = designatePlasticEdges(this.graph, state.multipliers);
+    if (this.signed.plastic && saved && saved.multiplier.length === this.signed.plastic.multiplier.length) this.signed.plastic.multiplier.set(saved.multiplier);
+    this.state = state;
+    this.episodes = episodes;
   }
 }
 

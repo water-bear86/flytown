@@ -36,7 +36,7 @@ current directory to the nearest `.flytown/terrarium.json`.
 | `runs/` | State of runs started over HTTP; lets a restarted server replay history and resume interrupted runs. |
 | `traces/` | Planner decision traces (signals → activity → action → plan), read with `flytown fly trace`. |
 | `eval/` | Evaluation harness reports written by `flytown fly eval`. |
-| `weights/` | Learned planner state: adapter and plastic-synapse weights per connectome, and the learned router. Delete a file to reset it. |
+| `weights/` | Learned planner state: adapter and plastic-synapse weights per connectome, the learned router, and the `rules+memory` stored associations (`memory-<connectome>[-<variant>-s<seed>].json`). Delete a file to reset it. |
 
 Connectome artifacts are not terrarium state. They live in the repository's
 `connectome/<id>/` directory (or `FLYTOWN_CONNECTOME_DIR`) and are built by

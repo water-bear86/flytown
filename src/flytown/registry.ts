@@ -4,6 +4,7 @@
  *   llm | rules | random | learned | fly
  *   fly:shuffled | fly:random_degree | fly:signless | fly:norecurrence
  *   fly:ablate=MB_CA,MB_ML | fly:learning | fly:shuffled+norecurrence
+ *   rules+memory | rules+memory:shuffled | rules+memory:connectome=<id>
  *
  * The conventional LLM planner is always the fallback for fly variants unless
  * fallback is explicitly disabled — that is the kill switch.
@@ -13,6 +14,7 @@ import { llmPlannerBackend, withFallback, type PlannerBackend } from "./planner-
 import { rulesPlannerBackend } from "./baselines/rules.js";
 import { randomPlannerBackend } from "./baselines/random.js";
 import { learnedPlannerBackend } from "./baselines/learned.js";
+import { memoryRulesPlannerBackend } from "./baselines/memory-rules.js";
 import { FlyPlannerBackend, type FlyPlannerOptions } from "./fly-planner.js";
 import { DEFAULT_CONNECTOME_ID, type ConnectomeGraph, type ConnectomeVariant } from "./connectome/artifact.js";
 
@@ -114,6 +116,16 @@ export function resolvePlannerBackend(spec: string, opts: ResolveOptions): Plann
   switch (kind) {
     case "llm": return llmPlannerBackend();
     case "rules": return rulesPlannerBackend();
+    case "rules+memory": {
+      // Uses its own connectome default (the larva): the memory needs Kenyon cells and KC→MBON synapses.
+      const { flags } = parsePlannerSpec(spec);
+      return memoryRulesPlannerBackend({
+        id: spec, root: opts.root, graph: opts.graph, connectomeRoot: opts.connectomeRoot,
+        connectomeId: typeof flags.connectome === "string" ? flags.connectome : undefined,
+        variant: flags.shuffled ? "shuffled" : flags.random_degree || flags.random ? "random_degree" : "real",
+        variantSeed: opts.seed ?? 1,
+      });
+    }
     case "random": return randomPlannerBackend({ seed: opts.seed });
     case "learned": return learnedPlannerBackend({ weightsFile: join(opts.root, ".flytown", "weights", "learned-router.json") });
     case "fly": {
@@ -126,7 +138,7 @@ export function resolvePlannerBackend(spec: string, opts: ResolveOptions): Plann
 }
 
 export const KNOWN_PLANNER_SPECS = [
-  "llm", "rules", "random", "learned",
+  "llm", "rules", "random", "learned", "rules+memory", "rules+memory:shuffled",
   "fly", "fly:shuffled", "fly:random_degree", "fly:signless", "fly:norecurrence", "fly:learning",
   "fly:connectome=<id>", "fly:plastic", "fly:learning+plastic", "fly:ablate=<region|group,...>",
 ];

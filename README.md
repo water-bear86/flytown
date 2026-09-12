@@ -89,6 +89,7 @@ task signals and emits the same `Plan`:
 | `llm` | the conventional LLM planner — the fallback whenever a `fly` planner fails |
 | `random` | seeded random control |
 | `learned` | small logistic router, trainable in the harness |
+| `rules+memory` | `rules`, nudged by a mushroom-body memory of how similar tasks went: the larval Kenyon-cell code, with outcomes stored at the KC→MBON synapses by the evaluation harness. `rules+memory:shuffled` is its null. The memory experiment found no retrieval signal on held-out tasks, so expect it to match `rules` until tested with real outcomes |
 | `fly` | activation propagated through a real FlyWire connectome artifact, read out to actions |
 | `fly:shuffled`, `fly:random_degree`, `fly:norecurrence`, `fly:signless`, `fly:ablate=MB_CA,EB`, `fly:learning` | null models and ablations of the same |
 | `fly:connectome=l1-larva-winding2023-1+plastic` | the whole larval brain at single-neuron resolution, with dopamine-gated depression at the real KC→MBON synapses (`+learning` adds adapter learning; `:ablate=flag:MBIN` lesions the dopaminergic neurons) |

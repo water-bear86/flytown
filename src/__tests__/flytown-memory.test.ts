@@ -7,6 +7,14 @@ import { normalizeScores, ORCH_ACTIONS } from "../flytown/actions.js";
 import { deriveSignals, type RepoSignals } from "../flytown/signals.js";
 import { TASK_CORPUS, corpusByVariant } from "../flytown/eval/corpus.js";
 import { makeGraph, type ConnectomeGraph } from "../flytown/connectome/artifact.js";
+import { mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { memoryRulesPlannerBackend } from "../flytown/baselines/memory-rules.js";
+import { resolvePlannerBackend } from "../flytown/registry.js";
+import { canLearn } from "../flytown/planner-backend.js";
+import { runHarness } from "../flytown/eval/harness.js";
+import { FIXTURES } from "../flytown/eval/fixtures.js";
 
 const EMPTY_REPO: RepoSignals = { present: false, fileCount: 0, languages: {}, hasTests: false, hasPackageManifest: false, frameworks: [], truncated: false };
 const sig = (task: string) => deriveSignals({ task, cwd: "/nonexistent", repo: EMPTY_REPO });
@@ -192,5 +200,56 @@ describe("memory modulation", () => {
     assert.equal(out.direction, "none");
     assert.deepEqual(out.scores, base);
     assert.deepEqual(applyMemoryModulation(normalizeScores({ spawn_flight: 1 }), { approach: 0, avoid: 0, valenceShift: NaN, familiarity: 0, codeSize: 0 }).direction, "none");
+  });
+});
+
+describe("rules+memory planner", () => {
+  const task = "Fix the flaky retry test in the payments client";
+  const req = (runId: string) => ({ task, cwd: "/nonexistent", repo: EMPTY_REPO, runId });
+
+  it("stores outcomes, persists them, and restores them only onto the same graph", async () => {
+    const root = await mkdtemp(join(tmpdir(), "flytown-memrules-"));
+    const graph = memoryLarva();
+    const first = memoryRulesPlannerBackend({ id: "rules+memory", root, graph });
+    const a = await first.plan(req("m1"));
+    assert.match(a.trace!.notes.join(" "), /0 episodes stored/);
+    await first.learn(a.trace!, 0);
+    await first.learn(a.trace!, 0);
+
+    const saved = JSON.parse(await readFile(join(root, ".flytown", "weights", "memory-memory-larva.json"), "utf8"));
+    assert.equal(saved.episodes, 2);
+    assert.ok(Object.keys(saved.state.multipliers).length > 0, "punishment depressed KC→MBON synapses");
+
+    const again = memoryRulesPlannerBackend({ id: "rules+memory", root, graph: memoryLarva() });
+    const b = await again.plan(req("m2"));
+    assert.match(b.trace!.notes.join(" "), /2 episodes stored \(2 restored/);
+    const original = (await first.getMemory()).recall(a.trace!.signals);
+    const restored = (await again.getMemory()).recall(b.trace!.signals);
+    assert.ok(original.familiarity > 0, "the stored episodes touched this task's code");
+    assert.deepEqual(restored, original, "the restored memory recalls exactly what the original does");
+
+    const shuffled = memoryRulesPlannerBackend({ id: "rules+memory:shuffled", root, graph: memoryLarva(), variant: "shuffled" });
+    const c = await shuffled.plan(req("m3"));
+    assert.match(c.trace!.notes.join(" "), /0 episodes stored/, "a null-model memory never restores the real one");
+  });
+
+  it("is registered, with a shuffled null, and accepts feedback", async () => {
+    const root = await mkdtemp(join(tmpdir(), "flytown-memreg-"));
+    const real = resolvePlannerBackend("rules+memory", { root, graph: memoryLarva() });
+    const nul = resolvePlannerBackend("rules+memory:shuffled", { root, graph: memoryLarva(), seed: 3 });
+    assert.equal(real.id, "rules+memory");
+    assert.equal(nul.id, "rules+memory:shuffled");
+    assert.ok(canLearn(real) && canLearn(nul));
+    const t = (await nul.plan(req("r1"))).trace!;
+    assert.match(t.notes[0], /\(shuffled\)/);
+    assert.notEqual(t.seed, 0, "the trace records the seed the plan id was derived from");
+  });
+
+  it("gets outcomes from the evaluation harness", async () => {
+    const root = await mkdtemp(join(tmpdir(), "flytown-memharness-"));
+    const fixtures = FIXTURES.filter((f) => ["q-engine-layout", "blocked-credentials"].includes(f.id));
+    await runHarness({ planners: ["rules+memory"], fixtures, seeds: [1, 2], root, resolve: { graph: memoryLarva() } });
+    const saved = JSON.parse(await readFile(join(root, ".flytown", "weights", "memory-memory-larva.json"), "utf8"));
+    assert.equal(saved.episodes, fixtures.length * 2, "one stored episode per evaluated run");
   });
 });

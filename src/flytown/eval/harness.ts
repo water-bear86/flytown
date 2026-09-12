@@ -17,7 +17,7 @@ import { withProviderRoot } from "../../openai-client.js";
 import { Compost } from "../../compost.js";
 import type { Artifact } from "../../types.js";
 import type { OrchAction } from "../actions.js";
-import type { PlannerBackend } from "../planner-backend.js";
+import { canLearn, type PlannerBackend } from "../planner-backend.js";
 import { parsePlannerSpec, resolveFlyOptions, resolvePlannerBackend, type ResolveOptions } from "../registry.js";
 import { FEATURE_NAMES, scanRepo, type RepoSignals } from "../signals.js";
 import { FlyPlannerBackend } from "../fly-planner.js";
@@ -447,7 +447,7 @@ async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: 
     }
     const termCorrect = terminationOk(fixture.expected, outcome, haltKind);
     const liveReward = quality !== undefined ? 0.8 * quality + 0.2 * (termCorrect ? 1 : 0) : rewardFor(termCorrect, stats.tokens);
-    if (a.backend instanceof FlyPlannerBackend && firstTrace && (!a.live || a.live.liveLearning)) {
+    if (canLearn(a.backend) && firstTrace && (!a.live || a.live.liveLearning)) {
       await a.backend.learn(firstTrace, a.live ? liveReward : rewardFor(termCorrect, stats.tokens));
     }
   } catch (err) {
