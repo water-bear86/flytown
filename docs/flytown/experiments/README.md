@@ -212,6 +212,34 @@ Reading:
 
 What this run bought: the full loop — real workers, real repositories, real model cost — runs end to end under hard caps with replayable traces, and the numbers are honest. What it did not buy: any evidence for the biology. Next, in order: (a) an LLM-judge quality score per fixture (the troll gate is not enough), (b) more than one seed and the full fixture set within budget (drop `llm`'s pack size or nodes), (c) live reward feeding the adapters instead of mock-only training — and (d) the standing recommendation stays: do not tune adapters post-hoc against these results.
 
+## 2026-09-12 — LIVE run 3: rules vs Goblintown's LLM planner, full suite (`2026-09-12-live-run3-rules-vs-llm.md`)
+
+The product question, properly powered: all 20 fixtures × 2 seeds, real workers, LLM judge, 6.88M tokens, 179 minutes, preflight passed (`deepseek-v4-flash`, `thinking: disabled`). 3 transient connection errors (8% of `llm` runs) are the only losses.
+
+**A void run preceded this one and is not reported as data.** A running FLYTOWN server had re-saved `warren.json` and dropped the provider's `requestParams`; with DeepSeek's hidden reasoning re-enabled it consumed the whole 700-token output cap, every worker returned empty, the troll rejected everything, and the harness produced a plausible-looking table (`rules 0.29`, `llm 93% errors`) from 400k tokens of garbage. Live runs now gate on a provider smoke test and record the resolved provider in the report.
+
+| planner | quality (judge) | termination | tokens / plan | rites |
+|---|---|---|---|---|
+| `rules` | 0.55 | 95% | **66,838** | 2.10 |
+| `llm` | 0.41 | 81% | 109,813 | 3.84 |
+
+Paired over all 37 usable pairs: quality +0.105 (p = 0.146), termination +13.5 pts (p = 0.182), tokens −37,556 (**p < 0.0001**). Decomposed by what the fixture asks for:
+
+| subgroup | n | termination | quality | tokens |
+|---|---|---|---|---|
+| tasks that should be **completed** | 30 | −6.7 pts (p = 0.50) | **+0.010 (p = 0.89)** | −28,021 (p = 0.0001) |
+| tasks whose right answer is to **stop** | 7 | **+100 pts, 7/7 pairs (p = 0.015)** | +0.514 (p = 0.065) | −78,420 (p = 0.015) |
+
+**This corrects the overstatement in live run 2.** At n = 10 on a 10-fixture subset, `rules` looked much better on quality (0.69 vs 0.39). With the full suite and twice the seeds, quality on completable tasks is **dead even** (+0.010, p = 0.89) — the earlier gap was small-sample noise, exactly what the ≈0.15-at-n=20 noise floor predicted.
+
+What survives is sharper and more useful than the version that didn't:
+
+1. **Cost, robustly.** 39% fewer tokens per plan overall (p < 0.0001) and 28k fewer on completable tasks *at equal quality* — 2.1 rites against 3.84, because the LLM planner decomposes everything into four nodes.
+2. **Knowing when to stop.** On the 7 pairs where the correct answer is "blocked", "needs approval" or "already done", `rules` won every single one. The LLM planner chose `spawn_subrite` for 100% of all fixtures — it has no halt vocabulary at all, so it cannot express "don't do this". This was the mechanism identified in run 2, so testing it here is confirmatory rather than fishing; at 7/7 with p = 0.015 it is the strongest single result in the project so far.
+3. Quality overall: directional only (+0.105, p = 0.15). Not claimed.
+
+**Acted on:** `rules` is now the default planner (`DEFAULT_PLANNER` in `src/flytown/registry.ts`, with these numbers in the comment). `--planner llm` is one flag away and the LLM planner remains the fallback for every fly variant.
+
 ## 2026-09-12 — giving the fly a different job: the mushroom body as a task memory (`2026-09-12-mushroom-body-memory.md`)
 
 Three configurations had put the connectome in the per-task *decision* seat and found the same null. The diagnosis was that the job was wrong, not the graph: action selection needs task-dependent output, and a fixed-point readout of a recurrent graph is nearly task-invariant. Associative memory is the job this circuit demonstrably has, and it comes with a precise, falsifiable claim from the literature — Kenyon-cell sparse codes are a locality-sensitive hash, so an association learned at KC→MBON synapses for one odour generalises to similar odours (Dasgupta, Stevens & Navlakha, *Science* 2017).

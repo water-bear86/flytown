@@ -18,6 +18,25 @@ import type { ConnectomeGraph, ConnectomeVariant } from "./connectome/artifact.j
 
 export const DEFAULT_CONNECTOME_ID = "fafb-v783-projectome-1";
 
+/**
+ * Default planner backend.
+ *
+ * Measured against Goblintown's own LLM planner on the full 20-fixture suite,
+ * 2 seeds, real workers (docs/flytown/experiments, live run 3, n=37 pairs):
+ *
+ *   - completable tasks: quality indistinguishable (+0.010, p = 0.89)
+ *   - tasks whose right answer is to stop: rules won 7 of 7 pairs
+ *     (+100 pts termination, p = 0.015) — the LLM planner decomposes
+ *     everything and has no halt vocabulary at all
+ *   - cost: 39% fewer tokens overall (66.8k vs 109.8k per plan, p < 0.0001),
+ *     and 28k fewer even on completable tasks at equal quality
+ *
+ * So: same answers, meaningfully cheaper, and it knows when to stop. The LLM
+ * planner stays one flag away (`--planner llm`) and remains the fallback for
+ * every fly variant.
+ */
+export const DEFAULT_PLANNER = "rules";
+
 export interface ResolveOptions {
   /** Warren / project root: weights and traces live under <root>/.flytown/. */
   root: string;

@@ -14,7 +14,7 @@ import { loadWarren } from "../warren.js";
 import { loadRewardPlugin } from "../reward-plugin.js";
 import { executePlan } from "../plan-executor.js";
 import type { Artifact } from "../types.js";
-import { KNOWN_PLANNER_SPECS, resolvePlannerBackend } from "./registry.js";
+import { DEFAULT_PLANNER, KNOWN_PLANNER_SPECS, resolvePlannerBackend } from "./registry.js";
 import { listTraces, readTrace, renderTraceText, writeTrace, type DecisionTrace } from "./trace.js";
 import { defaultConnectomeRoot, listConnectomes, loadConnectome, degreeStats, groupIndex } from "./connectome/artifact.js";
 import { runHarness } from "./eval/harness.js";
@@ -121,7 +121,7 @@ async function cmdPlan(args: string[]): Promise<void> {
   const f = flags(args);
   if (!task) { process.stderr.write(`usage: fly plan "<task>" [--planner fly|rules|random|learned|llm] [--dry-run] [--max-nodes N] [--seed N] [--no-fallback]\n`); process.exitCode = 1; return; }
   const w = await loadWarren(process.cwd());
-  const spec = f.planner ?? w.manifest.flytown?.planner ?? "fly";
+  const spec = f.planner ?? w.manifest.flytown?.planner ?? DEFAULT_PLANNER;
   const seed = f.seed ? Number(f.seed) : w.manifest.flytown?.seed;
   const backend = resolvePlannerBackend(spec, {
     root: w.root, seed, connectome: w.manifest.flytown?.connectome, learning: w.manifest.flytown?.learning,

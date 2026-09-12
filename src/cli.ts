@@ -1129,9 +1129,9 @@ async function cmdPlan(args: string[]): Promise<void> {
     process.stdout.write(`(loaded ${parents.length} prior artifact(s))\n`);
   }
 
-  const plannerSpec = flags.planner ?? w.manifest.flytown?.planner ?? "llm";
+  const { DEFAULT_PLANNER, resolvePlannerBackend } = await import("./flytown/registry.js");
+  const plannerSpec = flags.planner ?? w.manifest.flytown?.planner ?? DEFAULT_PLANNER;
   process.stdout.write(`Planning task (planner=${plannerSpec})...\n`);
-  const { resolvePlannerBackend } = await import("./flytown/registry.js");
   const planner = resolvePlannerBackend(plannerSpec, {
     root: w.root, seed: w.manifest.flytown?.seed, connectome: w.manifest.flytown?.connectome, learning: w.manifest.flytown?.learning,
     fallback: w.manifest.flytown?.fallbackToLlm !== false,

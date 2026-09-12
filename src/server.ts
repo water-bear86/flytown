@@ -41,7 +41,7 @@ import {
   type ProviderConfig,
 } from "./types.js";
 import { executePlan, type PlanExecutionEvent } from "./plan-executor.js";
-import { resolvePlannerBackend } from "./flytown/registry.js";
+import { DEFAULT_PLANNER, resolvePlannerBackend } from "./flytown/registry.js";
 import { writeTrace } from "./flytown/trace.js";
 import { renderArtifactContext } from "./artifact.js";
 import { exportRunAsMasTrace } from "./trace-export.js";
@@ -997,7 +997,7 @@ async function startPlanRun(
     return undefined;
   }
   const runId = randomUUID().slice(0, 12);
-  const plannerSpec = typeof body.planner === "string" && body.planner.trim() ? body.planner.trim() : (warren.manifest.flytown?.planner ?? "llm");
+  const plannerSpec = typeof body.planner === "string" && body.planner.trim() ? body.planner.trim() : (warren.manifest.flytown?.planner ?? DEFAULT_PLANNER);
   const maxNodes = typeof body.maxNodes === "number" ? body.maxNodes : 6;
   const maxReplan = typeof body.maxReplan === "number" ? body.maxReplan : 2;
   const budgetTokens = typeof body.budgetTokens === "number" ? body.budgetTokens : undefined;

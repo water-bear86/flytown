@@ -22,7 +22,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { Express, Request, Response } from "express";
 import type { Warren } from "../warren.js";
-import { KNOWN_PLANNER_SPECS, resolvePlannerBackend } from "./registry.js";
+import { DEFAULT_PLANNER, KNOWN_PLANNER_SPECS, resolvePlannerBackend } from "./registry.js";
 import { listTraces, readTrace, renderTraceText, writeTrace } from "./trace.js";
 import { defaultConnectomeRoot, degreeStats, groupIndex, listConnectomes, loadConnectome } from "./connectome/artifact.js";
 import { diffPlans, replayTrace } from "./cli.js";
@@ -35,14 +35,14 @@ export function registerFlyRoutes(app: Express, warren: Warren): void {
   });
 
   app.get("/api/fly/planners", async (_req, res) => {
-    res.json({ planners: KNOWN_PLANNER_SPECS, connectomes: await listConnectomes(), default: warren.manifest.flytown?.planner ?? "llm" });
+    res.json({ planners: KNOWN_PLANNER_SPECS, connectomes: await listConnectomes(), default: warren.manifest.flytown?.planner ?? DEFAULT_PLANNER });
   });
 
   app.post("/api/fly/plan", async (req: Request, res: Response) => {
     const body = (req.body ?? {}) as { task?: unknown; planner?: unknown; maxNodes?: unknown };
     const task = typeof body.task === "string" ? body.task.trim() : "";
     if (!task) { res.status(400).json({ error: "task is required" }); return; }
-    const spec = typeof body.planner === "string" && body.planner.trim() ? body.planner.trim() : (warren.manifest.flytown?.planner ?? "fly");
+    const spec = typeof body.planner === "string" && body.planner.trim() ? body.planner.trim() : (warren.manifest.flytown?.planner ?? DEFAULT_PLANNER);
     try {
       const backend = resolvePlannerBackend(spec, { root, seed: warren.manifest.flytown?.seed, connectome: warren.manifest.flytown?.connectome, learning: warren.manifest.flytown?.learning, fallback: false });
       const runId = `${spec.replace(/[^a-z0-9]+/gi, "_")}-${Date.now().toString(36)}`;
