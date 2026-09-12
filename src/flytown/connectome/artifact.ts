@@ -99,7 +99,9 @@ export async function listConnectomes(root = defaultConnectomeRoot()): Promise<s
     const out: string[] = [];
     for (const e of entries) {
       if (!e.isDirectory()) continue;
-      try { await readFile(join(root, e.name, "manifest.json")); out.push(e.name); } catch { /* not an artifact */ }
+      // Only artifacts the runtime can actually load (manifest + JSON graph);
+      // binary-only neuron-level bundles are listed by `fly connectome` later.
+      try { await Promise.all([readFile(join(root, e.name, "manifest.json")), readFile(join(root, e.name, "graph.json"))]); out.push(e.name); } catch { /* not loadable */ }
     }
     return out.sort();
   } catch {

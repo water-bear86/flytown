@@ -64,6 +64,7 @@ import {
 } from "./provider-secrets.js";
 import { loadWarren, resetWarren, saveWarrenManifest, type Warren } from "./warren.js";
 import { builtinTools } from "./tools.js";
+import { registerFlyRoutes } from "./flytown/web.js";
 
 export interface ServeOptions {
   cwd: string;
@@ -374,6 +375,7 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
   app.post("/api/plan", async (req, res) =>
     startPlanRun(warren, runs, runDir, req, res),
   );
+  registerFlyRoutes(app, warren);
   app.post("/api/chat", async (req, res) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
     const messages = normalizeChatMessages(body.messages);
@@ -5188,6 +5190,7 @@ function tankHtml(
         <button type="button" data-settings-section="api">API</button>
         <button type="button" data-settings-section="imports">Import Records</button>
         <button type="button" data-settings-section="reset">Reset</button>
+        <a class="settings-fly-link" href="/fly" style="display:block;margin-top:8px;padding:8px 10px;border-radius:8px;text-decoration:none;color:inherit;background:rgba(255,255,255,0.06)">FLYTOWN control surface →</a>
       </nav>
     </div>
   </aside>

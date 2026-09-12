@@ -24,7 +24,8 @@ import { FlyPlannerBackend } from "../fly-planner.js";
 import { learnedPlannerBackend, trainLinearRouter, uniformWeights, type LinearRouterWeights, type TrainingExample } from "../baselines/learned.js";
 import { hashSeed, makeRng } from "../rng.js";
 import { writeTrace, type DecisionTrace } from "../trace.js";
-import { FIXTURES, fixtureAvailability, type Fixture, type FixtureCategory } from "./fixtures.js";
+import { FIXTURES, fixtureAvailability, rubricFor, type Fixture, type FixtureCategory } from "./fixtures.js";
+import { judgeOutput } from "./judge.js";
 import { makeMockRiteRunner, type MockRiteStats } from "./mock-rite.js";
 
 /**
@@ -48,6 +49,10 @@ export interface LiveOptions {
   scanGlobs?: string[];
   /** allow verifier tool use during troll review when a node asks for it (default false) */
   trollTools?: boolean;
+  /** score every live run's final output against its fixture rubric with the LLM judge (default true) */
+  judge?: boolean;
+  /** feed the live reward (judge quality, or termination if no judge) back into learnable planners after each run (default false) */
+  liveLearning?: boolean;
 }
 
 export interface HarnessOptions {
@@ -73,6 +78,8 @@ export interface HarnessOptions {
   trainSeeds?: number[];
   /** Run each planner's fixture loop concurrently (live mode: bounded by the provider and Goblintown's call semaphore). */
   parallelPlanners?: boolean;
+  /** Max concurrent runs per planner (fixtures × seeds). Default 1. */
+  parallelFixtures?: number;
   onProgress?: (msg: string) => void;
 }
 
@@ -114,6 +121,10 @@ export interface RunResult {
   /** live mode: outcome of the final rite and the first claims of the final artifact, for human review */
   finalRiteOutcome?: string;
   finalClaims?: string[];
+  /** live mode with judge: rubric score in [0,1] and the judge's rationale */
+  quality?: number;
+  judgeRationale?: string;
+  judgeError?: string;
 }
 
 export interface PlannerSummary {
@@ -129,6 +140,9 @@ export interface PlannerSummary {
   recoveryRate: number;
   fallbackRate: number;
   errorRate: number;
+  /** live+judge: mean rubric score over judged runs (undefined in mock mode) */
+  meanQuality?: number;
+  judgedRuns?: number;
   /**
    * Task sensitivity: does the planner's first decision depend on the task?
    * distinctPrimaries = number of different primary actions across fixtures;
@@ -150,6 +164,10 @@ export interface Comparison {
   tokensP: number;
   primaryJsDivergence: number;
   identicalDecisions: number;
+  /** live+judge: paired difference in rubric quality */
+  qualityDiff?: number;
+  qualityP?: number;
+  qualityPairs?: number;
 }
 
 export interface HarnessReport {
@@ -193,22 +211,30 @@ export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
     const resolveOpts: ResolveOptions = { root, seed: seeds[0], fallback: false, ...(opts.resolve ?? {}), onFallback: (e) => fallbacks.push(e) };
     let backend = resolvePlannerBackend(spec, resolveOpts);
     if (epochs > 0 && isLearnable(spec)) {
-      backend = await trainBackend({ spec, resolveOpts, fixtures, trainSeeds, epochs, root, repoCache, availability, maxReplan: opts.maxReplan ?? 2, maxNodes: opts.maxNodes ?? 6, training, log });
+      backend = await trainBackend({ spec, resolveOpts, fixtures, trainSeeds, epochs, root, repoCache, availability, maxReplan: opts.maxReplan ?? 2, maxNodes: opts.maxNodes ?? 6, training, log, keepLearning: !!opts.live?.liveLearning });
     }
-    for (const fixture of fixtures) {
-      for (const seed of seeds) {
-        if (opts.live && liveBudget.totalTokens >= liveBudget.cap) {
-          runs.push({ planner: spec, fixtureId: fixture.id, category: fixture.category, seed, repoAvailable: availability[fixture.id], outcome: "failed", expected: fixture.expected, terminationCorrect: false, completed: false, nodes: 0, primary: "spawn_subrite", included: [], reward: 0, actionsRun: [], unnecessaryActions: 0, replans: 0, rites: 0, tokens: 0, goblinCalls: 0, failures: 0, recovered: false, usedFallback: false, wallMs: 0, runId: `${spec}-${fixture.id}-s${seed}`, error: `live token budget exhausted (${liveBudget.totalTokens} ≥ ${liveBudget.cap})`, mode: "live" });
-          continue;
-        }
-        const r = await runOne({ spec, backend, fixture, seed, root, repo: repoCache.get(fixture.repo)!, maxReplan: opts.maxReplan ?? 2, maxNodes: opts.maxNodes ?? 6, writeTraces: !!opts.writeTraces, available: availability[fixture.id], live: opts.live });
-        r.usedFallback = fallbacks.length > 0;
-        fallbacks.length = 0;
-        liveBudget.totalTokens += r.tokens;
-        runs.push(r);
-        log(`${spec} ${fixture.id} seed=${seed} → ${r.outcome}${r.haltKind ? `(${r.haltKind})` : ""} nodes=${r.nodes} rites=${r.rites} tokens=${r.tokens}${opts.live ? ` (total ${liveBudget.totalTokens})` : ""} ${r.wallMs}ms${r.error ? ` ERROR ${r.error}` : ""}`);
+    const jobs: { fixture: Fixture; seed: number }[] = [];
+    for (const fixture of fixtures) for (const seed of seeds) jobs.push({ fixture, seed });
+    const runJob = async ({ fixture, seed }: { fixture: Fixture; seed: number }) => {
+      if (opts.live && liveBudget.totalTokens >= liveBudget.cap) {
+        runs.push({ planner: spec, fixtureId: fixture.id, category: fixture.category, seed, repoAvailable: availability[fixture.id], outcome: "failed", expected: fixture.expected, terminationCorrect: false, completed: false, nodes: 0, primary: "spawn_subrite", included: [], reward: 0, actionsRun: [], unnecessaryActions: 0, replans: 0, rites: 0, tokens: 0, goblinCalls: 0, failures: 0, recovered: false, usedFallback: false, wallMs: 0, runId: `${spec}-${fixture.id}-s${seed}`, error: `live token budget exhausted (${liveBudget.totalTokens} ≥ ${liveBudget.cap})`, mode: "live" });
+        return;
       }
-    }
+      const r = await runOne({ spec, backend, fixture, seed, root, repo: repoCache.get(fixture.repo)!, maxReplan: opts.maxReplan ?? 2, maxNodes: opts.maxNodes ?? 6, writeTraces: !!opts.writeTraces, available: availability[fixture.id], live: opts.live });
+      r.usedFallback = fallbacks.length > 0;
+      fallbacks.length = 0;
+      liveBudget.totalTokens += r.tokens;
+      runs.push(r);
+      log(`${spec} ${fixture.id} seed=${seed} → ${r.outcome}${r.haltKind ? `(${r.haltKind})` : ""} nodes=${r.nodes} rites=${r.rites} tokens=${r.tokens}${opts.live ? ` (total ${liveBudget.totalTokens})` : ""}${r.quality !== undefined ? ` quality=${r.quality.toFixed(2)}` : ""} ${r.wallMs}ms${r.error ? ` ERROR ${r.error}` : ""}`);
+    };
+    const width = Math.max(1, opts.parallelFixtures ?? 1);
+    // Online (live) learning must see runs in order, so learnable planners stay sequential.
+    const concurrency = opts.live?.liveLearning && isLearnable(spec) ? 1 : width;
+    let next = 0;
+    const workers = Array.from({ length: Math.min(concurrency, jobs.length) }, async () => {
+      while (next < jobs.length) { const job = jobs[next++]; await runJob(job); }
+    });
+    await Promise.all(workers);
   };
   if (opts.parallelPlanners) await Promise.all(opts.planners.map(runPlanner));
   else for (const spec of opts.planners) await runPlanner(spec);
@@ -236,7 +262,7 @@ export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
  * The fly variant learns only its adapter weights (never the graph); the
  * learned baseline retrains its logistic router on-policy after each epoch.
  */
-async function trainBackend(a: { spec: string; resolveOpts: ResolveOptions; fixtures: Fixture[]; trainSeeds: number[]; epochs: number; root: string; repoCache: Map<string, RepoSignals>; availability: Record<string, boolean>; maxReplan: number; maxNodes: number; training: TrainingRecord[]; log: (m: string) => void }): Promise<PlannerBackend> {
+async function trainBackend(a: { spec: string; resolveOpts: ResolveOptions; fixtures: Fixture[]; trainSeeds: number[]; epochs: number; root: string; repoCache: Map<string, RepoSignals>; availability: Record<string, boolean>; maxReplan: number; maxNodes: number; training: TrainingRecord[]; log: (m: string) => void; keepLearning?: boolean }): Promise<PlannerBackend> {
   const { kind } = parsePlannerSpec(a.spec);
   const pass = async (backend: PlannerBackend, epoch: number) => {
     const results: RunResult[] = [];
@@ -255,7 +281,8 @@ async function trainBackend(a: { spec: string; resolveOpts: ResolveOptions; fixt
     const adapters = await trainer.snapshotAdapters();
     const plasticState = trainer.snapshotPlastic();
     // Frozen evaluation backend: trained adapters and multipliers, no further updates, greedy.
-    return new FlyPlannerBackend({ ...trainer.options, adapters, plasticState, learning: false, plastic: !!flyOpts.plastic, explore: false, weightsDir: undefined, id: a.spec });
+    // keepLearning: online adapter learning continues during (live) evaluation, greedy decisions.
+    return new FlyPlannerBackend({ ...trainer.options, adapters, plasticState, learning: !!a.keepLearning && !!flyOpts.learning, plastic: !!flyOpts.plastic, explore: false, weightsDir: undefined, id: a.spec });
   }
   let weights: LinearRouterWeights = uniformWeights();
   for (let e = 1; e <= a.epochs; e++) {
@@ -317,6 +344,9 @@ async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: 
   let nodes = 0;
   let finalRiteOutcome: string | undefined;
   let finalClaims: string[] | undefined;
+  let quality: number | undefined;
+  let judgeRationale: string | undefined;
+  let judgeError: string | undefined;
   try {
     const res = await a.backend.plan({ task: fixture.task, cwd: fixture.repo, repo: a.repo, parentArtifacts, maxNodes: a.maxNodes, runId, extraSignals: fixture.extra, replanDepth: 0 });
     firstTrace = res.trace;
@@ -341,15 +371,39 @@ async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: 
     if (a.live) {
       finalClaims = exec.finalArtifact?.claims.slice(0, 3).map((c) => c.text);
       if (exec.finalRiteId) finalRiteOutcome = (await hoard.getRite(exec.finalRiteId))?.outcome;
+      if (a.live.judge !== false) {
+        const termOk = terminationOk(fixture.expected, outcome, haltKind);
+        if (outcome === "halted") {
+          // No output to judge: a halt is right or wrong by the fixture contract.
+          quality = termOk ? 1 : 0;
+          judgeRationale = `halted (${haltKind}); expected ${fixture.expected}`;
+        } else if (outcome === "success") {
+          const finalOutput = exec.finalLootId ? (await hoard.getLoot(exec.finalLootId))?.output : undefined;
+          const verdict = await judgeOutput({
+            task: fixture.task, rubric: rubricFor(fixture), expected: fixture.expected,
+            outcome: `completed a ${exec.plan.nodes.length}-node plan (final rite outcome: ${finalRiteOutcome ?? "unknown"}); actions: ${stats.actions.join(" → ") || "none"}`,
+            output: finalOutput, claims: exec.finalArtifact?.claims.map((c) => c.text),
+          });
+          stats.tokens += verdict.tokens;
+          quality = verdict.error ? undefined : verdict.score;
+          judgeRationale = verdict.rationale;
+          judgeError = verdict.error;
+        } else {
+          quality = 0;
+          judgeRationale = "plan failed";
+        }
+      }
     }
-    if (a.backend instanceof FlyPlannerBackend && firstTrace) {
-      await a.backend.learn(firstTrace, rewardFor(terminationOk(fixture.expected, outcome, haltKind), stats.tokens));
+    const termCorrect = terminationOk(fixture.expected, outcome, haltKind);
+    const liveReward = quality !== undefined ? 0.8 * quality + 0.2 * (termCorrect ? 1 : 0) : rewardFor(termCorrect, stats.tokens);
+    if (a.backend instanceof FlyPlannerBackend && firstTrace && (!a.live || a.live.liveLearning)) {
+      await a.backend.learn(firstTrace, a.live ? liveReward : rewardFor(termCorrect, stats.tokens));
     }
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
   }
   const wallMs = Date.now() - t0;
-  if (a.writeTraces) for (const t of traces) { t.outcome = { planOutcome: outcome, replans, tokens: stats.tokens, wallMs }; await writeTrace(a.root, t); }
+  if (a.writeTraces) for (const t of traces) { t.outcome = { planOutcome: outcome, replans, tokens: stats.tokens, wallMs, reward: quality }; await writeTrace(a.root, t); }
   const primary = (firstTrace?.decision.primary ?? "spawn_subrite") as OrchAction;
   const included = (firstTrace?.decision.included ?? []) as OrchAction[];
   const completed = outcome === "success";
@@ -360,10 +414,10 @@ async function runOneInner(a: { spec: string; backend: PlannerBackend; fixture: 
     outcome, haltKind, expected: fixture.expected, terminationCorrect, completed, nodes, primary, included,
     scores: firstTrace?.actionScores,
     features: firstTrace?.features ? FEATURE_NAMES.map((n) => firstTrace!.features![n] ?? 0) : undefined,
-    reward: rewardFor(terminationCorrect, stats.tokens),
+    reward: quality !== undefined ? 0.8 * quality + 0.2 * (terminationCorrect ? 1 : 0) : rewardFor(terminationCorrect, stats.tokens),
     actionsRun: stats.actions, unnecessaryActions: countUnnecessary(fixture, stats.actions), replans,
     rites: stats.rites, tokens: stats.tokens, goblinCalls: stats.goblinCalls, failures: stats.failures, recovered,
-    usedFallback: false, wallMs, runId, error, mode: a.live ? "live" : "mock", finalRiteOutcome, finalClaims,
+    usedFallback: false, wallMs, runId, error, mode: a.live ? "live" : "mock", finalRiteOutcome, finalClaims, quality, judgeRationale, judgeError,
   };
 }
 
@@ -403,6 +457,8 @@ export function summarize(planner: string, rs: RunResult[]): PlannerSummary {
   }
   for (const c of Object.values(byCategory)) { c.completionRate /= c.runs; c.terminationAccuracy /= c.runs; c.meanTokens /= c.runs; }
   const misleading = ok.filter((r) => r.category === "misleading_hypothesis");
+  const judged = rs.filter((r) => r.quality !== undefined);
+  const meanQuality = judged.length ? mean(judged.map((r) => r.quality!)) : undefined;
   const firstSeed = ok.length ? Math.min(...ok.map((r) => r.seed)) : 0;
   const perFixture = ok.filter((r) => r.seed === firstSeed && r.scores);
   let jsSum = 0, jsN = 0;
@@ -416,6 +472,7 @@ export function summarize(planner: string, rs: RunResult[]): PlannerSummary {
     meanNodes: mean(ok.map((r) => r.nodes)), meanUnnecessary: mean(ok.map((r) => r.unnecessaryActions)),
     recoveryRate: mean(misleading.map((r) => (r.completed ? 1 : 0))),
     fallbackRate: mean(rs.map((r) => (r.usedFallback ? 1 : 0))), errorRate: mean(rs.map((r) => (r.error ? 1 : 0))),
+    meanQuality, judgedRuns: judged.length || undefined,
     primaryDistribution: dist, byCategory,
   };
 }
@@ -446,7 +503,7 @@ export function compare(a: string, b: string, runs: RunResult[]): Comparison {
   const key = (r: RunResult) => `${r.fixtureId}|${r.seed}`;
   const ra = new Map(runs.filter((r) => r.planner === a && !r.error).map((r) => [key(r), r]));
   const rb = new Map(runs.filter((r) => r.planner === b && !r.error).map((r) => [key(r), r]));
-  const completion: number[] = [], tokens: number[] = [];
+  const completion: number[] = [], tokens: number[] = [], quality: number[] = [];
   let identical = 0, pairs = 0;
   for (const [k, x] of ra) {
     const y = rb.get(k);
@@ -454,12 +511,18 @@ export function compare(a: string, b: string, runs: RunResult[]): Comparison {
     pairs++;
     completion.push((x.terminationCorrect ? 1 : 0) - (y.terminationCorrect ? 1 : 0));
     tokens.push(x.tokens - y.tokens);
+    if (x.quality !== undefined && y.quality !== undefined) quality.push(x.quality - y.quality);
     if (x.primary === y.primary && x.included.join() === y.included.join()) identical++;
   }
   const c = pairedPermutation(completion, 5000, hashSeed(a, b, 1));
   const t = pairedPermutation(tokens, 5000, hashSeed(a, b, 2));
+  const q = quality.length ? pairedPermutation(quality, 5000, hashSeed(a, b, 3)) : undefined;
   const sa = summarize(a, runs.filter((r) => r.planner === a)), sb = summarize(b, runs.filter((r) => r.planner === b));
-  return { a, b, pairs, completionDiff: c.diff, completionP: c.p, tokensDiff: t.diff, tokensP: t.p, primaryJsDivergence: jsDivergence(sa.primaryDistribution, sb.primaryDistribution), identicalDecisions: pairs ? identical / pairs : 0 };
+  return {
+    a, b, pairs, completionDiff: c.diff, completionP: c.p, tokensDiff: t.diff, tokensP: t.p,
+    primaryJsDivergence: jsDivergence(sa.primaryDistribution, sb.primaryDistribution), identicalDecisions: pairs ? identical / pairs : 0,
+    ...(q ? { qualityDiff: q.diff, qualityP: q.p, qualityPairs: quality.length } : {}),
+  };
 }
 
 export function renderReport(r: HarnessReport): string {
@@ -473,10 +536,12 @@ export function renderReport(r: HarnessReport): string {
   }
   const missing = Object.entries(r.fixtureAvailability).filter(([, ok]) => !ok).map(([id]) => id);
   if (missing.length) L.push(`> repositories missing on this machine for: ${missing.join(", ")} — those runs used empty repo signals.`, ``);
-  L.push(`| planner | runs | termination acc | completion (of completable) | recovery (misleading) | mean tokens | mean rites | mean replans | mean nodes | unnecessary | task-sensitivity (distinct / JS bits) | errors |`);
-  L.push(`|---|---|---|---|---|---|---|---|---|---|---|---|`);
-  for (const s of r.summaries) L.push(`| ${s.planner} | ${s.runs} | ${pct(s.terminationAccuracy)} | ${pct(s.completionRate)} | ${pct(s.recoveryRate)} | ${s.meanTokens.toFixed(0)} | ${s.meanRites.toFixed(2)} | ${s.meanReplans.toFixed(2)} | ${s.meanNodes.toFixed(2)} | ${s.meanUnnecessary.toFixed(2)} | ${s.sensitivity.distinctPrimaries} / ${s.sensitivity.meanPairwiseJs.toFixed(3)} | ${pct(s.errorRate)} |`);
+  const judged = r.summaries.some((s) => s.meanQuality !== undefined);
+  L.push(`| planner | runs |${judged ? " quality (judge) |" : ""} termination acc | completion (of completable) | recovery (misleading) | mean tokens | mean rites | mean replans | mean nodes | unnecessary | task-sensitivity (distinct / JS bits) | errors |`);
+  L.push(`|---|---|${judged ? "---|" : ""}---|---|---|---|---|---|---|---|---|---|`);
+  for (const s of r.summaries) L.push(`| ${s.planner} | ${s.runs} |${judged ? ` ${s.meanQuality !== undefined ? `${s.meanQuality.toFixed(2)} (n=${s.judgedRuns})` : "–"} |` : ""} ${pct(s.terminationAccuracy)} | ${pct(s.completionRate)} | ${pct(s.recoveryRate)} | ${s.meanTokens.toFixed(0)} | ${s.meanRites.toFixed(2)} | ${s.meanReplans.toFixed(2)} | ${s.meanNodes.toFixed(2)} | ${s.meanUnnecessary.toFixed(2)} | ${s.sensitivity.distinctPrimaries} / ${s.sensitivity.meanPairwiseJs.toFixed(3)} | ${pct(s.errorRate)} |`);
   L.push(``);
+  if (judged) L.push(`> quality = LLM-judge rubric score in [0,1] per fixture (halts scored 1/0 by the fixture's expected termination; failed plans 0). The judge is a model call with a fixed prompt shared across planners — record, don't trust blindly; rationales are in report.json.`, ``);
   const constant = r.summaries.filter((s) => s.sensitivity.distinctPrimaries <= 1 && s.runs > 1).map((s) => s.planner);
   if (constant.length) L.push(`> **Constant-policy warning:** ${constant.join(", ")} made the same primary decision for every fixture. Their accuracy numbers reflect how a fixed policy interacts with the fixture mix, not task-dependent routing — treat them as uninformative until task sensitivity is > 0.`, ``);
   if (r.training.length) {
@@ -491,8 +556,9 @@ export function renderReport(r: HarnessReport): string {
     L.push(`## ${c.a} vs ${c.b} (paired, n=${c.pairs})`, ``);
     L.push(`- termination-accuracy difference: ${(c.completionDiff * 100).toFixed(1)} pts, permutation p = ${c.completionP.toFixed(3)}`);
     L.push(`- token difference: ${c.tokensDiff.toFixed(0)}, permutation p = ${c.tokensP.toFixed(3)}`);
+    if (c.qualityDiff !== undefined) L.push(`- judge-quality difference: ${c.qualityDiff.toFixed(3)} (n=${c.qualityPairs}), permutation p = ${c.qualityP!.toFixed(3)}`);
     L.push(`- primary-action JS divergence: ${c.primaryJsDivergence.toFixed(3)} bits  ·  identical decisions: ${pct(c.identicalDecisions)}`);
-    const verdict = c.completionP < 0.05 || c.tokensP < 0.05
+    const verdict = c.completionP < 0.05 || c.tokensP < 0.05 || (c.qualityP !== undefined && c.qualityP < 0.05)
       ? `**Distinguishable** on at least one primary metric at p<0.05.`
       : `**Not distinguishable** at p<0.05 on termination accuracy or tokens. Under this harness the real wiring is not shown to matter versus ${c.b}. Report this as the result; do not dress it up.`;
     L.push(``, verdict, ``);

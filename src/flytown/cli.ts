@@ -166,8 +166,10 @@ async function cmdEval(args: string[]): Promise<void> {
       maxTotalTokens: f["max-total-tokens"] ? Number(f["max-total-tokens"]) : 3_000_000,
       scanGlobs: f.globs ? f.globs.split(",") : undefined,
       trollTools: f["troll-tools"] === "true",
+      judge: f["no-judge"] !== "true",
+      liveLearning: f["live-learning"] === "true",
     };
-    process.stdout.write(`LIVE evaluation against provider in ${warrenRoot} — pack ≤ ${live.packSize}, ≤ ${live.maxOutputTokensPerCall} output tokens/call, ≤ ${live.budgetTokensPerRun} tokens/run, ≤ ${live.maxTotalTokens} tokens total\n`);
+    process.stdout.write(`LIVE evaluation against provider in ${warrenRoot} — pack ≤ ${live.packSize}, ≤ ${live.maxOutputTokensPerCall} output tokens/call, ≤ ${live.budgetTokensPerRun} tokens/run, ≤ ${live.maxTotalTokens} tokens total, judge=${live.judge ? "on" : "off"}, live-learning=${live.liveLearning ? "on" : "off"}\n`);
   }
   const report = await runHarness({
     planners, fixtures, seeds, root, maxReplan: f["max-replan"] ? Number(f["max-replan"]) : 2, writeTraces: f.traces === "true",
@@ -175,6 +177,7 @@ async function cmdEval(args: string[]): Promise<void> {
     epochs: f.epochs ? Number(f.epochs) : 0,
     live,
     parallelPlanners: f.parallel === "true",
+    parallelFixtures: f["parallel-fixtures"] ? Number(f["parallel-fixtures"]) : 1,
     onProgress: (m) => { if (f.verbose === "true") process.stdout.write(m + "\n"); },
   });
   process.stdout.write(await readFile(join(report.outDir, "report.md"), "utf8"));
