@@ -63,6 +63,9 @@ export interface PlasticitySpec {
   };
 }
 
+/** Connectome used when a fly planner spec names none. */
+export const DEFAULT_CONNECTOME_ID = "fafb-v783-projectome-1";
+
 export type ConnectomeVariant = "real" | "shuffled" | "random_degree" | "ablated" | "signless";
 
 export interface ConnectomeGraph {

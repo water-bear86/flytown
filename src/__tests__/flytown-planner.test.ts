@@ -10,10 +10,11 @@ import { withFallback, type PlannerBackend } from "../flytown/planner-backend.js
 import { rulesPlannerBackend } from "../flytown/baselines/rules.js";
 import { randomPlannerBackend } from "../flytown/baselines/random.js";
 import { learnedPlannerBackend, trainLinearRouter, linearScores, uniformWeights } from "../flytown/baselines/learned.js";
-import { FlyPlannerBackend } from "../flytown/fly-planner.js";
+import { FlyPlannerBackend, flyPlannerSpec } from "../flytown/fly-planner.js";
 import { makeGraph } from "../flytown/connectome/artifact.js";
 import { DEFAULT_ENGINE_PARAMS } from "../flytown/connectome/engine.js";
-import { resolvePlannerBackend, parsePlannerSpec } from "../flytown/registry.js";
+import { resolvePlannerBackend, resolveFlyOptions, parsePlannerSpec } from "../flytown/registry.js";
+import { hashSeed } from "../flytown/rng.js";
 import { makeMockFlightRunner } from "../flytown/eval/mock-flight.js";
 import { FIXTURES } from "../flytown/eval/fixtures.js";
 import { readTrace, writeTrace } from "../flytown/trace.js";
@@ -156,8 +157,8 @@ describe("fly planner", () => {
     assert.equal(shuffled.trace!.brain!.variant, "shuffled");
     assert.deepEqual(ablated.trace!.brain!.ablatedRegions, ["EB", "MB_CA"]);
     assert.equal(norec.trace!.brain!.recurrence, false);
-    assert.equal(norec.plan.plannerId, "fly:norecurrence");
-    assert.equal(shuffled.plan.plannerId, "fly:shuffled");
+    assert.equal(norec.plan.plannerId, "fly:connectome=m+norecurrence");
+    assert.equal(shuffled.plan.plannerId, "fly:connectome=m+shuffled");
     const finalReal = real.trace!.brain!.steps.at(-1)!.activity, finalShuf = shuffled.trace!.brain!.steps.at(-1)!.activity;
     assert.notDeepEqual(finalReal, finalShuf, "shuffling labels changes where activity lands");
     for (const r of [real, shuffled, ablated, norec]) assert.ok(r.plan.halt || r.plan.nodes.length > 0);
@@ -192,7 +193,40 @@ describe("registry", () => {
       assert.ok(b.id.length > 0, spec);
     }
     assert.throws(() => resolvePlannerBackend("nope", { root }));
-    assert.equal(resolvePlannerBackend("fly:ablate=MB_CA,EB", { root, graph: miniBrain(), fallback: false }).id, "fly:ablate=MB_CA+EB");
+    assert.equal(resolvePlannerBackend("fly:ablate=MB_CA,EB", { root, graph: miniBrain(), fallback: false }).id, "fly:ablate=MB_CA,EB");
+  });
+  it("fly planner ids are specs that rebuild the same planner (replay fidelity)", () => {
+    const root = "/tmp/flytown-registry";
+    const essentials = (o: ReturnType<typeof resolveFlyOptions>) => ({
+      connectomeId: o.connectomeId, variant: o.variant, ablateRegions: o.ablateRegions, engine: o.engine, excludeSelfEdges: !!o.excludeSelfEdges,
+      sparseGroups: o.sparseGroups, channelWeights: o.channelWeights, learning: o.learning, learningRate: o.learningRate, plastic: !!o.plastic, plasticParams: o.plasticParams,
+    });
+    for (const spec of [
+      "fly",
+      "fly:connectome=l1-larva-winding2023-1+plastic",
+      "fly:connectome=l1-larva-winding2023-1+shuffled+learning+plastic",
+      "fly:connectome=l1-larva-winding2023-1+random_degree+plastic+plr=0.2",
+      "fly:shuffled+norecurrence",
+      "fly:ablate=MB_CA,EB+signless",
+      "fly:sparse=flag:KC@0.05,class:LHN@0.2+channels=aa:0.5,dd:0.25+lr=0.1",
+      "fly:nosparse+noself+steps=20+gain=0.8+leak=0.4+insteps=5+div=2",
+    ]) {
+      const opts = resolveFlyOptions(spec, { root });
+      const id = new FlyPlannerBackend(opts).id;
+      assert.equal(id, flyPlannerSpec(opts));
+      assert.deepEqual(essentials(resolveFlyOptions(id, { root })), essentials(opts), `${spec} → ${id}`);
+    }
+    assert.deepEqual(resolveFlyOptions("fly:sparse=flag:KC@0.05,class:LHN@0.2", { root }).sparseGroups, [{ group: "flag:KC", fraction: 0.05 }, { group: "class:LHN", fraction: 0.2 }]);
+  });
+  it("the planner seed keeps the pre-2026-09-12 id format so recorded experiments reproduce", async () => {
+    const graph = miniBrain();
+    const req = { task: "Fix the flaky retry test", cwd: "/nope", runId: "seed-1" };
+    const shuffled = await new FlyPlannerBackend({ connectomeId: "m", graph, variant: "shuffled", variantSeed: 5, engine: { recurrence: false }, learning: true }).plan(req);
+    assert.equal(shuffled.trace!.seed, hashSeed("fly:shuffled:norecurrence:learning", "seed-1", 0));
+    const ablated = await new FlyPlannerBackend({ connectomeId: "m", graph, ablateRegions: ["MB_CA", "EB"] }).plan(req);
+    assert.equal(ablated.trace!.seed, hashSeed("fly:ablate=MB_CA+EB", "seed-1", 0));
+    const labelled = await new FlyPlannerBackend({ connectomeId: "m", graph, id: "fly:connectome=m" }).plan(req);
+    assert.equal(labelled.trace!.seed, hashSeed("fly:connectome=m", "seed-1", 0), "an explicit id still seeds as before");
   });
   it("replayTrace reproduces a stored rules decision", async () => {
     const dir = await mkdtemp(join(tmpdir(), "flytown-replay-"));

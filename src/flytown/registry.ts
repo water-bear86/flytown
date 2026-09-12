@@ -14,9 +14,9 @@ import { rulesPlannerBackend } from "./baselines/rules.js";
 import { randomPlannerBackend } from "./baselines/random.js";
 import { learnedPlannerBackend } from "./baselines/learned.js";
 import { FlyPlannerBackend, type FlyPlannerOptions } from "./fly-planner.js";
-import type { ConnectomeGraph, ConnectomeVariant } from "./connectome/artifact.js";
+import { DEFAULT_CONNECTOME_ID, type ConnectomeGraph, type ConnectomeVariant } from "./connectome/artifact.js";
 
-export const DEFAULT_CONNECTOME_ID = "fafb-v783-projectome-1";
+export { DEFAULT_CONNECTOME_ID };
 
 /**
  * Default planner backend.
@@ -96,9 +96,9 @@ export function resolveFlyOptions(spec: string, opts: ResolveOptions): FlyPlanne
   if (flags.plastic) fly.plastic = true;
   if (flags.nosparse) fly.sparseGroups = [];
   else if (typeof flags.sparse === "string") {
-    // sparse=0.05  or  sparse=flag:KC@0.05+class:LHN@0.2
+    // sparse=0.05  or  sparse=flag:KC@0.05,class:LHN@0.2  ("+" already separates flags)
     fly.sparseGroups = flags.sparse.includes("@")
-      ? flags.sparse.split("+").map((s) => { const [group, f] = s.split("@"); return { group, fraction: Number(f) }; })
+      ? flags.sparse.split(",").map((s) => { const [group, f] = s.split("@"); return { group, fraction: Number(f) }; })
       : [{ group: "flag:KC", fraction: Number(flags.sparse) }];
   }
   if (typeof flags.plr === "string") fly.plasticParams = { ...(fly.plasticParams ?? {}), lr: Number(flags.plr) };

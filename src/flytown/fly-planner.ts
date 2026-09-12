@@ -27,7 +27,7 @@ import { FEATURE_NAMES, featurize } from "./signals.js";
 import { hashSeed, makeRng } from "./rng.js";
 import { makeTrace, type BrainActivityTrace, type DecisionTrace, type ProvenanceTag } from "./trace.js";
 import {
-  ablate, groupIndex, loadConnectome, randomDegreePreserving, shuffleLabels, signless,
+  ablate, DEFAULT_CONNECTOME_ID, groupIndex, loadConnectome, randomDegreePreserving, shuffleLabels, signless,
   type ConnectomeGraph, type ConnectomeVariant,
 } from "./connectome/artifact.js";
 import { buildSignedGraph, DEFAULT_ENGINE_PARAMS, DEFAULT_SIGN_POLICY, propagate, type EngineParams, type SignedGraph, type SignPolicy } from "./connectome/engine.js";
@@ -75,10 +75,64 @@ export interface FlyPlannerOptions {
 
 interface Prepared { graph: ConnectomeGraph; signed: SignedGraph; groups: Map<string, number[]>; plasticPre: number[] }
 
+/**
+ * Planner spec for these options, in the registry's grammar
+ * (`fly:connectome=<id>+shuffled+ablate=A,B+plastic`), so a trace's plannerId
+ * names the brain it ran on and `resolveFlyOptions(flyPlannerSpec(o))`
+ * rebuilds the same planner. Covers every option the spec grammar can
+ * express; the rest (preloaded graph/adapters/plastic state, sign policy,
+ * variant seed, exploration) are recorded elsewhere in the trace.
+ */
+export function flyPlannerSpec(opts: FlyPlannerOptions): string {
+  const flags: string[] = [];
+  if (opts.connectomeId && opts.connectomeId !== DEFAULT_CONNECTOME_ID) flags.push(`connectome=${opts.connectomeId}`);
+  if (opts.variant && opts.variant !== "real" && opts.variant !== "ablated") flags.push(opts.variant);
+  if (opts.ablateRegions?.length) flags.push(`ablate=${opts.ablateRegions.join(",")}`);
+  if (opts.engine?.recurrence === false) flags.push("norecurrence");
+  if (opts.excludeSelfEdges) flags.push("noself");
+  if (opts.engine?.divisive) flags.push(`div=${opts.engine.divisive}`);
+  if (opts.engine?.gain !== undefined) flags.push(`gain=${opts.engine.gain}`);
+  if (opts.engine?.steps !== undefined) flags.push(`steps=${opts.engine.steps}`);
+  if (opts.engine?.leak !== undefined) flags.push(`leak=${opts.engine.leak}`);
+  if (opts.engine?.inputSteps !== undefined) flags.push(`insteps=${opts.engine.inputSteps}`);
+  if (opts.sparseGroups && opts.sparseGroups.length === 0) flags.push("nosparse");
+  else if (opts.sparseGroups?.length) flags.push(`sparse=${opts.sparseGroups.map((s) => `${s.group}@${s.fraction}`).join(",")}`);
+  if (opts.channelWeights && Object.keys(opts.channelWeights).length) flags.push(`channels=${Object.entries(opts.channelWeights).map(([k, v]) => `${k}:${v}`).join(",")}`);
+  if (opts.learning) flags.push("learning");
+  if (opts.learningRate !== undefined) flags.push(`lr=${opts.learningRate}`);
+  if (opts.plastic) flags.push("plastic");
+  if (opts.plasticParams?.lr !== undefined) flags.push(`plr=${opts.plasticParams.lr}`);
+  return flags.length ? `fly:${flags.join("+")}` : "fly";
+}
+
+/**
+ * Seed key in the planner-id format used before 2026-09-12. Exploration draws
+ * and plan ids derive from it, so recorded experiments (including the
+ * pre-registered larva run) reproduce exactly. Do not change it.
+ */
+function legacySeedKey(opts: FlyPlannerOptions): string {
+  const parts = ["fly"];
+  if (opts.variant && opts.variant !== "real") parts.push(opts.variant);
+  if (opts.ablateRegions?.length) parts.push(`ablate=${opts.ablateRegions.join("+")}`);
+  if (opts.engine?.recurrence === false) parts.push("norecurrence");
+  if (opts.excludeSelfEdges) parts.push("noself");
+  if (opts.engine?.divisive) parts.push(`div=${opts.engine.divisive}`);
+  if (opts.engine?.gain !== undefined) parts.push(`gain=${opts.engine.gain}`);
+  if (opts.engine?.steps !== undefined) parts.push(`steps=${opts.engine.steps}`);
+  if (opts.engine?.leak !== undefined) parts.push(`leak=${opts.engine.leak}`);
+  if (opts.engine?.inputSteps !== undefined) parts.push(`insteps=${opts.engine.inputSteps}`);
+  if (opts.sparseGroups && opts.sparseGroups.length === 0) parts.push("nosparse");
+  else if (opts.sparseGroups?.length) parts.push(`sparse=${opts.sparseGroups.map((s) => `${s.group}@${s.fraction}`).join("+")}`);
+  if (opts.learning) parts.push("learning");
+  if (opts.plastic) parts.push("plastic");
+  return parts.join(":");
+}
+
 const FULL_ACTIVITY_MAX_NODES = 200;
 
 export class FlyPlannerBackend implements PlannerBackend {
   readonly id: string;
+  private readonly seedKey: string;
   private prepared?: Promise<Prepared>;
   private adapters?: AdapterWeights;
   private plasticState: PlasticState;
@@ -87,21 +141,8 @@ export class FlyPlannerBackend implements PlannerBackend {
   private readonly plasticFile?: string;
 
   constructor(private readonly opts: FlyPlannerOptions) {
-    const parts = ["fly"];
-    if (opts.variant && opts.variant !== "real") parts.push(opts.variant);
-    if (opts.ablateRegions?.length) parts.push(`ablate=${opts.ablateRegions.join("+")}`);
-    if (opts.engine?.recurrence === false) parts.push("norecurrence");
-    if (opts.excludeSelfEdges) parts.push("noself");
-    if (opts.engine?.divisive) parts.push(`div=${opts.engine.divisive}`);
-    if (opts.engine?.gain !== undefined) parts.push(`gain=${opts.engine.gain}`);
-    if (opts.engine?.steps !== undefined) parts.push(`steps=${opts.engine.steps}`);
-    if (opts.engine?.leak !== undefined) parts.push(`leak=${opts.engine.leak}`);
-    if (opts.engine?.inputSteps !== undefined) parts.push(`insteps=${opts.engine.inputSteps}`);
-    if (opts.sparseGroups && opts.sparseGroups.length === 0) parts.push("nosparse");
-    else if (opts.sparseGroups?.length) parts.push(`sparse=${opts.sparseGroups.map((s) => `${s.group}@${s.fraction}`).join("+")}`);
-    if (opts.learning) parts.push("learning");
-    if (opts.plastic) parts.push("plastic");
-    this.id = opts.id ?? parts.join(":");
+    this.id = opts.id ?? flyPlannerSpec(opts);
+    this.seedKey = opts.id ?? legacySeedKey(opts);
     this.engine = { ...DEFAULT_ENGINE_PARAMS, ...(opts.engine ?? {}) };
     this.weightsFile = opts.weightsDir ? join(opts.weightsDir, `${opts.connectomeId}.adapters.json`) : undefined;
     this.plasticFile = opts.weightsDir ? join(opts.weightsDir, `${opts.connectomeId}.plastic.json`) : undefined;
@@ -153,7 +194,7 @@ export class FlyPlannerBackend implements PlannerBackend {
     const prop = propagate(signed, enc.input, this.engine);
     const ro = readout(prop.final, adapters, graph, groups);
     const runId = req.runId ?? `fly-${randomUUID().slice(0, 8)}`;
-    const seed = hashSeed(this.id, runId, req.replanDepth ?? 0);
+    const seed = hashSeed(this.seedKey, runId, req.replanDepth ?? 0);
     const decision = decide(ro.scores, signals, this.opts.explore ? { explore: { rng: makeRng(hashSeed(seed, "explore")) } } : {});
     const plan = compilePlan(decision, signals, { maxNodes: req.maxNodes, plannerId: this.id, planIdSeed: seed.toString(16) });
 
