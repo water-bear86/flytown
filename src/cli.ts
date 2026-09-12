@@ -102,6 +102,8 @@ async function main(): Promise<void> {
       const { runFlyCli } = await import("./flytown/cli.js");
       return runFlyCli(argv.slice(1));
     }
+    case "secret":
+      return cmdSecret(argv.slice(1));
     case "context":
       return cmdContext(argv.slice(1));
     case "fold":
@@ -1187,6 +1189,60 @@ async function cmdPlan(args: string[]): Promise<void> {
   if (result.finalArtifact) {
     process.stdout.write(`Final artifact: ${result.finalArtifact.id}\n`);
   }
+}
+
+/**
+ * goblintown secret set <ENV_NAME>    — store a provider API key for this Warren
+ *                                        (prompted with echo off on a TTY, or read from stdin)
+ * goblintown secret clear <ENV_NAME>  — remove it
+ * goblintown secret list              — names only, never values
+ * Keys live in .goblintown/provider-secrets.json (mode 0600) and are picked up
+ * automatically by the provider resolver for this Warren.
+ */
+async function cmdSecret(args: string[]): Promise<void> {
+  const [sub, name] = args;
+  const w = await loadWarren(process.cwd());
+  const { setProviderSecretForRoot, clearProviderSecretForRoot, readProviderSecretsForRootSync } = await import("./provider-secrets.js");
+  if (sub === "list") {
+    const names = Object.keys(readProviderSecretsForRootSync(w.root));
+    process.stdout.write(names.length ? names.join("\n") + "\n" : `(no stored secrets for ${w.root})\n`);
+    return;
+  }
+  if ((sub !== "set" && sub !== "clear") || !name || !/^[A-Z_][A-Z0-9_]*$/.test(name)) {
+    process.stderr.write(`usage: goblintown secret set|clear <ENV_NAME>   |   goblintown secret list\n`);
+    process.exitCode = 1;
+    return;
+  }
+  if (sub === "clear") {
+    await clearProviderSecretForRoot(w.root, name);
+    process.stdout.write(`cleared ${name} for ${w.root}\n`);
+    return;
+  }
+  const value = (await readSecretFromTerminal(`Paste ${name} (input hidden): `)).trim();
+  if (!value) { process.stderr.write(`no value read; nothing stored\n`); process.exitCode = 1; return; }
+  await setProviderSecretForRoot(w.root, name, value);
+  process.stdout.write(`stored ${name} for ${w.root} (${value.length} chars, file mode 0600)\n`);
+}
+
+async function readSecretFromTerminal(prompt: string): Promise<string> {
+  const { stdin } = process;
+  if (!stdin.isTTY) {
+    return new Promise((resolve) => { let buf = ""; stdin.setEncoding("utf8"); stdin.on("data", (d) => { buf += d; }); stdin.on("end", () => resolve(buf)); });
+  }
+  process.stdout.write(prompt);
+  return new Promise((resolve) => {
+    stdin.setRawMode(true); stdin.resume(); stdin.setEncoding("utf8");
+    let buf = "";
+    const onData = (ch: string) => {
+      for (const c of ch) {
+        if (c === "\r" || c === "\n") { stdin.setRawMode(false); stdin.pause(); stdin.off("data", onData); process.stdout.write("\n"); resolve(buf); return; }
+        if (c === "") { stdin.setRawMode(false); process.stdout.write("\n"); process.exit(130); }
+        if (c === "" || c === "\b") { buf = buf.slice(0, -1); continue; }
+        buf += c;
+      }
+    };
+    stdin.on("data", onData);
+  });
 }
 
 async function cmdExportTrace(args: string[]): Promise<void> {

@@ -66,6 +66,23 @@ export function resolveActiveProviderRuntimeForSlot(
   return resolveProviderRuntimeForSlot(slot, config, process.env, storedSecrets);
 }
 
+/**
+ * The model a slot will actually be called with: env override
+ * (GOBLINTOWN_MODEL_<SLOT>) → the active Warren's provider config → fallback.
+ * Creature factories use this so that labels, error messages and Loot records
+ * name the real model instead of a hard-coded default.
+ */
+export function activeModelForSlot(slot: ModelSlot, fallback: string): string {
+  const env = process.env[`GOBLINTOWN_MODEL_${slot.toUpperCase()}`];
+  if (env && env.trim()) return env.trim();
+  try {
+    const runtime = resolveActiveProviderRuntimeForSlot(slot);
+    return resolveModel(runtime.models[slot] || fallback, runtime.baseURL);
+  } catch {
+    return fallback;
+  }
+}
+
 // gpt-5 and o-series reasoning models reject `temperature` and use
 // `max_completion_tokens` instead of `max_tokens`. Also covers the same
 // families when accessed through OpenRouter as `openai/gpt-5...` or
@@ -106,6 +123,8 @@ interface BaseParams {
   max_tokens?: number;
   max_completion_tokens?: number;
   response_format?: { type: "json_object" };
+  /** provider-specific extras passed through verbatim (see ProviderConfig.requestParams) */
+  [extra: string]: unknown;
 }
 
 function buildBaseParams(
@@ -119,6 +138,9 @@ function buildBaseParams(
   const fixed = isFixedSamplingModel(model);
   const outputFormat = normalizeOutputFormat(opts.outputFormat ?? runtime.outputFormat);
   const params: BaseParams = {
+    // Provider-level extras first (e.g. thinking: { type: "disabled" }) so the
+    // explicit fields below always win.
+    ...(runtime.requestParams ?? {}),
     model,
     messages: [
       { role: "system", content: creature.systemPrompt },

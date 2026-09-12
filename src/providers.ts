@@ -47,6 +47,7 @@ export interface ProviderRuntime {
   models: Record<ModelSlot, string>;
   missingApiKey?: string;
   defaultHeaders?: Record<string, string>;
+  requestParams?: Record<string, unknown>;
 }
 
 const OPENAI_MODELS: Record<ModelSlot, string> = {
@@ -209,6 +210,11 @@ export function normalizeProviderConfig(value: unknown): ProviderConfig {
     if (route) routes[slot] = route;
   }
 
+  const requestParams =
+    input.requestParams && typeof input.requestParams === "object" && !Array.isArray(input.requestParams)
+      ? (input.requestParams as Record<string, unknown>)
+      : undefined;
+
   return {
     preset,
     ...(baseURL ? { baseURL } : {}),
@@ -216,6 +222,7 @@ export function normalizeProviderConfig(value: unknown): ProviderConfig {
     ...(Object.keys(models).length > 0 ? { models } : {}),
     ...(Object.keys(routes).length > 0 ? { routes } : {}),
     outputFormat,
+    ...(requestParams && Object.keys(requestParams).length > 0 ? { requestParams } : {}),
   };
 }
 
@@ -259,6 +266,7 @@ export function resolveProviderRuntime(
     },
     missingApiKey,
     ...(defaultHeaders ? { defaultHeaders } : {}),
+    ...(normalized.requestParams ? { requestParams: normalized.requestParams } : {}),
   };
 }
 
@@ -304,6 +312,7 @@ export function resolveProviderRuntimeForSlot(
           : {}),
       outputFormat: route.outputFormat ?? normalized.outputFormat,
       models,
+      ...(routeUsesGlobalPreset && normalized.requestParams ? { requestParams: normalized.requestParams } : {}),
     },
     env,
     storedApiKeys,

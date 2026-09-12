@@ -155,10 +155,26 @@ async function cmdEval(args: string[]): Promise<void> {
   const fixtures = ids ? FIXTURES.filter((x) => ids.has(x.id)) : FIXTURES;
   let root = f.out;
   if (!root) { try { root = (await loadWarren(process.cwd())).root; } catch { root = process.cwd(); } }
+  let live: import("./eval/harness.js").LiveOptions | undefined;
+  if (f.live === "true" || f.warren) {
+    const warrenRoot = f.warren ?? (await loadWarren(process.cwd())).root;
+    live = {
+      warrenRoot,
+      packSize: f.pack ? Number(f.pack) : 2,
+      maxOutputTokensPerCall: f["max-output"] ? Number(f["max-output"]) : 400,
+      budgetTokensPerRun: f.budget ? Number(f.budget) : 40_000,
+      maxTotalTokens: f["max-total-tokens"] ? Number(f["max-total-tokens"]) : 3_000_000,
+      scanGlobs: f.globs ? f.globs.split(",") : undefined,
+      trollTools: f["troll-tools"] === "true",
+    };
+    process.stdout.write(`LIVE evaluation against provider in ${warrenRoot} — pack ≤ ${live.packSize}, ≤ ${live.maxOutputTokensPerCall} output tokens/call, ≤ ${live.budgetTokensPerRun} tokens/run, ≤ ${live.maxTotalTokens} tokens total\n`);
+  }
   const report = await runHarness({
     planners, fixtures, seeds, root, maxReplan: f["max-replan"] ? Number(f["max-replan"]) : 2, writeTraces: f.traces === "true",
     compare: f.compare ? (f.compare.split(",") as [string, string]) : undefined,
     epochs: f.epochs ? Number(f.epochs) : 0,
+    live,
+    parallelPlanners: f.parallel === "true",
     onProgress: (m) => { if (f.verbose === "true") process.stdout.write(m + "\n"); },
   });
   process.stdout.write(await readFile(join(report.outDir, "report.md"), "utf8"));

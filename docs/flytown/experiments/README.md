@@ -189,4 +189,27 @@ Paired permutation tests (n = 60 each; nine comparisons, so treat p ≈ 0.01–0
 3. Contrary to the sparse-coding hypothesis, *removing* KC sparsening gave the best larval variant (78%, and the highest task sensitivity of any fly planner). A plausible reason is specific to this harness: mock-world reward depends on the fixture's *category* (its traps), so a code that generalises across tasks of a kind beats one that treats every keyword set as a distinct odour. That is a statement about the evaluation world as much as about the brain.
 4. Every biological variant remains below the hand-written rules baseline (82%), and every fly planner is far less task-sensitive (≤ 0.33 bits, 1–2 distinct primary actions) than rules (0.57 bits, 8).
 
+## 2026-09-12 — first LIVE run (`2026-09-12-live-run1-deepseek.md`)
+
+Real Goblintown pipeline (Raccoon → pack ≤ 2 → Gremlin → Troll → Specialists → Ogre → Scribe) on DeepSeek `deepseek-v4-flash` with thinking disabled (`provider.requestParams: {"thinking":{"type":"disabled"}}` — with thinking on, hidden reasoning ate the whole output budget and every goblin failed troll review; that aborted first attempt is not reported as a result). 10 fixtures (one per category), 1 seed, four planners run concurrently, caps: 700 output tokens/call, 60k tokens/plan, 2.5M tokens total. Learnable planners were trained 8 epochs in the mock world, then evaluated live ("sim-to-real"). 2,570,445 tokens, 69 minutes; the ceiling cut the last three `llm` runs (all three of its non-"complete" fixtures, so its termination behaviour on blocked/stop-early tasks went unmeasured).
+
+| planner | termination acc | mean tokens / plan | mean rites | task-sensitivity |
+|---|---|---|---|---|
+| `llm` (Goblintown's own planner) | 100% (7/7 measured, all "complete" tasks) | 122,539 | 4.3 | constant (spawn 100%) |
+| `rules` | **90%** | 60,180 | 2.1 | 7 / 0.588 |
+| larva `+learning+plastic` (mock-trained) | 80% | **26,280** | 1.1 | constant (spawn 100%) |
+| larva `+shuffled+learning+plastic` (mock-trained) | 80% | 84,807 | 3.0 | constant (investigate 100%) |
+
+Paired, n = 10: real larva vs shuffled larva — termination accuracy 0.0 pts, **p = 1.000**; tokens −58,527, p = 0.002.
+
+Reading:
+
+1. **The pre-registered null holds live.** The real larval wiring is not distinguishable from its shuffled copy on termination accuracy. The token difference is real but uninteresting: both planners transferred a *constant policy* from mock training — the real graph learned "one node, spawn", the shuffled graph learned "investigate → main → synthesize" — and a one-node plan is cheaper. That is not routing.
+2. **Neither larval planner ever halts.** Both "completed" `blocked-credentials` (a task that should be declared blocked) and `stop-already-done`; Goblintown dutifully produced answers. Only `rules` handled blocked / approval / stop-early correctly (100% on those; its one miss was halting `sec-input-sanitize` for approval, which is defensible).
+3. **Goblintown's troll-gated "success" is not a discriminative quality measure live.** Every planner reached success on every completable task, usually via specialist recovery or the ogre fallback — the pipeline's own recovery machinery is strong enough to rescue almost any plan shape. The recorded final claims show the quality variance the harness cannot see: on `q-engine-layout` the real larva's single rite concluded "the repository does not contain a game loop" while the shuffled larva's three-rite plan located the `requestAnimationFrame` loop in `index.html` and entity ticking in `engine/`. Cheaper was worse there; the metric said both succeeded.
+4. **The conventional LLM planner is thorough and expensive**: 4–5 nodes per task, 2–5× the tokens of the others, and it has no halt vocabulary at all (it decomposes everything). It is the commercially relevant baseline and it did not lose on anything it was measured on.
+5. Sim-to-real transfer of mock-trained adapters carried the mock world's degeneracy into production; live reward never touched the planners in this run.
+
+What this run bought: the full loop — real workers, real repositories, real model cost — runs end to end under hard caps with replayable traces, and the numbers are honest. What it did not buy: any evidence for the biology. Next, in order: (a) an LLM-judge quality score per fixture (the troll gate is not enough), (b) more than one seed and the full fixture set within budget (drop `llm`'s pack size or nodes), (c) live reward feeding the adapters instead of mock-only training — and (d) the standing recommendation stays: do not tune adapters post-hoc against these results.
+
 **Verdict for Milestone 3 as of 2026-09-11:** the larval substrate does not yet show a robust advantage over its own shuffled null model, in either the pre-registered or the post-hoc configuration. What it did show: (a) the pipeline now transmits biology end to end — sparse task-specific KC codes, DAN-gated depression at measured synapses, a valence circuit reproduced from the data — and each piece is ablatable; (b) two ablations behave as the biology predicts, at uncorrected p < 0.02; (c) the mock world is now the limiting factor. Next step is not more adapter tuning (each post-hoc round erodes evidential value) but a **live-model evaluation** on a fixed task suite with the same null models — the only way to learn whether any of this matters for real work.

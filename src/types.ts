@@ -319,6 +319,12 @@ export interface ProviderConfig {
   models?: Partial<Record<ModelSlot, string>>;
   routes?: Partial<Record<ModelSlot, ProviderRouteConfig>>;
   outputFormat?: OutputFormat;
+  /**
+   * Extra fields merged into every chat-completion request for this provider,
+   * e.g. `{ "thinking": { "type": "disabled" } }` to stop a reasoning model
+   * from spending the output budget on hidden reasoning.
+   */
+  requestParams?: Record<string, unknown>;
 }
 
 export interface OnboardingConfig {
