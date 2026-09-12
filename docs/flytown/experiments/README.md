@@ -212,4 +212,29 @@ Reading:
 
 What this run bought: the full loop — real workers, real repositories, real model cost — runs end to end under hard caps with replayable traces, and the numbers are honest. What it did not buy: any evidence for the biology. Next, in order: (a) an LLM-judge quality score per fixture (the troll gate is not enough), (b) more than one seed and the full fixture set within budget (drop `llm`'s pack size or nodes), (c) live reward feeding the adapters instead of mock-only training — and (d) the standing recommendation stays: do not tune adapters post-hoc against these results.
 
+## 2026-09-12 — LIVE run 2 with the LLM judge (`2026-09-12-live-run2-judge.md`)
+
+Same pipeline and provider as live run 1, plus: an LLM judge scoring every final output against a per-fixture rubric (rubrics written before any live output was inspected), online live reward for the learnable planners (after mock pre-training), the trained small learned router as a fifth planner, 2 seeds, `--max-nodes 4`. 100 runs, 5.24M tokens, 141 minutes; the 5M ceiling skipped `llm`'s two `stop-already-done` runs.
+
+| planner | quality (judge, 0–1) | termination acc | tokens / plan | rites | task-sensitivity |
+|---|---|---|---|---|---|
+| `rules` | **0.69** | **100%** | 57,930 | 2.1 | 7 / 0.586 |
+| `learned` (trained) | 0.59 | 70% | 43,664 | 1.8 | 2 / 0.295 |
+| larva `+shuffled+learning+plastic` | 0.58 | 70% | 25,754 | 1.0 | constant |
+| larva `+learning+plastic` | 0.44 | 70% | **25,689** | 1.0 | constant |
+| `llm` (Goblintown's own planner) | 0.39 | 78% (18 measured) | 121,076 | 4.2 | constant |
+
+Paired tests (n = 20 unless noted): real larva vs shuffled larva — quality −0.14, **p = 0.199**; termination 0.0 pts, p = 1.0; tokens −65, p = 0.96; **identical decisions 100%**. Larva vs rules: termination −30 pts, p = 0.031; tokens −32k, p = 0.009. Rules vs llm (n = 18): termination +22 pts, p = 0.126; tokens −57k, p < 0.001.
+
+Reading:
+
+1. **The null holds a third time, now on quality.** The real and shuffled larval brains made *literally the same decision on every task* (both collapsed to a one-node "spawn" policy, before and after 20 online reward updates), so their 0.14 quality gap is pure worker stochasticity on identical plans. That gap is also the most useful calibration number in the report: **quality differences below ~0.15 at n = 20 are noise**, whatever the planner.
+2. **Live learning did not rescue task sensitivity.** REINFORCE over 13 actions from a few dozen noisy scalar rewards is far too little signal; the mock-pretrained constant policy survived intact. The learned linear router did marginally better (two actions) for the same reason.
+3. **The hand-written rules router beat Goblintown's own LLM planner on every axis** — quality 0.69 vs 0.39, termination 100% vs 78%, cost 58k vs 121k tokens — and it is the only planner with any termination judgment. The judge's rationales show why the LLM planner loses: its 4-node decompositions routinely end in "blocked report, no code" outputs on implementation tasks (small-bug-fix and multi-file quality 0.00), while producing the best answers on the diagnosis-style tasks. That is a product finding about Goblintown, independent of any biology.
+4. **Cheapest is not best:** the larva's one-node plans cost a fifth of the LLM planner's and scored higher on quality than it did, but lower than rules and the shuffled copy.
+
+**Verdict for the connectome hypothesis after three live/mock configurations:** no evidence that the real wiring contributes to routing quality, termination or cost beyond what a label-shuffled copy of the same graph contributes; the dominant obstacle is now clear — every fly planner collapses to a constant policy, and neither DAN-gated plasticity nor reward-modulated readout learning, at the data volumes an orchestration loop can supply, breaks that symmetry. Continuing to tune adapters against this suite is not warranted.
+
+**What is warranted (proposals, not decisions):** (a) ship `rules` as Goblintown's default planner — the one demonstrated, replicable improvement; (b) if the biology is kept, move it out of the per-task *decision* seat, where task-invariance is fatal, into roles that tolerate or exploit it — an associative memory over task→outcome (the mushroom body's actual job), or pack composition / exploration diversity — and pre-register a new falsification test for that role; (c) more seeds on the rules-vs-llm comparison before making the product claim loudly.
+
 **Verdict for Milestone 3 as of 2026-09-11:** the larval substrate does not yet show a robust advantage over its own shuffled null model, in either the pre-registered or the post-hoc configuration. What it did show: (a) the pipeline now transmits biology end to end — sparse task-specific KC codes, DAN-gated depression at measured synapses, a valence circuit reproduced from the data — and each piece is ablatable; (b) two ablations behave as the biology predicts, at uncorrected p < 0.02; (c) the mock world is now the limiting factor. Next step is not more adapter tuning (each post-hoc round erodes evidential value) but a **live-model evaluation** on a fixed task suite with the same null models — the only way to learn whether any of this matters for real work.
