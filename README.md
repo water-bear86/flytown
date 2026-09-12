@@ -2,21 +2,48 @@
   <img src="site/assets/gtownlogo.svg" alt="Goblintown" width="820">
 </p>
 
-# Goblintown (FLYTOWN baseline)
+# FLYTOWN
 
-> **This repository is the FLYTOWN project's baseline.** FLYTOWN is a
-> connectome-derived AI-orchestration research project; this baseline step is
+> FLYTOWN is a connectome-derived AI-orchestration research project built on
 > a stripped derivative of [Goblintown](https://github.com/0xbl33p/goblintown)
 > (MIT licensed, copyright 0XBL33P — used here with the maintainer's explicit
 > permission). The crypto/trading, voice, peer-to-peer social/federation, and
 > Codex/ChatGPT-App/Vercel distribution bolt-ons have been removed; see
 > [NOTICE.md](./NOTICE.md) for exactly what and why.
->
-> **FLYTOWN status:** the connectome-derived planner is implemented as a
-> swappable `PlannerBackend` (see below) with a full evaluation harness. The
-> first falsification test — real FlyWire projectome vs. a label-shuffled
-> copy — did **not** show the region-level wiring mattering; results and the
-> reason are in [docs/flytown/experiments](./docs/flytown/experiments/README.md).
+
+## FLYTOWN in one paragraph
+
+A real, public, static wiring diagram of a fruit-fly brain — the adult
+FlyWire FAFB v783 connectome collapsed to brain regions, or the whole
+first-instar larval brain (Winding et al. 2023) at single-neuron resolution —
+is the fixed topology of a small dynamical system. A task becomes a sensory
+pattern; activity propagates; a readout maps the pattern to one of thirteen
+orchestration actions; that action becomes a Goblintown `Plan`, and the
+existing worker pipeline executes it unchanged. It is **not** a mind, not a
+simulation of a living animal, and every quantity is tagged `MEASURED`,
+`INFERRED_FROM_LITERATURE`, `ENGINEERING_CHOICE` or `METAPHOR`. The
+evaluation harness compares every fly planner against shuffled and rewired
+copies of the same graph — and so far reports honest nulls, in the mock
+worker world and live. Design: [PROPOSAL.md](./PROPOSAL.md). Results:
+[docs/flytown/experiments](./docs/flytown/experiments/README.md).
+
+```bash
+npm run build
+node dist/cli.js init                              # a Warren in this folder
+node dist/cli.js serve --port 7788                 # then open http://localhost:7788/fly
+node dist/cli.js fly plan "…" --planner fly:connectome=l1-larva-winding2023-1+plastic --dry-run
+node dist/cli.js fly eval --planners rules,random,fly,fly:shuffled --seeds 3      # mock worker world
+node dist/cli.js secret set DEEPSEEK_API_KEY       # then: fly eval --live --warren . …
+```
+
+The `/fly` page is the main control surface: choose a planner backend, decide
+(no workers) or decide-and-execute, watch the decision trace with the
+regional/population activity map and its plain-text twin, replay any stored
+decision deterministically, inspect the connectome artifacts and their
+provenance-tagged assumptions, and read every evaluation report including
+the null results. Connectome artifacts are built offline by
+[`connectome-etl/`](./connectome-etl/README.md) (Python); the runtime is
+TypeScript only.
 
 ## FLYTOWN: connectome-derived planning
 
