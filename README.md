@@ -131,6 +131,7 @@ flytown fly trace <runId>                 # plain-text trace: signals → activi
 flytown fly replay <runId>                # deterministic replay, diffs against the stored plan
 flytown fly groups <connectomeId>         # node groups (regions / cell classes / sensory modalities) the adapters can address
 flytown fly sensitivity --planners "fly,fly:shuffled"   # where task information survives: features → input → activity → scores
+flytown fly effects                       # what each planner's chosen actions actually change in the plan
 flytown fly eval --planners "rules,fly,fly:shuffled" --seeds 3 --epochs 8   # matched trials, mock worker world
 ```
 

@@ -33,12 +33,13 @@ export async function runFlyCli(argv: string[]): Promise<void> {
     case "regions": return cmdRegions(args);
     case "groups": return cmdGroups(args);
     case "sensitivity": return cmdSensitivity(args);
+    case "effects": return cmdEffects(args);
     case "planners": {
       process.stdout.write(KNOWN_PLANNER_SPECS.join("\n") + "\n  (flags combine with '+', e.g. fly:shuffled+norecurrence, fly:ablate=MB_CA,MB_ML)\n");
       return;
     }
     default:
-      process.stderr.write(`usage: fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|planners> ...\n`);
+      process.stderr.write(`usage: fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|effects|planners> ...\n`);
       process.exitCode = 1;
   }
 }
@@ -92,6 +93,25 @@ async function cmdSensitivity(args: string[]): Promise<void> {
     const fmt = (v: number) => v.toFixed(3).padStart(7);
     process.stdout.write(`${spec.padEnd(44)}${fmt(pair(feats))} ${fmt(pair(inputs))} ${fmt(pair(finals))} ${fmt(pair(scores))}   ${primaries.size}\n`);
   }
+}
+
+const EFFECT_AUDIT_DEFAULT = "rules,random,fly,fly:shuffled,fly:connectome=l1-larva-winding2023-1+plastic,fly:connectome=l1-larva-winding2023-1+shuffled+plastic";
+
+async function cmdEffects(args: string[]): Promise<void> {
+  const f = flags(args);
+  const specs = (f.planners ?? f.planner ?? EFFECT_AUDIT_DEFAULT).split(",").map((s) => s.trim()).filter(Boolean);
+  const { effectAudit } = await import("./eval/effects-audit.js");
+  const rows = await effectAudit(specs, { root: await rootOrCwd(), seed: f.seed ? Number(f.seed) : 1 });
+  const n = rows[0]?.fixtures ?? 0;
+  process.stdout.write(`action-effect audit over ${n} fixtures (decide only, no workers, no model calls)\n`);
+  process.stdout.write(`primary: shaped / default / inert · shaped = changed the plan · default = the plan has it anyway · inert = ignored by the compiler\n\n`);
+  process.stdout.write("planner".padEnd(58) + "primary s/d/i  selected  shaped  =default  =rules  halts  top-margin\n");
+  for (const r of rows) {
+    const pr = `${r.primaryShaped}/${r.primaryDefault}/${r.primaryInert}`;
+    process.stdout.write(r.planner.padEnd(58) + pr.padStart(13) + r.selectedPerDecision.toFixed(2).padStart(10) + r.shapedPerDecision.toFixed(2).padStart(8) + String(r.planIsDefault).padStart(10) + (r.planMatchesRules === null ? "-" : String(r.planMatchesRules)).padStart(8) + String(r.halts).padStart(7) + r.meanTopMargin.toFixed(3).padStart(12) + "\n");
+  }
+  process.stdout.write("\nprimary actions:\n");
+  for (const r of rows) process.stdout.write(`  ${r.planner}: ${Object.entries(r.primaries).sort((a, b) => b[1] - a[1]).map(([a, c]) => `${a}×${c}`).join(" ")}\n`);
 }
 
 function flags(args: string[]): Record<string, string> {

@@ -91,6 +91,7 @@ flytown fly trace <runId> [--json]
 flytown fly traces
 flytown fly replay <runId>                    # deterministic replay, diffed against the stored plan
 flytown fly sensitivity --planners "fly,fly:shuffled"
+flytown fly effects [--planners a,b] [--seed N]   # shaped / default / inert actions per planner, decide only
 flytown fly eval --planners "rules,random,fly,fly:shuffled" --seeds 3 \
   [--epochs N] [--compare a,b] [--fixtures id,id] [--traces] [--out dir]
 ```

@@ -1,6 +1,6 @@
 # FLYTOWN experiment log
 
-> **Names:** on 2026-09-12 FLYTOWN replaced every inherited Goblintown term (goblin, troll, rite, hoard, warren, …) with the swarm vocabulary in [`docs/flytown/VOCABULARY.md`](../VOCABULARY.md). Sections that record work done before the rename keep the names that were true at the time; all current-behaviour descriptions use the new ones. **Every entry in this log — each dated section, and the Milestone 3 protocol with its larva runs, all written on 2026-09-11 and 2026-09-12 — is a pre-rename record:** those runs used the Goblintown worker prompts, and their write-ups keep the names of that time (`spawn_subrite`, rites, troll, ogre, `warren.json`, …). Today the same things are `spawn_flight`, flights, guard, soldier and `terrarium.json`.
+> **Names:** on 2026-09-12 FLYTOWN replaced every inherited Goblintown term (goblin, troll, rite, hoard, warren, …) with the swarm vocabulary in [`docs/flytown/VOCABULARY.md`](../VOCABULARY.md). Sections that record work done before the rename keep the names that were true at the time; all current-behaviour descriptions use the new ones. **Every entry in this log except the action-effect audit — each dated section, and the Milestone 3 protocol with its larva runs, all written on 2026-09-11 and 2026-09-12 — is a pre-rename record:** those runs used the Goblintown worker prompts, and their write-ups keep the names of that time (`spawn_subrite`, rites, troll, ogre, `warren.json`, …). Today the same things are `spawn_flight`, flights, guard, soldier and `terrarium.json`.
 
 The Milestone 2 and Milestone 3 runs below use the deterministic **mock worker world** (`src/flytown/eval/mock-flight.ts`), not live models. The mock is a toy: it tests whether a planner's decisions are *consequential and comparable*, not whether they are good in the real world. The entries marked LIVE ran the real pipeline against real models; the mushroom-body memory entry makes no model calls at all.
 
@@ -273,6 +273,34 @@ The one respect in which the real wiring wins is **selectivity**: it is collisio
 Also worth recording: retrieved valence shifts are tiny (mean |shift| ≈ 0.01), which is why the `rules+memory` planner's blend had to be calibrated with a gain of ~20 — and why the honest conclusion is that this memory carries very little signal, not that it needs more tuning.
 
 **Where that leaves the fly.** Four falsification attempts across three roles (region-level decision, neuron-level decision with plasticity, associative memory) and no role yet in which the measured wiring beats its own null. The remaining untested ideas are narrower than "use the connectome for X": (a) the collision-freeness result suggests a *deduplication / novelty-detection* role rather than a similarity-retrieval one — "have I seen exactly this before" is what this code is good at; (b) an adult mushroom body has ~2,000 Kenyon cells against the larva's 144, and the hash's discriminative power is expected to scale with that dimensionality — the `fafb-v783-neuron-1` artifact exists but the runtime cannot load its binary graph yet. Both are pre-registerable. Neither is a reason to keep tuning the current one.
+
+## 2026-09-12 — what the decisions change: action-effect audit (`flytown fly effects`)
+
+The first entry written after the rename. Decide only, with no workers and no model calls: untrained planners with no stored weights, the 20 fixtures, seed 1. Reproduce with `flytown fly effects`; the output is identical from any directory.
+
+**Why.** A decision lists every action scoring at least half the top score, but the compiler acts on only some of them: a halt only as the primary action, a retry only after a recorded failure, extra steps only under the node cap. The trace view showed the whole list, which made every planner look more influential than it was. Each selected action is now labelled *shaped* (changed the plan), *default* (the plan has it anyway) or *inert* (ignored by the compiler) in the trace view, the trace text and `/api/fly/plan`. A test checks every label against the plan the compiler actually builds.
+
+| planner | primary: shaped / default / inert | actions selected | actions that shaped | plan = default plan | plan = rules' plan | halts | top-2 score gap |
+|---|---|---|---|---|---|---|---|
+| `rules` | 14 / 6 / 0 | 2.25 | 1.40 | 2 | — | 6 | 0.266 |
+| `random` | 16 / 4 / 0 | 7.10 | 2.40 | 0 | 0 | 9 | 0.011 |
+| `fly` (adult projectome) | 18 / 2 / 0 | 3.40 | 1.25 | 0 | 2 | 2 | 0.026 |
+| `fly:shuffled` | 20 / 0 / 0 | 2.70 | 1.70 | 0 | 3 | 2 | 0.101 |
+| larva `+plastic` | **0 / 15 / 5** | 3.90 | 1.00 | 4 | 1 | 0 | 0.034 |
+| larva `+shuffled+plastic` | 0 / 20 / 0 | 2.05 | 0.45 | 14 | 2 | 0 | 0.091 |
+
+The default plan is the one compiled when `spawn_flight` is the only action.
+
+Reading:
+
+1. **The untrained larval brain's primary action never changed a plan.** It chose `spawn_flight` on 15 fixtures, which every running plan has anyway, and `retry_new_approach` on the other 5, which does nothing without a recorded failure. Everything it contributed came from secondary actions: an investigation step on 16 fixtures, a verification step on 2 and debate on 2. It also selected `retry_new_approach` on all 20 fixtures and `terminate_blocked` on 13, and the compiler ignored every one of those.
+2. **The real larval wiring changes more plans than its shuffled copy** (the default plan on 4 fixtures against 14). That is a difference, not an advantage: live run 2 found no quality or termination difference between the two, and the random baseline changes plans more than either.
+3. **The adult projectome picks `search_memory` on 16 of 20 fixtures**, so it adds the same investigation step almost everywhere.
+4. **The connectome planners decide by near-ties.** Their top two actions differ by 0.026–0.101 in normalised score, against 0.266 for `rules`.
+
+**Correction to live run 1 ("replayable traces").** The fly planners' traces from live runs 1 and 2 cannot be replayed. The harness keeps mock-trained adapters and plastic state in memory and never writes them, so `fly replay` rebuilds untrained weights. None of the 60 fly traces from those runs replays identically, and 48 replay to a different decision even after old action names are mapped to new ones. Separately, fly planner ids did not round-trip through the spec parser, so replaying a shuffled, plastic or multi-region-ablated trace rebuilt a different brain; that is fixed. No reported number came from replay.
+
+**Raw data.** The run directories behind live runs 1–3, the aborted first attempt and the void run (composts, per-decision traces, logs) had been written to `/tmp`. They are now preserved under `.flytown/live-warren/.flytown/eval-raw/`, which is local and not in git.
 
 ## 2026-09-12 — LIVE run 2 with the LLM judge (`2026-09-12-live-run2-judge.md`)
 

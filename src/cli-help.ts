@@ -51,7 +51,7 @@ Usage:
       dependent flights consume them. On a node failure the planner is
       re-invoked (recursive replan, max depth 2 by default).
 
-  flytown fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|planners> ...
+  flytown fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|effects|planners> ...
       Planner research tooling: connectome-derived and baseline planners,
       decision traces, deterministic replay, and the evaluation harness.
 

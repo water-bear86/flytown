@@ -20,6 +20,7 @@ import { FIXTURES } from "../flytown/eval/fixtures.js";
 import { readTrace, writeTrace } from "../flytown/trace.js";
 import { replayTrace, diffPlans } from "../flytown/cli.js";
 import { FEATURE_NAMES } from "../flytown/signals.js";
+import { effectAudit } from "../flytown/eval/effects-audit.js";
 
 /** Synthetic mini-projectome with real FlyWire region names so the default adapters bind. */
 export function miniBrain() {
@@ -227,6 +228,19 @@ describe("registry", () => {
     assert.equal(ablated.trace!.seed, hashSeed("fly:ablate=MB_CA+EB", "seed-1", 0));
     const labelled = await new FlyPlannerBackend({ connectomeId: "m", graph, id: "fly:connectome=m" }).plan(req);
     assert.equal(labelled.trace!.seed, hashSeed("fly:connectome=m", "seed-1", 0), "an explicit id still seeds as before");
+  });
+  it("effectAudit counts what each planner's decisions did to the plan", async () => {
+    const fixtures = FIXTURES.slice(0, 4);
+    const rows = await effectAudit(["rules", "random"], { root: "/tmp/flytown-effects", fixtures });
+    assert.equal(rows.length, 2);
+    for (const r of rows) {
+      assert.equal(r.fixtures, 4);
+      assert.equal(r.primaryShaped + r.primaryDefault + r.primaryInert, 4, r.planner);
+      assert.ok(r.shapedPerDecision <= r.selectedPerDecision, r.planner);
+      assert.equal(Object.values(r.primaries).reduce((a, b) => a + b, 0), 4);
+    }
+    assert.equal(rows[0].planMatchesRules, null, "rules is not compared with itself");
+    assert.ok(typeof rows[1].planMatchesRules === "number");
   });
   it("replayTrace reproduces a stored rules decision", async () => {
     const dir = await mkdtemp(join(tmpdir(), "flytown-replay-"));
