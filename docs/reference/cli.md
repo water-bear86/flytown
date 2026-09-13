@@ -11,7 +11,9 @@ above the current directory.
 ## Basics
 
 ```bash
-flytown init                              # create .flytown/terrarium.json here
+flytown init [--provider <preset> [--model <name>]]   # create .flytown/terrarium.json here
+flytown provider                          # active provider, model per slot, key status (never the key)
+flytown provider set <preset> [--model <name>] [--soldier-model <name>] [--base-url <url>] [--api-key-env <ENV>] [--keep-routes] [--no-key-prompt]
 flytown serve --port 7777                 # web control surface + HTTP API (default port 7777)
 flytown secret set DEEPSEEK_API_KEY       # store a provider key; input hidden (or read from stdin)
 flytown secret list                       # names only, never values
@@ -92,9 +94,19 @@ flytown fly traces
 flytown fly replay <runId>                    # deterministic replay, diffed against the stored plan
 flytown fly sensitivity --planners "fly,fly:shuffled"
 flytown fly effects [--planners a,b] [--seed N]   # shaped / default / inert actions per planner, decide only
+flytown fly fixtures                          # the task suite's repositories, pinned commits and local state
+flytown fly fixtures fetch [--force]          # download the pinned commits (--force resets local edits)
 flytown fly eval --planners "rules,random,fly,fly:shuffled" --seeds 3 \
-  [--epochs N] [--compare a,b] [--fixtures id,id] [--traces] [--out dir]
+  [--epochs N] [--compare a,b] [--fixtures id,id] [--traces] [--out dir] [--allow-missing-repos]
 ```
+
+The evaluation tasks run against public repositories pinned to exact commits
+(suite `public-v2`), fetched into `~/.flytown/fixtures/` or
+`$FLYTOWN_FIXTURES_DIR`. A repository counts as available only when it is a
+clean checkout of its pinned commit. Mock evaluations without them still run,
+with a warning that the report does not reproduce the suite; live evaluations
+refuse to start unless `--allow-missing-repos` is passed. Every report records
+the suite and the commits it ran against.
 
 `fly eval` runs the deterministic mock worker world by default and writes its
 report under `.flytown/eval/`. `fly eval --live` (or `--terrarium <path>` to
@@ -165,4 +177,5 @@ Slots: `forager`, `wasp`, `scout`, `guard`, `soldier`, `messenger`, `scribe`,
 | `FLYTOWN_MAX_CONCURRENCY` | In-flight model call cap (default 5). |
 | `FLYTOWN_CONNECTOME_DIR` | Load connectome artifacts from this directory instead of `connectome/`. |
 | `FLYTOWN_HOME` | Location of the global terrarium (default `~/.flytown`). |
+| `FLYTOWN_FIXTURES_DIR` | Where `fly fixtures fetch` puts the evaluation repositories (default `~/.flytown/fixtures`). |
 | `FLYTOWN_NO_BANNER` | Set `1` to suppress the banner that `flytown ask` prints. |

@@ -6,7 +6,9 @@ The Milestone 2 and Milestone 3 runs below use the deterministic **mock worker w
 
 Connectome: `fafb-v783-projectome-1` — FlyWire FAFB materialization 783 collapsed to 79 neuropil-level nodes (78 regions + `UNASGD`), 3,509 edges, 54.5M synapses, built by `connectome-etl/build.py` from the Zenodo archival release (MD5-verified). See `connectome/fafb-v783-projectome-1/manifest.json` for every preprocessing assumption and its provenance tag.
 
-Fixtures: 20 tasks over four real local repositories, ten categories (`src/flytown/eval/fixtures.ts`). Seeds: 1–3 evaluation, 1001–1003 training. Every planner sees identical fixtures, seeds, budgets and the same action→Plan compiler.
+Fixtures: every entry below used task suite **v1**: 20 tasks over four repositories on the author's machine, two of them private, ten categories. Seeds: 1–3 evaluation, 1001–1003 training. Every planner sees identical fixtures, seeds, budgets and the same action→Plan compiler.
+
+> **Suite change, 2026-09-12.** v1 could not be reproduced anywhere else. From now on evaluations use suite **`public-v2`** (`src/flytown/eval/fixtures.ts`): 20 tasks over two public repositories pinned to exact commits, `Runechain/blockmmo@e2450b77e2b3` and `water-bear86/flytown@7557dd0bc13a`, fetched with `flytown fly fixtures fetch`. v2 keeps the ten categories, two tasks each, and the same mock-world difficulty settings, but ten tasks moved to new repositories and several were reworded so their premises hold in the pinned code; renamed ids mark the changed tasks. v1 and v2 results are not directly comparable, and no v2 result exists yet. The v1 fixture definitions remain in git history for anyone re-running v1 on its original machine.
 
 ## 2026-09-11 — first matched runs (Milestone 2 prototype)
 

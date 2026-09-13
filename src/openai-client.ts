@@ -27,7 +27,7 @@ const MIN_FIXED_COMPLETION_TOKENS = 512;
 
 function getClient(runtime: ProviderRuntime): OpenAI {
   if (runtime.missingApiKey) {
-    throw new Error(`${runtime.missingApiKey} is not set.`);
+    throw new Error(`${runtime.missingApiKey} is not set. Store it with \`flytown secret set ${runtime.missingApiKey}\`, or switch providers with \`flytown provider set <preset>\`.`);
   }
   const signature = providerRuntimeSignature(runtime);
   const existing = _clients.get(signature);

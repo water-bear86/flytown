@@ -44,6 +44,11 @@ Connectome artifacts are not terrarium state. They live in the repository's
 
 The global terrarium lives at `~/.flytown`; set `FLYTOWN_HOME` to move it.
 
+The evaluation repositories are fetched to `~/.flytown/fixtures/<name>-<commit>/`
+(or `$FLYTOWN_FIXTURES_DIR`) by `flytown fly fixtures fetch`. They are shallow
+checkouts of pinned public commits: leave them unedited, or the harness treats
+them as unavailable.
+
 ## Cleanup Rule
 
 If you are comparing repos or deleting duplicate checkouts, do not ignore

@@ -33,6 +33,12 @@ export interface ProviderPreset {
   local?: boolean;
   dummyApiKey?: string;
   models: Record<ModelSlot, string>;
+  /**
+   * Request fields this provider needs for FLYTOWN to work at all, merged under
+   * any `provider.requestParams` in the terrarium (which win). Keeping them on
+   * the preset means a re-saved or hand-written config cannot silently lose them.
+   */
+  requestParams?: Record<string, unknown>;
   note?: string;
 }
 
@@ -149,6 +155,10 @@ export const PROVIDER_PRESETS: Record<ProviderPresetId, ProviderPreset> = {
       ...withChatModel("deepseek-v4-flash"),
       soldier: "deepseek-v4-pro",
     },
+    // With thinking on, hidden reasoning consumes the whole output cap and
+    // workers return empty text (measured on deepseek-v4-flash, 2026-09-12).
+    requestParams: { thinking: { type: "disabled" } },
+    note: "Thinking is disabled by default; set provider.requestParams to override. DeepSeek has no embeddings endpoint, so `context vectorize` needs a separate embedding route.",
   },
   anthropic: {
     id: "anthropic",
@@ -242,6 +252,7 @@ export function resolveProviderRuntime(
   );
   const apiKey = resolved.apiKey;
   const missingApiKey = apiKey || preset.local ? undefined : apiKeyEnv;
+  const requestParams = { ...(preset.requestParams ?? {}), ...(normalized.requestParams ?? {}) };
   const baseURL = normalized.baseURL ?? env.OPENAI_BASE_URL;
   const referer = env.OPENROUTER_REFERER;
   const defaultHeaders =
@@ -266,7 +277,7 @@ export function resolveProviderRuntime(
     },
     missingApiKey,
     ...(defaultHeaders ? { defaultHeaders } : {}),
-    ...(normalized.requestParams ? { requestParams: normalized.requestParams } : {}),
+    ...(Object.keys(requestParams).length > 0 ? { requestParams } : {}),
   };
 }
 

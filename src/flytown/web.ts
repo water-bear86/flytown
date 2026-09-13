@@ -163,6 +163,7 @@ export function flyPageHtml(terrariumName: string): string {
   header h1 { margin:0; font-size:18px; letter-spacing:.08em; }
   header .sub { color:var(--muted); font-size:12px; }
   header .meta { color:var(--muted); margin-left:auto; font-size:12px; }
+  header .provider { color:var(--muted); font-size:12px; } header .provider.missing { color:var(--warn); }
   nav.tabs { display:flex; gap:4px; padding:10px 20px 0; }
   nav.tabs button { background:transparent; border:1px solid var(--line); border-bottom:none; color:var(--muted); padding:8px 14px; border-radius:8px 8px 0 0; cursor:pointer; }
   nav.tabs button.active { color:var(--ink); background:var(--panel); }
@@ -226,7 +227,7 @@ export function flyPageHtml(terrariumName: string): string {
 </style>
 </head>
 <body>
-<header><h1>FLYTOWN</h1><span class="sub">a real animal connectome routing a synthetic swarm</span><span class="meta">terrarium: ${escapeHtml(terrariumName)}</span></header>
+<header><h1>FLYTOWN</h1><span class="sub">a real animal connectome routing a synthetic swarm</span><span class="meta">terrarium: ${escapeHtml(terrariumName)}</span><span class="provider" id="provider-status"></span></header>
 <nav class="tabs">
   <button class="active" data-tab="run">Run</button>
   <button data-tab="traces">Traces</button>
@@ -319,6 +320,18 @@ document.querySelectorAll("nav.tabs button").forEach((b) => b.addEventListener("
 }));
 
 async function api(path, opts) { const r = await fetch(path, opts); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.statusText); return j; }
+
+// ---------- provider status ----------
+(async () => {
+  try {
+    const p = await api("/api/provider");
+    const el = $("provider-status");
+    const r = p.runtime;
+    if (r.hasApiKey || !r.missingApiKey) { el.textContent = "provider: " + r.label + " · " + r.models.forager; return; }
+    el.className = "provider missing";
+    el.textContent = "provider: " + r.label + " · no API key, so decisions work but execution will fail. Run: flytown secret set " + r.missingApiKey;
+  } catch (e) { /* status is informational */ }
+})();
 
 // ---------- planners ----------
 (async () => {

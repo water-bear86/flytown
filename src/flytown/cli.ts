@@ -18,7 +18,7 @@ import { DEFAULT_PLANNER, KNOWN_PLANNER_SPECS, resolvePlannerBackend } from "./r
 import { listTraces, readTrace, renderTraceText, writeTrace, type DecisionTrace } from "./trace.js";
 import { defaultConnectomeRoot, listConnectomes, loadConnectome, degreeStats, groupIndex } from "./connectome/artifact.js";
 import { runHarness } from "./eval/harness.js";
-import { FIXTURES } from "./eval/fixtures.js";
+import { FIXTURES, FIXTURE_REPOS, FIXTURE_SUITE, fixtureAvailability } from "./eval/fixtures.js";
 
 export async function runFlyCli(argv: string[]): Promise<void> {
   const cmd = argv[0];
@@ -34,14 +34,41 @@ export async function runFlyCli(argv: string[]): Promise<void> {
     case "groups": return cmdGroups(args);
     case "sensitivity": return cmdSensitivity(args);
     case "effects": return cmdEffects(args);
+    case "fixtures": return cmdFixtures(args);
     case "planners": {
       process.stdout.write(KNOWN_PLANNER_SPECS.join("\n") + "\n  (flags combine with '+', e.g. fly:shuffled+norecurrence, fly:ablate=MB_CA,MB_ML)\n");
       return;
     }
     default:
-      process.stderr.write(`usage: fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|effects|planners> ...\n`);
+      process.stderr.write(`usage: fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|effects|fixtures|planners> ...\n`);
       process.exitCode = 1;
   }
+}
+
+async function cmdFixtures(args: string[]): Promise<void> {
+  const f = flags(args);
+  const { fetchFixtureRepos, fixtureRepoPath, fixtureRepoState, fixturesRoot } = await import("./eval/fixture-repos.js");
+  const repos = Object.values(FIXTURE_REPOS);
+  const sub = positional(args)[0];
+  if (sub === "fetch") {
+    const results = await fetchFixtureRepos(repos, { force: f.force === "true", log: (line) => process.stdout.write(line + "\n") });
+    for (const r of results) process.stdout.write(`${r.repo.name.padEnd(10)} ${r.action.padEnd(12)} ${r.after.padEnd(14)} ${r.path}\n`);
+    if (results.some((r) => r.after !== "ready")) process.exitCode = 1;
+    return;
+  }
+  if (sub && sub !== "status") {
+    process.stderr.write(`usage: fly fixtures [status]  |  fly fixtures fetch [--force]\n`);
+    process.exitCode = 1;
+    return;
+  }
+  process.stdout.write(`suite ${FIXTURE_SUITE}: ${FIXTURES.length} tasks · repositories under ${fixturesRoot()}\n`);
+  for (const repo of repos) {
+    const state = await fixtureRepoState(repo);
+    const tasks = FIXTURES.filter((x) => x.pinned?.name === repo.name).length;
+    process.stdout.write(`${repo.name.padEnd(10)} ${repo.commit.slice(0, 12)}  ${state.padEnd(14)} ${String(tasks).padStart(2)} tasks  ${repo.url}\n`);
+    if (state !== "ready") process.stdout.write(`${"".padEnd(10)} ${fixtureRepoPath(repo)}\n`);
+  }
+  if (!(await Promise.all(repos.map((r) => fixtureRepoState(r)))).every((s) => s === "ready")) process.stdout.write(`\nRun \`flytown fly fixtures fetch\` to download the pinned commits.\n`);
 }
 
 async function cmdGroups(args: string[]): Promise<void> {
@@ -191,8 +218,14 @@ async function cmdEval(args: string[]): Promise<void> {
     };
     process.stdout.write(`LIVE evaluation against provider in ${terrariumRoot} — swarm ≤ ${live.swarmSize}, ≤ ${live.maxOutputTokensPerCall} output tokens/call, ≤ ${live.budgetTokensPerRun} tokens/run, ≤ ${live.maxTotalTokens} tokens total, judge=${live.judge ? "on" : "off"}, live-learning=${live.liveLearning ? "on" : "off"}\n`);
   }
+  if (!live) {
+    const availability = await fixtureAvailability(fixtures);
+    const notReady = fixtures.filter((x) => !availability[x.id]).length;
+    if (notReady) process.stderr.write(`note: ${notReady} of ${fixtures.length} fixture repositories are not ready, so those runs use empty repo signals. Run \`flytown fly fixtures fetch\` to reproduce the suite.\n`);
+  }
   const report = await runHarness({
     planners, fixtures, seeds, root, maxReplan: f["max-replan"] ? Number(f["max-replan"]) : 2, writeTraces: f.traces === "true",
+    allowMissingRepos: f["allow-missing-repos"] === "true",
     compare: f.compare ? (f.compare.split(",") as [string, string]) : undefined,
     epochs: f.epochs ? Number(f.epochs) : 0,
     live,

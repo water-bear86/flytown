@@ -64,7 +64,7 @@ describe("executePlan seam", () => {
   });
   it("replans through the injected planner backend and counts replans", async () => {
     const { dir, compost } = await tmpCompost();
-    const fixture = FIXTURES.find((f) => f.id === "misleading-cache")!;
+    const fixture = FIXTURES.find((f) => f.id === "misleading-stale-balances")!;
     const runner = makeMockFlightRunner({ fixture, seed: 1 });
     const calls: number[] = [];
     const planner: PlannerBackend = {
@@ -96,12 +96,12 @@ describe("baseline backends", () => {
       assert.ok(trace, "rules emits a trace");
       assert.equal(trace!.request.task, f.task);
     };
-    await expect("blocked-credentials", "blocked");
+    await expect("blocked-prod-secrets", "blocked");
     await expect("blocked-repeated", "blocked");
-    await expect("sec-token-storage", "approval");
+    await expect("sec-keychain-secrets", "approval");
     await expect("stop-already-done", "success");
-    await expect("flaky-ci", undefined);
-    await expect("impl-rate-limit", undefined);
+    await expect("flaky-contract-tests", undefined);
+    await expect("impl-api-rate-limit", undefined);
   });
   it("random: identical seed + runId → identical plan; different seed → may differ", async () => {
     const a = randomPlannerBackend({ seed: 3 }), b = randomPlannerBackend({ seed: 3 }), c = randomPlannerBackend({ seed: 4 });
@@ -127,7 +127,7 @@ describe("fly planner", () => {
   it("plans end-to-end on a synthetic brain, emits a brain trace, and replays identically", async () => {
     const dir = await mkdtemp(join(tmpdir(), "flytown-fly-"));
     const fly = new FlyPlannerBackend({ connectomeId: "mini-brain-1", graph: miniBrain() });
-    const f = FIXTURES.find((x) => x.id === "flaky-ci")!;
+    const f = FIXTURES.find((x) => x.id === "flaky-contract-tests")!;
     const repo = { present: true, fileCount: 250, languages: { ts: 100 }, hasTests: true, hasPackageManifest: true, frameworks: ["typescript"], truncated: false };
     const res = await fly.plan({ task: f.task, cwd: f.repo, repo, extraSignals: f.extra, runId: "fly-1", maxNodes: 6 });
     assert.ok(res.trace?.brain, "brain trace present");
@@ -245,7 +245,7 @@ describe("registry", () => {
   it("replayTrace reproduces a stored rules decision", async () => {
     const dir = await mkdtemp(join(tmpdir(), "flytown-replay-"));
     const rules = rulesPlannerBackend();
-    const f = FIXTURES.find((x) => x.id === "sec-input-sanitize")!;
+    const f = FIXTURES.find((x) => x.id === "sec-chat-injection")!;
     const res = await rules.plan({ task: f.task, cwd: f.repo, runId: "rp", extraSignals: f.extra, repo: { present: true, fileCount: 40, languages: {}, hasTests: true, hasPackageManifest: false, frameworks: [], truncated: false } });
     await writeTrace(dir, res.trace!);
     const stored = (await readTrace(dir, "rp"))!;

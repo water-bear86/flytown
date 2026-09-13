@@ -2,8 +2,15 @@ export function buildCliHelp(castes: readonly string[]): string {
   return `FLYTOWN — a connectome-derived planner routing a swarm of model-backed workers.
 
 Usage:
-  flytown init
+  flytown init [--provider <preset> [--model <name>]]
       Initialize a Terrarium (.flytown/terrarium.json) in the current directory.
+      --provider sets every model slot to one preset and asks for its API key.
+
+  flytown provider                   |   flytown provider set <preset> [--model <name>] [--soldier-model <name>]
+                                                                    [--base-url <url>] [--api-key-env <ENV>] [--keep-routes] [--no-key-prompt]
+      Show the active provider (models per slot, key present or missing), or
+      point every slot at one preset. Presets: openai openrouter deepseek anthropic
+      gemini groq together mistral ollama lmstudio custom.
 
   flytown /ask "<task>"
       Single mode: one forager, one answer.
@@ -51,9 +58,10 @@ Usage:
       dependent flights consume them. On a node failure the planner is
       re-invoked (recursive replan, max depth 2 by default).
 
-  flytown fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|effects|planners> ...
+  flytown fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|effects|fixtures|planners> ...
       Planner research tooling: connectome-derived and baseline planners,
       decision traces, deterministic replay, and the evaluation harness.
+      fly fixtures fetch downloads the evaluation repositories at their pinned commits.
 
   flytown context ingest <path> [--limit <N>]
       Import local text files from an old conversation or project folder into
@@ -139,6 +147,7 @@ Environment:
   FLYTOWN_TOOLS_HTTP          set to 1 to enable http.head verifier tool (default disabled)
   FLYTOWN_MAX_CONCURRENCY     default: 5 (in-flight API calls)
   FLYTOWN_HOME                global fallback terrarium root (default: ~/.flytown)
+  FLYTOWN_FIXTURES_DIR        where fly fixtures fetch puts evaluation repositories (default: ~/.flytown/fixtures)
   FLYTOWN_NO_BANNER           set to 1 to suppress the banner printed by \`ask\`
   (also: FLYTOWN_MODEL_WASP, FLYTOWN_MODEL_SCOUT, FLYTOWN_MODEL_MESSENGER)
 `;

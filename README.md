@@ -19,12 +19,19 @@ reports honest nulls, in the mock worker world and live. Design:
 ```bash
 npm install
 npm run build                                      # compiles to dist/; the flytown binary is dist/cli.js
-node dist/cli.js init                              # a terrarium in this folder: .flytown/terrarium.json
+node dist/cli.js init --provider deepseek --model deepseek-v4-flash   # a terrarium here; asks for your key, input hidden
 node dist/cli.js serve                             # then open http://localhost:7777/
-node dist/cli.js fly plan "…" --planner fly:connectome=l1-larva-winding2023-1+plastic --dry-run
-node dist/cli.js fly eval --planners rules,random,fly,fly:shuffled --seeds 3      # mock worker world
-node dist/cli.js secret set DEEPSEEK_API_KEY       # stored in .flytown/provider-secrets.json; then: fly eval --live …
+node dist/cli.js fly plan "…" --planner fly:connectome=l1-larva-winding2023-1+plastic --dry-run   # no API calls
+node dist/cli.js fly fixtures fetch                # the evaluation repositories, at their pinned commits
+node dist/cli.js fly eval --planners rules,random,fly,fly:shuffled --seeds 3      # mock worker world, no API calls
+node dist/cli.js fly eval --live --planners rules --fixtures q-engine-layout --seeds 1   # one small live run
 ```
+
+Deciding costs nothing; executing a plan or a live evaluation calls your model
+provider. `init --provider` accepts any preset in
+[providers](./docs/reference/providers.md) (OpenAI is the default), and
+`flytown provider set <preset>` switches later. `deepseek-v4-flash` for every
+role is the configuration the recorded live runs used.
 
 Run `npm link` once to put `flytown` on your PATH; the examples below use it.
 

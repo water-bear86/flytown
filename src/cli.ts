@@ -32,7 +32,7 @@ import { previewScan, scout } from "./scout.js";
 import { serve } from "./server.js";
 import { commandToCliArgs, parseSlashCommand } from "./slash-commands.js";
 import { exportRunAsMasTrace } from "./trace-export.js";
-import { MODEL_SLOTS, PROVIDER_PRESETS } from "./providers.js";
+import { MODEL_SLOTS, PROVIDER_PRESETS, normalizeProviderConfig } from "./providers.js";
 import {
   CASTES,
   type Artifact,
@@ -40,8 +40,9 @@ import {
   type Morsel,
   type Personality,
   type ModelSlot,
+  type ProviderConfig,
 } from "./types.js";
-import { initTerrarium, loadTerrarium, saveTerrariumManifest } from "./terrarium.js";
+import { initTerrarium, loadTerrarium, saveTerrariumManifest, type Terrarium } from "./terrarium.js";
 import { normalizeOutputFormat } from "./formatting.js";
 import { buildCliHelp } from "./cli-help.js";
 import { builtinTools } from "./tools.js";
@@ -63,7 +64,9 @@ async function main(): Promise<void> {
 
   switch (cmd) {
     case "init":
-      return cmdInit();
+      return cmdInit(argv.slice(1));
+    case "provider":
+      return cmdProvider(argv.slice(1));
     case "ask":
       return cmdAsk(argv.slice(1));
     case "scout":
@@ -324,12 +327,82 @@ async function cmdContextVectorize(args: string[]): Promise<void> {
   }
 }
 
-async function cmdInit(): Promise<void> {
+async function cmdInit(args: string[] = []): Promise<void> {
+  const flags = parseFlags(args);
+  const { isProviderPresetId } = await import("./provider-setup.js");
+  if (flags.provider !== undefined && !isProviderPresetId(flags.provider)) {
+    process.stderr.write(`--provider must be one of: ${Object.keys(PROVIDER_PRESETS).join(", ")}\n`);
+    process.exitCode = 1;
+    return;
+  }
   const w = await initTerrarium(process.cwd());
-  process.stdout.write(
-    `Terrarium "${w.manifest.name}" initialized at ${w.root}.\n` +
-      `Compost is empty. Ask something.\n`,
-  );
+  process.stdout.write(`Terrarium "${w.manifest.name}" initialized at ${w.root}.\n`);
+  if (flags.provider) await setupProvider(w, flags.provider, flags);
+  else process.stdout.write(`Provider: OpenAI (the default). To use another, run: flytown provider set <${Object.keys(PROVIDER_PRESETS).join("|")}>\n`);
+}
+
+async function cmdProvider(args: string[]): Promise<void> {
+  const sub = args[0];
+  const w = await loadTerrarium(process.cwd());
+  const { describeProvider, isProviderPresetId } = await import("./provider-setup.js");
+  const { readProviderSecretsForRootSync } = await import("./provider-secrets.js");
+  if (!sub || sub === "show") {
+    const config = normalizeProviderConfig(w.manifest.provider);
+    const { lines } = describeProvider(config, process.env, readProviderSecretsForRootSync(w.root));
+    process.stdout.write(lines.join("\n") + "\n");
+    return;
+  }
+  const preset = args[1];
+  if (sub !== "set" || !isProviderPresetId(preset)) {
+    process.stderr.write(
+      `usage: flytown provider [show]\n` +
+        `       flytown provider set <${Object.keys(PROVIDER_PRESETS).join("|")}> [--model <name>] [--soldier-model <name>] [--base-url <url>] [--api-key-env <ENV>] [--keep-routes] [--no-key-prompt]\n`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+  await setupProvider(w, preset, parseFlags(args.slice(2)));
+}
+
+/**
+ * Switch every model slot to one preset, save, describe the result, and, in
+ * an interactive terminal, offer to store a missing API key (input hidden).
+ */
+async function setupProvider(w: Terrarium, preset: string, flags: Record<string, string>): Promise<void> {
+  const { applyProviderPreset, describeProvider, isProviderPresetId } = await import("./provider-setup.js");
+  const { readProviderSecretsForRootSync, setProviderSecretForRoot } = await import("./provider-secrets.js");
+  if (!isProviderPresetId(preset)) throw new Error(`unknown provider preset: ${preset}`);
+  let config: ProviderConfig;
+  try {
+    config = applyProviderPreset(normalizeProviderConfig(w.manifest.provider), preset, {
+      ...(flags.model ? { model: flags.model } : {}),
+      ...(flags["soldier-model"] ? { soldierModel: flags["soldier-model"] } : {}),
+      ...(flags["base-url"] ? { baseURL: flags["base-url"] } : {}),
+      ...(flags["api-key-env"] ? { apiKeyEnv: flags["api-key-env"] } : {}),
+      keepRoutes: flags["keep-routes"] === "true",
+    });
+  } catch (err) {
+    process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+    process.exitCode = 1;
+    return;
+  }
+  w.manifest.provider = config;
+  await saveTerrariumManifest(w);
+  let described = describeProvider(config, process.env, readProviderSecretsForRootSync(w.root));
+  process.stdout.write(described.lines.join("\n") + "\n");
+  if (!described.missingApiKey) return;
+  if (!process.stdin.isTTY || flags["no-key-prompt"] === "true") {
+    process.stdout.write(`\nNext: flytown secret set ${described.missingApiKey}\n`);
+    return;
+  }
+  const value = (await readSecretFromTerminal(`\nPaste your ${described.missingApiKey} (input hidden, Enter to skip): `)).trim();
+  if (!value) {
+    process.stdout.write(`Skipped. Store it later with: flytown secret set ${described.missingApiKey}\n`);
+    return;
+  }
+  await setProviderSecretForRoot(w.root, described.missingApiKey, value);
+  described = describeProvider(config, process.env, readProviderSecretsForRootSync(w.root));
+  process.stdout.write(`stored ${described.missingApiKey ?? "the key"} for ${w.root} (file mode 0600)\n`);
 }
 
 async function cmdAsk(args: string[]): Promise<void> {

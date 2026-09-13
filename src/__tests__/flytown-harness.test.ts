@@ -30,7 +30,7 @@ describe("harness statistics", () => {
 describe("runHarness (mock world)", () => {
   it("runs matched trials for several planners, writes a report, and is deterministic", async () => {
     const root = await mkdtemp(join(tmpdir(), "flytown-harness-"));
-    const fixtures = FIXTURES.filter((f) => ["q-engine-layout", "flaky-ci", "misleading-cache", "blocked-credentials", "stop-already-done"].includes(f.id));
+    const fixtures = FIXTURES.filter((f) => ["q-engine-layout", "flaky-contract-tests", "misleading-stale-balances", "blocked-prod-secrets", "stop-already-done"].includes(f.id));
     const opts = { planners: ["rules", "random", "fly", "fly:shuffled"], fixtures, seeds: [1, 2], root, resolve: { graph: miniBrain() }, compare: ["fly", "fly:shuffled"] as [string, string] };
     const a = await runHarness(opts);
     assert.equal(a.runs.length, 4 * fixtures.length * 2);

@@ -247,7 +247,7 @@ describe("rules+memory planner", () => {
 
   it("gets outcomes from the evaluation harness", async () => {
     const root = await mkdtemp(join(tmpdir(), "flytown-memharness-"));
-    const fixtures = FIXTURES.filter((f) => ["q-engine-layout", "blocked-credentials"].includes(f.id));
+    const fixtures = FIXTURES.filter((f) => ["q-engine-layout", "blocked-prod-secrets"].includes(f.id));
     await runHarness({ planners: ["rules+memory"], fixtures, seeds: [1, 2], root, resolve: { graph: memoryLarva() } });
     const saved = JSON.parse(await readFile(join(root, ".flytown", "weights", "memory-memory-larva.json"), "utf8"));
     assert.equal(saved.episodes, fixtures.length * 2, "one stored episode per evaluated run");

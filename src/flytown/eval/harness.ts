@@ -9,7 +9,7 @@
  * falsification test from the proposal).
  */
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { executePlan, type PlanOutcome, type FlightRunner } from "../../plan-executor.js";
 import { performFlight } from "../../flight.js";
@@ -24,7 +24,7 @@ import { FlyPlannerBackend } from "../fly-planner.js";
 import { learnedPlannerBackend, trainLinearRouter, uniformWeights, type LinearRouterWeights, type TrainingExample } from "../baselines/learned.js";
 import { hashSeed, makeRng } from "../rng.js";
 import { writeTrace, type DecisionTrace } from "../trace.js";
-import { FIXTURES, fixtureAvailability, rubricFor, type Fixture, type FixtureCategory } from "./fixtures.js";
+import { FIXTURES, FIXTURE_SUITE, fixtureAvailability, pinnedReposFor, rubricFor, type Fixture, type FixtureCategory } from "./fixtures.js";
 import { judgeOutput } from "./judge.js";
 import { makeMockFlightRunner, type MockFlightStats } from "./mock-flight.js";
 
@@ -67,6 +67,12 @@ export interface LiveOptions {
 export interface HarnessOptions {
   planners: string[];
   fixtures?: Fixture[];
+  /**
+   * Live mode only: run even when some fixture repositories are not clean
+   * checkouts of their pinned commits. Default false, because workers would
+   * spend tokens on the wrong code or none.
+   */
+  allowMissingRepos?: boolean;
   seeds?: number[];
   maxReplan?: number;
   maxNodes?: number;
@@ -189,6 +195,8 @@ export interface HarnessReport {
   training: TrainingRecord[];
   /** live mode: the provider smoke test that gated the run */
   preflight?: PreflightResult;
+  /** Which task suite ran and the exact repository commits it ran against. */
+  suite: { name: string; repos: { name: string; url: string; commit: string }[] };
   outDir: string;
 }
 
@@ -239,6 +247,15 @@ export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
   const outDir = join(root, ".flytown", "eval", new Date().toISOString().replace(/[:.]/g, "-"));
   await mkdir(outDir, { recursive: true });
   const availability = await fixtureAvailability(fixtures);
+  const unavailable = fixtures.filter((f) => !availability[f.id]);
+  if (opts.live && unavailable.length && !opts.allowMissingRepos) {
+    const names = [...new Set(unavailable.map((f) => f.pinned ? `${f.pinned.name}@${f.pinned.commit.slice(0, 12)}` : f.repo))];
+    throw new Error(`${unavailable.length} fixture(s) have no usable repository (${names.join(", ")}). A live run would spend tokens on missing or different code. Run \`flytown fly fixtures fetch\` first, or pass --allow-missing-repos.`);
+  }
+  const suite = {
+    name: fixtures.every((f) => FIXTURES.some((x) => x.id === f.id && x.task === f.task && x.repo === f.repo)) ? FIXTURE_SUITE : "custom",
+    repos: pinnedReposFor(fixtures).map((r) => ({ name: r.name, url: r.url, commit: r.commit })),
+  };
   const repoCache = new Map<string, RepoSignals>();
   const log = opts.onProgress ?? (() => {});
 
@@ -300,7 +317,7 @@ export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
   const report: HarnessReport = {
     createdAt: new Date().toISOString(),
     options: { planners: opts.planners, seeds, maxReplan: opts.maxReplan ?? 2, maxNodes: opts.maxNodes ?? 6, root, writeTraces: !!opts.writeTraces, compare: pair, epochs, trainSeeds, live: opts.live, fixtures: fixtures.map((f) => ({ ...f })) },
-    fixtureAvailability: availability, runs, summaries, comparison, training, preflight, outDir,
+    fixtureAvailability: availability, runs, summaries, comparison, training, preflight, suite, outDir,
   };
   await writeFile(join(outDir, "report.json"), JSON.stringify(report, null, 2) + "\n", "utf8");
   await writeFile(join(outDir, "report.md"), renderReport(report), "utf8");
@@ -576,10 +593,15 @@ export function compare(a: string, b: string, runs: RunResult[]): Comparison {
   };
 }
 
+/** A path with the user's home folder shown as ~, so reports copied into docs carry no account names. */
+export function tildify(path: string, home: string = homedir()): string {
+  return home && (path === home || path.startsWith(home + "/")) ? "~" + path.slice(home.length) : path;
+}
+
 export function renderReport(r: HarnessReport): string {
   const L: string[] = [];
   const live = r.options.live;
-  L.push(`# FLYTOWN evaluation report`, ``, `created: ${r.createdAt}  ·  seeds: ${r.options.seeds?.join(",")}  ·  fixtures: ${r.options.fixtures?.length}  ·  ${live ? `**LIVE** — real FLYTOWN pipeline against the provider in ${live.terrariumRoot} (swarm ≤ ${live.swarmSize ?? 2}, ≤ ${live.maxOutputTokensPerCall ?? 400} output tokens/call, ≤ ${live.budgetTokensPerRun ?? 40_000} tokens/run${r.options.epochs ? "; learnable planners trained in the mock world first" : ""})` : "mock worker world (not live models)"}`, ``);
+  L.push(`# FLYTOWN evaluation report`, ``, `created: ${r.createdAt}  ·  seeds: ${r.options.seeds?.join(",")}  ·  fixtures: ${r.options.fixtures?.length}  ·  ${live ? `**LIVE** — real FLYTOWN pipeline against the provider in ${tildify(live.terrariumRoot)} (swarm ≤ ${live.swarmSize ?? 2}, ≤ ${live.maxOutputTokensPerCall ?? 400} output tokens/call, ≤ ${live.budgetTokensPerRun ?? 40_000} tokens/run${r.options.epochs ? "; learnable planners trained in the mock world first" : ""})` : "mock worker world (not live models)"}`, ``);
   if (live && r.preflight) {
     const p = r.preflight.provider;
     L.push(`> provider (preflight ${r.preflight.ok ? "passed" : "FAILED"}): ${p.id} · ${p.model} · key from ${p.apiKeySource} · requestParams ${p.requestParams} · smoke reply ${r.preflight.replyChars} chars`, ``);
@@ -589,8 +611,9 @@ export function renderReport(r: HarnessReport): string {
     const wall = r.runs.reduce((s, x) => s + x.wallMs, 0);
     L.push(`> tokens spent: ${spent.toLocaleString()}  ·  wall time: ${(wall / 60_000).toFixed(1)} min  ·  ${r.runs.filter((x) => x.error?.includes("budget exhausted")).length} runs skipped by the total-token cap. Completion here means FLYTOWN's own guard-gated pipeline produced a winner for every node; halts are judged against each fixture's expected termination. No external judge yet — final claims are recorded per run in report.json for human review.`, ``);
   }
+  if (r.suite) L.push(`> suite: ${r.suite.name}${r.suite.repos.length ? ` · ${r.suite.repos.map((x) => `${x.name}@${x.commit.slice(0, 12)}`).join(" · ")}` : ""}`, ``);
   const missing = Object.entries(r.fixtureAvailability).filter(([, ok]) => !ok).map(([id]) => id);
-  if (missing.length) L.push(`> repositories missing on this machine for: ${missing.join(", ")} — those runs used empty repo signals.`, ``);
+  if (missing.length) L.push(`> repositories not ready for: ${missing.join(", ")} — those runs used empty repo signals, so this report does not reproduce the suite. Run \`flytown fly fixtures fetch\`.`, ``);
   const judged = r.summaries.some((s) => s.meanQuality !== undefined);
   L.push(`| planner | runs |${judged ? " quality (judge) |" : ""} termination acc | completion (of completable) | recovery (misleading) | mean tokens | mean flights | mean replans | mean nodes | unnecessary | task-sensitivity (distinct / JS bits) | errors |`);
   L.push(`|---|---|${judged ? "---|" : ""}---|---|---|---|---|---|---|---|---|---|`);

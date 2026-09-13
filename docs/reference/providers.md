@@ -11,6 +11,31 @@ automatically. Extra provider-specific request parameters go in
 `provider.requestParams` — for example `{"thinking":{"type":"disabled"}}` for
 DeepSeek.
 
+## One-step setup
+
+```bash
+flytown init --provider deepseek --model deepseek-v4-flash   # new terrarium
+flytown provider set deepseek --model deepseek-v4-flash      # existing terrarium
+flytown provider                                             # what every slot will use, and whether the key is there
+```
+
+`provider set` points every model slot at one preset: it resets per-slot
+model overrides and routes (`--keep-routes` keeps routes), sets the preset's
+base URL and key variable, and applies the request fields the preset needs.
+`--model` sets every chat slot, `--soldier-model` overrides the soldier, and
+`--base-url` and `--api-key-env` override the preset. In an interactive
+terminal it then asks for a missing API key with hidden input; elsewhere it
+prints the `flytown secret set` command to run.
+
+Presets carry required request fields. DeepSeek disables thinking
+(`{"thinking":{"type":"disabled"}}`), because with thinking on, hidden
+reasoning uses up the output cap and workers return empty text. A terrarium's
+own `provider.requestParams` override the preset's, and switching presets
+drops them.
+
+The web page header shows the active provider, and warns when its key is
+missing: deciding still works, executing does not.
+
 ## Presets
 
 | Preset | Base URL | Key env var |
