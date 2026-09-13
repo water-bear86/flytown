@@ -12,6 +12,30 @@ baseline was Goblintown's multi-agent orchestration core, kept intact, with
 the following bolt-on subsystems removed before any FLYTOWN-specific code was
 added.
 
+## Connectome data
+
+The artifacts under `connectome/` are derived from third-party datasets. They
+are not covered by FLYTOWN's MIT licence: each keeps its own licence and needs
+its own attribution. Each artifact's `manifest.json` lists the full citations
+and every preprocessing step.
+
+- **FlyWire FAFB v783** (`fafb-v783-projectome-1`, `fafb-v783-neuron-1`). The
+  adult female *Drosophila melanogaster* whole-brain connectome, materialization
+  783, from the FlyWire Consortium's Zenodo data release, licensed CC BY 4.0.
+  FLYTOWN collapses it to brain regions or re-encodes the neuron graph. Cite
+  Dorkenwald et al. 2024, *Nature*, doi:10.1038/s41586-024-07558-y, and
+  Schlegel et al. 2024, *Nature*, doi:10.1038/s41586-024-07686-5.
+- **First-instar larval brain** (`l1-larva-winding2023-1`). From Winding et al.
+  2023, *Science* 379:eadd9330, doi:10.1126/science.add9330, Supplementary
+  Data S1, reprocessed into FLYTOWN's graph format. The article is licensed
+  CC BY 4.0. We could not confirm a separate licence for the supplementary data
+  file, so it is redistributed here with attribution for non-commercial
+  research and education. If you hold rights in these data and object, please
+  open an issue.
+
+The FLYTOWN authors drafted these citations. A neuroscience collaborator has
+not yet checked them.
+
 ## Subsystems removed in the fork (2026-09-11)
 
 - **Crypto / trading tools** (`solana.ts`, `solana-tools.ts`, `thesis.ts`,

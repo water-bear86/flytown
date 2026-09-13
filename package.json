@@ -3,6 +3,14 @@
   "version": "0.8.0-beta.1",
   "description": "FLYTOWN \u2014 connectome-derived AI-orchestration research: testing whether a fruit-fly wiring diagram can plan and route a swarm of model-backed workers.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/water-bear86/flytown.git"
+  },
+  "homepage": "https://github.com/water-bear86/flytown#readme",
+  "bugs": {
+    "url": "https://github.com/water-bear86/flytown/issues"
+  },
   "author": "0XBL33P",
   "type": "module",
   "bin": {

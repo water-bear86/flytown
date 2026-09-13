@@ -4,10 +4,11 @@ A real, public, static wiring diagram of a fruit-fly brain — the adult
 FlyWire FAFB v783 connectome collapsed to brain regions, or the whole
 first-instar larval brain (Winding et al. 2023) at single-neuron resolution —
 is the fixed topology of a small dynamical system. A task becomes a sensory
-pattern; activity propagates; a readout maps the pattern to one of thirteen
-orchestration actions; that action becomes a `Plan`, which FLYTOWN's swarm of
-model-backed workers executes exactly as it would a plan from any other
-planner. It is **not** a mind, not a simulation of a living animal, and every
+pattern; activity propagates; a readout scores thirteen orchestration
+actions. The top-scoring actions go to the same compiler every planner uses,
+which turns them into a `Plan` that FLYTOWN's swarm of model-backed workers
+executes. The compiler acts on only some of those actions, and each decision
+trace shows which ones changed the plan. It is **not** a mind, not a simulation of a living animal, and every
 quantity is tagged `MEASURED`, `INFERRED_FROM_LITERATURE`,
 `ENGINEERING_CHOICE` or `METAPHOR`. The evaluation harness compares every fly
 planner against shuffled and rewired copies of the same graph — and so far
@@ -188,4 +189,6 @@ third-party distribution and local telemetry subsystems it started with, and
 on 2026-09-12 replaced every inherited name, prompt, piece of branding and art
 with FLYTOWN's own vocabulary. [NOTICE.md](./NOTICE.md) records exactly what changed.
 
-MIT — see [LICENSE](./LICENSE).
+The code is MIT — see [LICENSE](./LICENSE). The connectome data under
+`connectome/` is not: it keeps its original licences and must be cited. See
+[NOTICE.md](./NOTICE.md#connectome-data).
