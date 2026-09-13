@@ -1,6 +1,6 @@
 # FLYTOWN evaluation report
 
-created: 2026-09-12T01:46:40.967Z  ·  seeds: 1  ·  fixtures: 10  ·  **LIVE** — real Goblintown pipeline against the provider in /Users/angusdurrie/flytown/.flytown/live-warren (pack ≤ 2, ≤ 700 output tokens/call, ≤ 60000 tokens/run; learnable planners trained in the mock world first)
+created: 2026-09-12T01:46:40.967Z  ·  seeds: 1  ·  fixtures: 10  ·  **LIVE** — real Goblintown pipeline against the provider in ~/flytown/.flytown/live-warren (pack ≤ 2, ≤ 700 output tokens/call, ≤ 60000 tokens/run; learnable planners trained in the mock world first)
 
 > tokens spent: 2,570,445  ·  wall time: 69.3 min  ·  3 runs skipped by the total-token cap. Completion here means Goblintown's own troll-gated pipeline produced a winner for every node; halts are judged against each fixture's expected termination. No external judge yet — final claims are recorded per run in report.json for human review.
 

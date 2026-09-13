@@ -1,6 +1,6 @@
 # FLYTOWN evaluation report
 
-created: 2026-09-12T06:35:39.234Z  ·  seeds: 1,2  ·  fixtures: 20  ·  **LIVE** — real Goblintown pipeline against the provider in /Users/angusdurrie/flytown/.flytown/live-warren (pack ≤ 2, ≤ 700 output tokens/call, ≤ 60000 tokens/run)
+created: 2026-09-12T06:35:39.234Z  ·  seeds: 1,2  ·  fixtures: 20  ·  **LIVE** — real Goblintown pipeline against the provider in ~/flytown/.flytown/live-warren (pack ≤ 2, ≤ 700 output tokens/call, ≤ 60000 tokens/run)
 
 > provider (preflight passed): deepseek · deepseek-v4-flash · key from stored · requestParams {"thinking":{"type":"disabled"}} · smoke reply 5 chars
 
