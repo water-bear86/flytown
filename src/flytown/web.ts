@@ -329,7 +329,8 @@ async function api(path, opts) { const r = await fetch(path, opts); const j = aw
     const r = p.runtime;
     if (r.hasApiKey || !r.missingApiKey) { el.textContent = "provider: " + r.label + " · " + r.models.forager; return; }
     el.className = "provider missing";
-    el.textContent = "provider: " + r.label + " · no API key, so decisions work but execution will fail. Run: flytown secret set " + r.missingApiKey;
+    el.textContent = r.label + " key missing: flytown secret set " + r.missingApiKey;
+    el.title = "Decisions work without a key. Executing a plan calls " + r.label + " and will fail until the key is stored.";
   } catch (e) { /* status is informational */ }
 })();
 
