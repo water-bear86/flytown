@@ -1,4 +1,8 @@
 # FLYTOWN
+**To discourage more fakes
+Gzj71jijFzPhsDB3N7gV4CKpx69jaPsHS5cV4aSypump
+This is the correct CA to support this project. **
+
 
 A real, public, static wiring diagram of a fruit-fly brain — the adult
 FlyWire FAFB v783 connectome collapsed to brain regions, or the whole
