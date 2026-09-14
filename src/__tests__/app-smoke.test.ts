@@ -1,9 +1,9 @@
 import { strict as assert } from "node:assert";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, it } from "node:test";
-import { researchSiteHtml } from "../flytown/site.js";
+import { RESEARCH_WALLETS, researchSiteHtml } from "../flytown/site.js";
 import { serve, type ServeHandle } from "../server.js";
 import { initTerrarium } from "../terrarium.js";
 
@@ -37,7 +37,12 @@ describe("app smoke", () => {
     assert.match(html, /docs\/install\/from-source\.md/);
     assert.match(html, /https:\/\/github\.com\/water-bear86\/flytown/);
     assert.match(html, /https:\/\/x\.com\/i\/communities\/2017600885900062998/);
-    assert.match(html, /data-copy-ca="Gzj71jijFzPhsDB3N7gV4CKpx69jaPsHS5cV4aSypump"/);
+    assert.match(html, /<button class="site-nav__fund-trigger" type="button" aria-expanded="false" aria-controls="fund-panel">/);
+    assert.match(html, />Fund<span class="site-nav__fund-label-rest"> the Research<\/span>/);
+    assert.match(html, /<div class="site-nav__fund-panel" id="fund-panel" role="group" aria-label="Research funding wallets">/);
+    assert.match(html, />79TNuyFNZWhDeFF1RUNA5Xk9Pccvb7xPYqLukBxCeWbb<\/code>/);
+    assert.match(html, />0xa2c0abd1a1fcb5aee12f80651ae7f646371a66ed<\/code>/);
+    assert.doesNotMatch(html, /data-copy-ca|site-nav__ca|FLYTOWN contract address|FLYTOWN CA/);
     assert.doesNotMatch(html, /href="\/fly"/);
   });
 
@@ -60,7 +65,17 @@ describe("app smoke", () => {
     assert.match(html, /tested computational advantage was null/);
     assert.match(html, /not a universal claim about biology/);
     assert.match(html, /Join the FLYTOWN community on X/);
-    assert.match(html, /Copy FLYTOWN contract address/);
+    assert.match(html, />Fund<span class="site-nav__fund-label-rest"> the Research<\/span>/);
+    assert.match(html, /aria-label="Copy Solana wallet address"/);
+    assert.match(html, /aria-label="Copy EVM wallet address"/);
+  });
+
+  it("shows the same wallets as the README's Donate section", async () => {
+    const readme = await readFile(new URL("../../README.md", import.meta.url), "utf8");
+    const donate = readme.slice(readme.lastIndexOf("## Donate"));
+    assert.ok(donate.startsWith("## Donate"), "README ends with a Donate section");
+    const readmeWallets = Object.fromEntries([...donate.matchAll(/^(sol|evm): (\S+)$/gm)].map((m) => [m[1].toUpperCase(), m[2]]));
+    assert.deepEqual(Object.fromEntries(RESEARCH_WALLETS.map((w) => [w.chain, w.address])), readmeWallets);
   });
 
   it("preserves the operational control surface at /fly", async () => {

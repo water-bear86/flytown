@@ -47,7 +47,7 @@ FLYTOWN is unusually candid open research: it built a real, inspectable connecto
 - Explain the safeguards that made the conclusion credible: pre-registered comparisons, identical fixtures/seeds/budgets/compiler, shuffled and degree-preserving controls, lesions and ablations, task-sensitivity checks, mock-versus-live separation, paired permutation tests, correction of invalid or underpowered runs, and reproducible public fixtures.
 - Present the surviving engineering findings accurately: the hand-written rules planner matched the LLM planner's quality on completable tasks while using 39% fewer tokens overall, and it correctly halted on all seven paired stop cases in the full live comparison.
 - Preserve source and data licensing/provenance. The code is MIT; bundled connectome datasets retain their original licenses and citation requirements.
-- Preserve the existing contract address exactly if it appears: `Gzj71jijFzPhsDB3N7gV4CKpx69jaPsHS5cV4aSypump`.
+- Do not display a FLYTOWN token contract address. Support lives only in the navigation's “Fund the Research” box, and its Solana and EVM wallets must match the README's Donate section character for character.
 - The primary action is to inspect the evidence and methodology, followed by opening the repository or reproducing the evaluation. Installation, the console, and support are secondary.
 
 ## Brand Commitments

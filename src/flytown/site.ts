@@ -7,6 +7,15 @@ const packageRoot = join(moduleDirectory, "..", "..");
 export const researchSiteAssetsDir = join(packageRoot, "assets", "site");
 export const researchSiteTokensPath = join(packageRoot, "tokens.css");
 
+/**
+ * Wallets behind the navigation's "Fund the Research" box. They must match
+ * the Donate section at the end of README.md character for character.
+ */
+export const RESEARCH_WALLETS = [
+  { chain: "SOL", name: "Solana", address: "79TNuyFNZWhDeFF1RUNA5Xk9Pccvb7xPYqLukBxCeWbb" },
+  { chain: "EVM", name: "EVM", address: "0xa2c0abd1a1fcb5aee12f80651ae7f646371a66ed" },
+] as const;
+
 export interface ResearchSiteOptions {
   consoleHref?: string;
   consoleLabel?: string;
@@ -26,6 +35,14 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
   const consoleHref = escapeHtml(options.consoleHref ?? "/fly");
   const consoleLabel = escapeHtml(options.consoleLabel ?? "Open console");
   const consoleCtaLabel = escapeHtml(options.consoleCtaLabel ?? "Use the local console");
+  const walletRows = RESEARCH_WALLETS.map((wallet) => {
+    const addressId = `fund-address-${wallet.chain.toLowerCase()}`;
+    return `<li class="site-nav__fund-wallet">
+              <span class="site-nav__fund-chain">${escapeHtml(wallet.chain)}</span>
+              <code class="site-nav__fund-address" id="${addressId}">${escapeHtml(wallet.address)}</code>
+              <button class="site-nav__fund-copy" type="button" data-copy-wallet="${addressId}" data-wallet-name="${escapeHtml(wallet.name)}" aria-label="Copy ${escapeHtml(wallet.name)} wallet address">Copy</button>
+            </li>`;
+  }).join("\n            ");
 
   return `<!doctype html>
 <html lang="en">
@@ -36,8 +53,8 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
   <meta name="description" content="Why the claim that $FLYBRAIN launched itself is false, what its public code actually shows, and what FLYTOWN learned by testing real connectome wiring against null controls." />
   <title>FLYTOWN — The token is real. The agency story isn’t.</title>
   <link rel="preload" href="/site/flytown-mayor.webp" as="image" type="image/webp" />
-  <link rel="stylesheet" href="/site/site.css?v=20260913h" />
-  <script src="/site/site.js?v=20260913c" defer></script>
+  <link rel="stylesheet" href="/site/site.css?v=20260914a" />
+  <script src="/site/site.js?v=20260914a" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to the findings</a>
@@ -56,12 +73,19 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
       <a class="site-nav__icon-link" href="https://x.com/i/communities/2017600885900062998" target="_blank" rel="noreferrer" aria-label="Join the FLYTOWN community on X" title="FLYTOWN community on X">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/></svg>
       </a>
-      <button class="site-nav__ca" type="button" data-copy-ca="Gzj71jijFzPhsDB3N7gV4CKpx69jaPsHS5cV4aSypump" aria-label="Copy FLYTOWN contract address: Gzj71jijFzPhsDB3N7gV4CKpx69jaPsHS5cV4aSypump" aria-describedby="ca-copy-status" title="Copy FLYTOWN contract address">
-        <span class="site-nav__ca-label"><span class="site-nav__ca-label-full">FLYTOWN CA</span><span class="site-nav__ca-label-compact" aria-hidden="true">CA</span></span>
-        <code><span class="site-nav__ca-full">Gzj71jijFzPhsDB3N7gV4CKpx69jaPsHS5cV4aSypump</span><span class="site-nav__ca-short" aria-hidden="true">Gzj71…pump</span></code>
-        <span class="site-nav__ca-action">Copy</span>
-      </button>
-      <span class="site-nav__copy-status" id="ca-copy-status" role="status" aria-live="polite"></span>
+      <div class="site-nav__fund" data-fund>
+        <button class="site-nav__fund-trigger" type="button" aria-expanded="false" aria-controls="fund-panel">
+          <span class="site-nav__fund-label">Fund<span class="site-nav__fund-label-rest"> the Research</span></span>
+          <svg class="site-nav__fund-caret" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" d="m2.5 4.25 3.5 3.5 3.5-3.5"/></svg>
+        </button>
+        <div class="site-nav__fund-panel" id="fund-panel" role="group" aria-label="Research funding wallets">
+          <p class="site-nav__fund-note">Send magic internet monies to either wallet.</p>
+          <ul class="site-nav__fund-wallets">
+            ${walletRows}
+          </ul>
+        </div>
+        <span class="site-nav__copy-status" id="fund-copy-status" role="status" aria-live="polite"></span>
+      </div>
       <a class="site-nav__console" href="${consoleHref}">${consoleLabel}</a>
     </nav>
   </header>

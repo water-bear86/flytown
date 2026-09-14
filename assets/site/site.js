@@ -42,28 +42,113 @@ tabList?.addEventListener("keydown", (event) => {
 
 const copyButton = document.querySelector("[data-copy-command]");
 const copyStatus = document.querySelector(".copy-status");
-const caButton = document.querySelector("[data-copy-ca]");
-const caCopyStatus = document.querySelector("#ca-copy-status");
-const caCopyAction = caButton?.querySelector(".site-nav__ca-action");
+const fund = document.querySelector("[data-fund]");
+const fundTrigger = fund?.querySelector(".site-nav__fund-trigger");
+const fundCopyStatus = document.querySelector("#fund-copy-status");
 
-caButton?.addEventListener("click", async () => {
-  const address = caButton.getAttribute("data-copy-ca") ?? "";
+// "Fund the Research": opens while a mouse or pen hovers it, and on click,
+// tap or keyboard (Enter/Space) for devices without hover. Escape, a click
+// outside, or tabbing away closes it.
+if (fund && fundTrigger) {
+  let hovering = false;
+  let pinned = false;
+  let dismissed = false;
+  let hoverTimer = 0;
 
-  try {
-    await navigator.clipboard.writeText(address);
-    caButton.setAttribute("data-copy-state", "success");
-    if (caCopyAction) caCopyAction.textContent = "Copied";
-    if (caCopyStatus) caCopyStatus.textContent = "FLYTOWN contract address copied to the clipboard.";
-  } catch {
-    if (caCopyStatus) caCopyStatus.textContent = `Copy this FLYTOWN contract address: ${address}`;
-  }
+  const isOpen = () => (hovering || pinned) && !dismissed;
 
-  window.setTimeout(() => {
-    caButton.removeAttribute("data-copy-state");
-    if (caCopyAction) caCopyAction.textContent = "Copy";
-    if (caCopyStatus) caCopyStatus.textContent = "";
-  }, 2600);
-});
+  const render = () => {
+    const open = isOpen();
+    fund.toggleAttribute("data-open", open);
+    fundTrigger.setAttribute("aria-expanded", String(open));
+  };
+
+  const setHovering = (next, delay) => {
+    window.clearTimeout(hoverTimer);
+    hoverTimer = window.setTimeout(() => {
+      hovering = next;
+      // Coming back after Escape or a click-close counts as new interest.
+      if (next) dismissed = false;
+      render();
+    }, delay);
+  };
+
+  fund.addEventListener("pointerenter", (event) => {
+    if (event.pointerType !== "touch") setHovering(true, 90);
+  });
+
+  fund.addEventListener("pointerleave", (event) => {
+    if (event.pointerType !== "touch") setHovering(false, 180);
+  });
+
+  fundTrigger.addEventListener("click", () => {
+    if (!isOpen()) {
+      pinned = true;
+      dismissed = false;
+    } else if (!pinned) {
+      pinned = true;
+    } else {
+      pinned = false;
+      dismissed = hovering;
+    }
+    render();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !isOpen()) return;
+    const focusInPanel = fund.contains(document.activeElement) && document.activeElement !== fundTrigger;
+    pinned = false;
+    dismissed = true;
+    render();
+    if (focusInPanel) fundTrigger.focus();
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (!pinned || fund.contains(event.target)) return;
+    pinned = false;
+    render();
+  });
+
+  fund.addEventListener("focusout", (event) => {
+    const next = event.relatedTarget;
+    if (!pinned || !(next instanceof Node) || fund.contains(next)) return;
+    pinned = false;
+    render();
+  });
+}
+
+for (const walletButton of document.querySelectorAll("[data-copy-wallet]")) {
+  const addressElement = document.getElementById(walletButton.getAttribute("data-copy-wallet") ?? "");
+  const walletName = walletButton.getAttribute("data-wallet-name") ?? "Wallet";
+  let resetTimer = 0;
+
+  walletButton.addEventListener("click", async () => {
+    // Copy exactly what is displayed, so the copied address is the one people can check.
+    const address = addressElement?.textContent?.trim() ?? "";
+    if (!addressElement || !address) return;
+
+    try {
+      await navigator.clipboard.writeText(address);
+      walletButton.setAttribute("data-copy-state", "success");
+      walletButton.textContent = "Copied";
+      if (fundCopyStatus) fundCopyStatus.textContent = `${walletName} wallet address copied to the clipboard.`;
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(addressElement);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      if (fundCopyStatus) fundCopyStatus.textContent = `Copy this ${walletName} wallet address: ${address}`;
+    }
+
+    window.clearTimeout(resetTimer);
+    resetTimer = window.setTimeout(() => {
+      walletButton.removeAttribute("data-copy-state");
+      walletButton.textContent = "Copy";
+      if (fundCopyStatus) fundCopyStatus.textContent = "";
+    }, 2600);
+  });
+}
 
 copyButton?.addEventListener("click", async () => {
   const command = copyButton.getAttribute("data-copy-command") ?? "";
