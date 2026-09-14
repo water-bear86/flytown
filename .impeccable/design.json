@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-13T23:22:47Z",
+  "title": "Design System: FLYTOWN",
+  "extensions": {
+    "colorMeta": {
+      "civic-yellow": {
+        "role": "primary",
+        "displayName": "Civic Yellow",
+        "canonical": "oklch(81.8% 0.164 83.4)",
+        "tonalRamp": ["oklch(15% 0.164 83.4)", "oklch(26.4% 0.164 83.4)", "oklch(37.9% 0.164 83.4)", "oklch(49.3% 0.164 83.4)", "oklch(60.7% 0.164 83.4)", "oklch(72.1% 0.164 83.4)", "oklch(83.6% 0.164 83.4)", "oklch(95% 0.164 83.4)"]
+      },
+      "civic-yellow-soft": {
+        "role": "primary",
+        "displayName": "Soft Civic Yellow",
+        "canonical": "oklch(86.3% 0.159 86.9)",
+        "tonalRamp": ["oklch(15% 0.159 86.9)", "oklch(26.4% 0.159 86.9)", "oklch(37.9% 0.159 86.9)", "oklch(49.3% 0.159 86.9)", "oklch(60.7% 0.159 86.9)", "oklch(72.1% 0.159 86.9)", "oklch(83.6% 0.159 86.9)", "oklch(95% 0.159 86.9)"]
+      },
+      "oxblood": {
+        "role": "secondary",
+        "displayName": "Oxblood",
+        "canonical": "oklch(38.1% 0.135 21.5)",
+        "tonalRamp": ["oklch(15% 0.135 21.5)", "oklch(26.4% 0.135 21.5)", "oklch(37.9% 0.135 21.5)", "oklch(49.3% 0.135 21.5)", "oklch(60.7% 0.135 21.5)", "oklch(72.1% 0.135 21.5)", "oklch(83.6% 0.135 21.5)", "oklch(95% 0.135 21.5)"]
+      },
+      "oxblood-deep": {
+        "role": "secondary",
+        "displayName": "Deep Oxblood",
+        "canonical": "oklch(27.9% 0.094 20.2)",
+        "tonalRamp": ["oklch(15% 0.094 20.2)", "oklch(26.4% 0.094 20.2)", "oklch(37.9% 0.094 20.2)", "oklch(49.3% 0.094 20.2)", "oklch(60.7% 0.094 20.2)", "oklch(72.1% 0.094 20.2)", "oklch(83.6% 0.094 20.2)", "oklch(95% 0.094 20.2)"]
+      },
+      "carbon-ink": {
+        "role": "neutral",
+        "displayName": "Carbon Ink",
+        "canonical": "oklch(16.6% 0.012 48)",
+        "tonalRamp": ["oklch(15% 0.012 48)", "oklch(26.4% 0.012 48)", "oklch(37.9% 0.012 48)", "oklch(49.3% 0.012 48)", "oklch(60.7% 0.012 48)", "oklch(72.1% 0.012 48)", "oklch(83.6% 0.012 48)", "oklch(95% 0.012 48)"]
+      },
+      "carbon-ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Carbon Ink",
+        "canonical": "oklch(25.5% 0.020 50)",
+        "tonalRamp": ["oklch(15% 0.020 50)", "oklch(26.4% 0.020 50)", "oklch(37.9% 0.020 50)", "oklch(49.3% 0.020 50)", "oklch(60.7% 0.020 50)", "oklch(72.1% 0.020 50)", "oklch(83.6% 0.020 50)", "oklch(95% 0.020 50)"]
+      },
+      "evidence-paper": {
+        "role": "neutral",
+        "displayName": "Evidence Paper",
+        "canonical": "oklch(91.5% 0.051 88.6)",
+        "tonalRamp": ["oklch(15% 0.051 88.6)", "oklch(26.4% 0.051 88.6)", "oklch(37.9% 0.051 88.6)", "oklch(49.3% 0.051 88.6)", "oklch(60.7% 0.051 88.6)", "oklch(72.1% 0.051 88.6)", "oklch(83.6% 0.051 88.6)", "oklch(95% 0.051 88.6)"]
+      },
+      "evidence-paper-bright": {
+        "role": "neutral",
+        "displayName": "Bright Evidence Paper",
+        "canonical": "oklch(96.5% 0.044 89.9)",
+        "tonalRamp": ["oklch(15% 0.044 89.9)", "oklch(26.4% 0.044 89.9)", "oklch(37.9% 0.044 89.9)", "oklch(49.3% 0.044 89.9)", "oklch(60.7% 0.044 89.9)", "oklch(72.1% 0.044 89.9)", "oklch(83.6% 0.044 89.9)", "oklch(95% 0.044 89.9)"]
+      },
+      "evidence-paper-muted": {
+        "role": "neutral",
+        "displayName": "Muted Evidence Paper",
+        "canonical": "oklch(80.8% 0.047 87.8)",
+        "tonalRamp": ["oklch(15% 0.047 87.8)", "oklch(26.4% 0.047 87.8)", "oklch(37.9% 0.047 87.8)", "oklch(49.3% 0.047 87.8)", "oklch(60.7% 0.047 87.8)", "oklch(72.1% 0.047 87.8)", "oklch(83.6% 0.047 87.8)", "oklch(95% 0.047 87.8)"]
+      },
+      "desk-wood": {
+        "role": "secondary",
+        "displayName": "Desk Wood",
+        "canonical": "oklch(40% 0.097 43.6)",
+        "tonalRamp": ["oklch(15% 0.097 43.6)", "oklch(26.4% 0.097 43.6)", "oklch(37.9% 0.097 43.6)", "oklch(49.3% 0.097 43.6)", "oklch(60.7% 0.097 43.6)", "oklch(72.1% 0.097 43.6)", "oklch(83.6% 0.097 43.6)", "oklch(95% 0.097 43.6)"]
+      },
+      "measured": {
+        "role": "tertiary",
+        "displayName": "Measured Green",
+        "canonical": "oklch(41.5% 0.063 173.8)",
+        "tonalRamp": ["oklch(15% 0.063 173.8)", "oklch(26.4% 0.063 173.8)", "oklch(37.9% 0.063 173.8)", "oklch(49.3% 0.063 173.8)", "oklch(60.7% 0.063 173.8)", "oklch(72.1% 0.063 173.8)", "oklch(83.6% 0.063 173.8)", "oklch(95% 0.063 173.8)"]
+      },
+      "engineering-choice": {
+        "role": "tertiary",
+        "displayName": "Engineering Choice Orange",
+        "canonical": "oklch(48.7% 0.125 41.5)",
+        "tonalRamp": ["oklch(15% 0.125 41.5)", "oklch(26.4% 0.125 41.5)", "oklch(37.9% 0.125 41.5)", "oklch(49.3% 0.125 41.5)", "oklch(60.7% 0.125 41.5)", "oklch(72.1% 0.125 41.5)", "oklch(83.6% 0.125 41.5)", "oklch(95% 0.125 41.5)"]
+      },
+      "metaphor": {
+        "role": "tertiary",
+        "displayName": "Metaphor Violet",
+        "canonical": "oklch(42.8% 0.097 307.9)",
+        "tonalRamp": ["oklch(15% 0.097 307.9)", "oklch(26.4% 0.097 307.9)", "oklch(37.9% 0.097 307.9)", "oklch(49.3% 0.097 307.9)", "oklch(60.7% 0.097 307.9)", "oklch(72.1% 0.097 307.9)", "oklch(83.6% 0.097 307.9)", "oklch(95% 0.097 307.9)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Hero Proclamation", "purpose": "The first-viewport verdict only." },
+      "headline": { "displayName": "Section Proclamation", "purpose": "Section conclusions and the closing call." },
+      "title": { "displayName": "Filed Finding", "purpose": "Reports, ledger entries, and proposed-test titles." },
+      "body": { "displayName": "Research Reading", "purpose": "Default explanation and long-form evidence." },
+      "body-large": { "displayName": "Public Explanation", "purpose": "Section decks, chart captions, and high-value conclusions." },
+      "label": { "displayName": "Civic Label", "purpose": "Status, navigation microcopy, and short annotations." },
+      "data": { "displayName": "Inspectable Data", "purpose": "Measurements, thresholds, commands, and provenance facts." }
+    },
+    "shadows": [
+      {
+        "name": "paper-lift",
+        "value": "0 1rem 3rem oklch(22% 0.030 44 / 0.20), 0 0.25rem 0.5rem oklch(22% 0.030 44 / 0.16)",
+        "purpose": "Soft physical lift for the hero counterline and bright evidence reports."
+      },
+      {
+        "name": "raised-evidence",
+        "value": "0 1.25rem 3rem oklch(8% 0.010 44 / 0.34), 0 0.25rem 0.75rem oklch(8% 0.010 44 / 0.22)",
+        "purpose": "Deeper desk-lamp shadow for actions, pinned claims, charts, ledgers, and the mobile hero sheet."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Decelerating entrance motion for the hero stamp, proclamation, and paper counterline."
+      },
+      {
+        "name": "state-fast",
+        "value": "160ms ease",
+        "purpose": "Tab and navigation hover transitions."
+      },
+      {
+        "name": "state-standard",
+        "value": "180ms ease",
+        "purpose": "Button and skip-link state transitions."
+      },
+      {
+        "name": "hero-entrance",
+        "value": "700ms–900ms var(--ease-out)",
+        "purpose": "One-time staged entrance for the finding stamp, headline, and counterline when JavaScript is ready."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms, 1 iteration",
+        "purpose": "Collapses all animation and transition durations and disables smooth scrolling under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      { "name": "narrow-phone", "value": "28rem" },
+      { "name": "stacked", "value": "52rem" },
+      { "name": "compact-desktop", "value": "68rem" },
+      { "name": "short-wide-height", "value": "47.5rem height with a 52.01rem minimum width" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Ink Evidence Button",
+      "kind": "button",
+      "refersTo": "button-ink",
+      "description": "Primary action used to move from a public claim into inspectable evidence.",
+      "html": "<a class=\"ds-btn-ink\" href=\"#evidence\">Follow the evidence</a>",
+      "css": ".ds-btn-ink { display:inline-flex; min-height:3.1rem; align-items:center; justify-content:center; padding:0.75rem 1rem; color:var(--color-paper-bright); background:var(--color-ink); box-shadow:var(--shadow-raised); font-family:var(--font-body); font-weight:700; line-height:1; text-decoration:none; transition:background-color 180ms ease; } .ds-btn-ink:hover { background:var(--color-oxblood); } .ds-btn-ink:active { transform:translateY(0.0625rem); } .ds-btn-ink:focus-visible { outline:0.125rem solid var(--color-focus); outline-offset:0.0625rem; box-shadow:0 0 0 0.375rem var(--color-focus-outer), var(--shadow-raised); }"
+    },
+    {
+      "name": "Paper Evidence Button",
+      "kind": "button",
+      "refersTo": "button-paper",
+      "description": "Bright-paper action for the deep-oxblood closing field.",
+      "html": "<a class=\"ds-btn-paper\" href=\"#repository\">Open the repository ↗</a>",
+      "css": ".ds-btn-paper { display:inline-flex; min-height:3.1rem; align-items:center; justify-content:center; padding:0.75rem 1rem; color:var(--color-ink); background:var(--color-paper-bright); box-shadow:var(--shadow-raised); font-family:var(--font-body); font-weight:700; line-height:1; text-decoration:none; } .ds-btn-paper:active { transform:translateY(0.0625rem); } .ds-btn-paper:focus-visible { outline:0.125rem solid var(--color-focus); outline-offset:0.0625rem; box-shadow:0 0 0 0.375rem var(--color-focus-outer), var(--shadow-raised); }"
+    },
+    {
+      "name": "Outline Evidence Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary evidence action on a dark civic field.",
+      "html": "<a class=\"ds-btn-outline\" href=\"#runs\">Read every run</a>",
+      "css": ".ds-btn-outline { display:inline-flex; min-height:3.1rem; align-items:center; justify-content:center; padding:0.75rem 1rem; color:var(--color-paper-bright); background:transparent; border:1px solid oklch(96.5% 0.044 89.9 / 0.55); font-family:var(--font-body); font-weight:700; line-height:1; text-decoration:none; transition:border-color 180ms ease; } .ds-btn-outline:hover { border-color:var(--color-civic-yellow); } .ds-btn-outline:active { transform:translateY(0.0625rem); } .ds-btn-outline:focus-visible { outline:0.125rem solid var(--color-focus); outline-offset:0.0625rem; box-shadow:0 0 0 0.375rem var(--color-focus-outer); }"
+    },
+    {
+      "name": "Civic Masthead",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Sticky carbon navigation with a civic-yellow wordmark and console action.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Primary navigation\"><a class=\"ds-nav-brand\" href=\"#\"><strong>FLYTOWN</strong><span>Public findings</span></a><div class=\"ds-nav-links\"><a class=\"ds-nav-support\" href=\"#method\">Method</a><a class=\"ds-nav-support\" href=\"#evidence\">Evidence</a><a class=\"ds-nav-console\" href=\"#console\">Open console</a></div></nav>",
+      "css": ".ds-nav { display:flex; min-height:4.5rem; align-items:stretch; justify-content:space-between; color:var(--color-paper-bright); background:var(--color-ink); border-bottom:1px solid oklch(96.5% 0.044 89.9 / 0.24); font-family:var(--font-body); } .ds-nav a { color:inherit; text-decoration:none; } .ds-nav-brand { display:flex; align-items:baseline; gap:0.75rem; padding:1rem clamp(1rem, 3vw, 3rem); } .ds-nav-brand strong { color:var(--color-civic-yellow-soft); font-family:var(--font-display); font-size:1.5rem; font-weight:400; letter-spacing:-0.02em; line-height:1; } .ds-nav-brand span { color:var(--color-paper-muted); font-size:0.72rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; } .ds-nav-links { display:flex; align-items:stretch; } .ds-nav-links a { display:flex; align-items:center; padding:0.75rem 1.5rem; border-left:1px solid oklch(96.5% 0.044 89.9 / 0.18); font-size:0.86rem; font-weight:700; } .ds-nav-support:hover { color:var(--color-civic-yellow-soft); } .ds-nav-console { color:var(--color-ink) !important; background:var(--color-civic-yellow); } .ds-nav-console:hover { background:var(--color-civic-yellow-soft); } .ds-nav a:focus-visible { outline:0.125rem solid var(--color-focus); outline-offset:-0.1875rem; box-shadow:inset 0 0 0 0.125rem var(--color-focus-outer); } @media (max-width:52rem) { .ds-nav-support, .ds-nav-brand span { display:none; } .ds-nav-brand { padding-right:1rem; padding-left:1rem; } }"
+    },
+    {
+      "name": "Finding Stamp",
+      "kind": "chip",
+      "refersTo": "finding-stamp",
+      "description": "A slightly rotated filed annotation for the central null finding.",
+      "html": "<span class=\"ds-finding-stamp\"><span>Finding</span><strong>Null</strong></span>",
+      "css": ".ds-finding-stamp { display:inline-flex; align-items:center; gap:0.5rem; padding:0.5rem; color:var(--color-paper-bright); background:var(--color-oxblood); border:2px solid var(--color-ink); font-family:var(--font-body); font-size:0.72rem; letter-spacing:0.08em; line-height:1.2; text-transform:uppercase; transform:rotate(-1.5deg); } .ds-finding-stamp span { opacity:0.78; } .ds-finding-stamp strong { padding-left:0.5rem; border-left:1px solid oklch(96.5% 0.044 89.9 / 0.40); }"
+    },
+    {
+      "name": "Measured Provenance Label",
+      "kind": "chip",
+      "refersTo": "provenance-measured",
+      "description": "Written and colored provenance for values that come from measured topology.",
+      "html": "<span class=\"ds-provenance-measured\">Measured topology</span>",
+      "css": ".ds-provenance-measured { display:inline-flex; padding:0.25rem 0.5rem; color:var(--color-paper-bright); background:var(--color-measured); font-family:var(--font-body); font-size:0.62rem; font-weight:700; letter-spacing:0.04em; line-height:1.2; text-transform:uppercase; } .ds-provenance-measured:focus-visible { outline:0.125rem solid var(--color-focus); outline-offset:0.0625rem; box-shadow:0 0 0 0.375rem var(--color-focus-outer); }"
+    },
+    {
+      "name": "Accountability Launch Ledger",
+      "kind": "custom",
+      "description": "Four-step causal ledger whose final wallet step keeps the irreversible click and conventional signer sources grouped together.",
+      "html": "<ol class=\"ds-launch-ledger\"><li><span>01</span><h3>A measured map became a human-authored model.</h3><p>Microscopy supplied the graph; engineering choices supplied the running model.</p><a href=\"#model\">Read the model ↗</a></li><li><span>02</span><h3>The rig decided what the cursor was trying to do.</h3><p>DOM-aware automation chose fields and inserted prewritten values.</p><a href=\"#loop\">Inspect the loop ↗</a></li><li><span>03</span><h3>The rig completed every decisive operation.</h3><p>Automation completed the form, launch, and confirmation.</p><a href=\"#admission\">Read its admission ↗</a></li><li><span>04</span><h3>The wallet—not the connectome—made the token exist.</h3><p>A Python-injected wallet signed and broadcast the transaction.</p><div><a href=\"#click\">Trace the click ↗</a><a href=\"#signer\">Inspect the signer ↗</a></div></li></ol>",
+      "css": ".ds-launch-ledger { margin:0; padding:0; color:var(--color-ink); background:var(--color-paper-bright); border-top:2px solid var(--color-ink); font-family:var(--font-body); list-style:none; } .ds-launch-ledger li { display:grid; grid-template-columns:3.5rem minmax(13rem, 0.72fr) minmax(20rem, 1.28fr) auto; gap:clamp(1rem, 3vw, 3rem); align-items:start; padding:2rem 0; border-bottom:1px solid oklch(16.6% 0.012 48 / 0.42); } .ds-launch-ledger li > span { color:var(--color-oxblood); font-family:var(--font-data); font-size:0.72rem; font-weight:700; } .ds-launch-ledger h3, .ds-launch-ledger p { margin:0; } .ds-launch-ledger h3 { font-family:var(--font-display); font-size:1.35rem; font-weight:400; line-height:1.08; } .ds-launch-ledger a { color:var(--color-civic-yellow-soft); font-size:0.86rem; font-weight:700; text-decoration-thickness:0.1em; text-underline-offset:0.2em; white-space:nowrap; } .ds-launch-ledger li > div { display:grid; gap:0.5rem; justify-items:end; } .ds-launch-ledger a:focus-visible { outline:0.125rem solid var(--color-focus); outline-offset:0.0625rem; box-shadow:0 0 0 0.375rem var(--color-focus-outer); } @media (max-width:68rem) { .ds-launch-ledger li { grid-template-columns:3.5rem minmax(13rem, 0.65fr) minmax(20rem, 1.35fr); } .ds-launch-ledger li > a, .ds-launch-ledger li > div { grid-column:3; } } @media (max-width:52rem) { .ds-launch-ledger li { grid-template-columns:2.4rem minmax(0, 1fr); gap:0.75rem 1rem; padding:1.5rem 0; } .ds-launch-ledger h3 { font-size:1.35rem; } .ds-launch-ledger p, .ds-launch-ledger li > a, .ds-launch-ledger li > div { grid-column:2; justify-items:start; } }"
+    },
+    {
+      "name": "Circular Connectome Atlas Plate",
+      "kind": "custom",
+      "description": "Measured circular topology view paired with evidence-paper interpretation, literal counts, provenance, and a full-resolution diagram action.",
+      "html": "<figure class=\"ds-atlas-plate\"><div class=\"ds-atlas-visual\"><svg viewBox=\"0 0 240 240\" role=\"img\" aria-label=\"Circular connectome diagram\"><circle cx=\"120\" cy=\"120\" r=\"82\" fill=\"none\" stroke=\"currentColor\" opacity=\".22\"/><g fill=\"var(--color-civic-yellow)\"><circle cx=\"120\" cy=\"38\" r=\"5\"/><circle cx=\"191\" cy=\"79\" r=\"5\"/><circle cx=\"191\" cy=\"161\" r=\"5\"/><circle cx=\"120\" cy=\"202\" r=\"5\"/><circle cx=\"49\" cy=\"161\" r=\"5\"/><circle cx=\"49\" cy=\"79\" r=\"5\"/></g><circle cx=\"120\" cy=\"120\" r=\"38\" fill=\"var(--color-paper)\" stroke=\"var(--color-civic-yellow)\"/><text x=\"120\" y=\"116\" text-anchor=\"middle\" fill=\"var(--color-ink)\" font-family=\"var(--font-display)\" font-size=\"13\">ADULT PROJECTOME</text><text x=\"120\" y=\"136\" text-anchor=\"middle\" fill=\"var(--color-ink)\" font-family=\"var(--font-data)\" font-size=\"12\">79 REGIONS</text></svg></div><figcaption><h3>FlyWire FAFB v783 projectome</h3><p>Every region is present; the strongest cross-region edges remain readable.</p><dl><div><dt>Regions</dt><dd>79</dd></div><div><dt>Edges</dt><dd>3,509</dd></div><div><dt>Synapses</dt><dd>54.5M</dd></div></dl><a href=\"#full-diagram\">Open full-resolution diagram ↗</a></figcaption></figure>",
+      "css": ".ds-atlas-plate { display:grid; min-width:0; grid-template-rows:auto 1fr; margin:0; color:var(--color-paper-bright); background:var(--color-ink); border:1px solid oklch(96.5% 0.044 89.9 / 0.28); font-family:var(--font-body); } .ds-atlas-visual { padding:clamp(0.5rem, 1.8vw, 1.5rem); } .ds-atlas-visual svg { display:block; width:100%; height:auto; aspect-ratio:1; } .ds-atlas-plate figcaption { padding:clamp(1.5rem, 4vw, 3rem); color:var(--color-ink); background:var(--color-paper); border-top:0.3rem solid var(--color-civic-yellow); } .ds-atlas-plate h3 { max-width:22ch; margin:0 0 1rem; font-family:var(--font-display); font-size:clamp(1.5rem, 2.5vw, 2.2rem); font-weight:400; line-height:1.08; } .ds-atlas-plate figcaption > p { max-width:52ch; margin:0 0 1.5rem; } .ds-atlas-plate dl { display:grid; grid-template-columns:repeat(3, 1fr); margin:0; border-top:1px solid oklch(16.6% 0.012 48 / 0.30); } .ds-atlas-plate dl div { min-width:0; padding:0.75rem 0.75rem 0 0; } .ds-atlas-plate dt { color:var(--color-ink-soft); font-size:0.72rem; font-weight:700; text-transform:uppercase; } .ds-atlas-plate dd { margin:0; overflow-wrap:anywhere; font-family:var(--font-data); font-size:clamp(0.9rem, 1.5vw, 1.15rem); } .ds-atlas-plate a { display:inline-block; margin-top:1.5rem; color:var(--color-oxblood); font-size:0.86rem; font-weight:700; text-decoration-thickness:0.1em; text-underline-offset:0.2em; } .ds-atlas-plate a:hover { color:var(--color-ink); } .ds-atlas-plate a:focus-visible { outline:0.125rem solid var(--color-focus); outline-offset:0.0625rem; box-shadow:0 0 0 0.375rem var(--color-focus-outer); } @media (max-width:68rem) and (min-width:52.01rem) { .ds-atlas-plate { grid-template-columns:minmax(20rem, 0.9fr) minmax(20rem, 1.1fr); grid-template-rows:1fr; } .ds-atlas-plate figcaption { border-top:0; border-left:0.3rem solid var(--color-civic-yellow); } }"
+    },
+    {
+      "name": "Evidence Attempt Tabs",
+      "kind": "custom",
+      "refersTo": "tab-selected",
+      "description": "Ruled attempt selector with an oxblood selected state and accessible tab semantics.",
+      "html": "<div class=\"ds-tabs\" role=\"tablist\" aria-label=\"Falsification attempts\"><button type=\"button\" role=\"tab\" aria-selected=\"true\">Region routing</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">Larva prereg</button><button type=\"button\" role=\"tab\" aria-selected=\"false\" tabindex=\"-1\">Memory role</button></div>",
+      "css": ".ds-tabs { display:flex; width:min(18rem, 100%); flex-direction:column; border-top:2px solid var(--color-ink); font-family:var(--font-body); } .ds-tabs button { display:flex; width:100%; padding:1rem 0.75rem; color:var(--color-ink); background:transparent; border:0; border-bottom:1px solid oklch(16.6% 0.012 48 / 0.42); cursor:pointer; font:inherit; font-weight:700; text-align:left; transition:background-color 160ms ease; } .ds-tabs button:hover { background:oklch(96.5% 0.044 89.9 / 0.40); } .ds-tabs button[aria-selected=\"true\"] { color:var(--color-paper-bright); background:var(--color-oxblood); } .ds-tabs button:focus-visible { outline:0.125rem solid var(--color-focus); outline-offset:0.0625rem; box-shadow:0 0 0 0.375rem var(--color-focus-outer); }"
+    },
+    {
+      "name": "Evidence Report",
+      "kind": "card",
+      "refersTo": "evidence-report",
+      "description": "Bright paper report that holds a falsification result, measurement, and interpretation.",
+      "html": "<article class=\"ds-report\"><header><div><h3>The graph recognized anatomy, but not the task.</h3><p>Null result</p></div><code>p = 0.060</code></header><div class=\"ds-report-rule\"><strong>Measured 52%</strong><span aria-hidden=\"true\"></span></div><p>The measured graph repeatedly fell into the same anatomical attractors. Those patterns were interpretable, but they were not task-dependent routing.</p></article>",
+      "css": ".ds-report { max-width:48rem; padding:clamp(1.5rem, 4vw, 4.5rem); color:var(--color-ink); background:var(--color-paper-bright); box-shadow:var(--shadow-paper); font-family:var(--font-body); } .ds-report header { display:flex; align-items:flex-start; justify-content:space-between; gap:2rem; margin-bottom:3rem; } .ds-report h3 { max-width:20ch; margin:0; font-family:var(--font-display); font-size:clamp(1.5rem, 2.5vw, 2.2rem); font-weight:400; line-height:1.08; } .ds-report header p { margin:0.75rem 0 0; color:var(--color-oxblood); font-size:0.72rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; } .ds-report code { font-family:var(--font-data); font-variant-numeric:tabular-nums; } .ds-report-rule { display:grid; grid-template-columns:9rem 1fr; gap:1rem; align-items:center; padding:0.75rem 0; border-top:1px solid oklch(16.6% 0.012 48 / 0.30); border-bottom:1px solid oklch(16.6% 0.012 48 / 0.30); } .ds-report-rule span { display:block; width:52%; height:1.55rem; background:var(--color-oxblood); } .ds-report > p { max-width:72ch; margin:1.5rem 0 0; font-size:clamp(1.1rem, 1.6vw, 1.32rem); line-height:1.42; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Municipal Evidence Dossier",
+    "overview": "FLYTOWN presents public research as a town record made consequential: civic-yellow proclamations, oxblood findings, carbon ink, warm evidence paper, desk wood, stamps, pins, and ruled comparisons. The world is strange enough to hold a cigar-smoking Mayor, but exact enough that the character never masquerades as scientific proof.\n\nThe page is editorial and full-bleed, not a grid of generic product cards. Large slab-serif conclusions make the research verdict unavoidable; highly legible body copy explains its scope; monospaced measurements and provenance labels keep evidence inspectable. Material gestures are sparing and functional: paper strips lift, stamps rotate slightly, and rules connect experimental steps.\n\nThe system treats candor as the visual authority. Null findings, limits, controls, and the surviving engineering result receive the same compositional weight, so intrigue never depends on an inflated biological claim.",
+    "keyCharacteristics": [
+      "Saturated civic color anchored by carbon ink and warm evidence paper.",
+      "Slab-serif proclamations, hyperlegible explanation, and mono evidence labels.",
+      "Full-width civic bands, ruled experimental flows, stamps, and ledger-like records.",
+      "Physical depth reserved for lifted paper, pinned findings, and actionable evidence.",
+      "A named illustrated Mayor who guides the story without becoming evidence."
+    ],
+    "rules": [
+      { "name": "The Verdict Color Rule", "body": "Civic yellow announces the public question; oxblood records the finding; carbon and paper carry the argument.", "section": "colors" },
+      { "name": "The Provenance Is Redundant Rule", "body": "Measured, engineering-choice, and metaphor colors must always appear with their written label; color never carries scientific meaning alone.", "section": "colors" },
+      { "name": "The No Generic Blue Rule", "body": "New actions and charts extend the civic, oxblood, carbon, paper, and provenance palette instead of introducing conventional product-blue accents.", "section": "colors" },
+      { "name": "The Proclamation and Proof Rule", "body": "Alfa Slab One states the claim, Atkinson Hyperlegible explains it, and Fragment Mono shows what can be checked.", "section": "typography" },
+      { "name": "The Mono Means Inspectable Rule", "body": "Do not use Fragment Mono as technological decoration; reserve it for literal data, code, identifiers, and provenance.", "section": "typography" },
+      { "name": "The Recompose, Do Not Shrink Rule", "body": "Responsive behavior changes the hero's layering, flow direction, tab access, and evidence grouping; it does not merely scale down desktop geometry.", "section": "layout" },
+      { "name": "The Flat Record Rule", "body": "Surfaces remain flat unless they behave like a lifted sheet, pinned finding, or evidence-bearing action.", "section": "elevation" },
+      { "name": "The One Desk-Lamp Rule", "body": "Every shadow shares the same warm downward light; do not add glows, glass blur, or unrelated elevation styles.", "section": "elevation" },
+      { "name": "The Filed Edge Rule", "body": "Public-findings components are square and ruled. Use a radius only when extending an already rounded adjacent surface, not as a default modernization pass.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do make the verdict legible in the first viewport and place scope language beside the claim.",
+      "Do use ruled flows, ledgers, stamps, and paper sheets when they clarify experimental structure.",
+      "Do keep Alfa Slab One for proclamations, Atkinson Hyperlegible for explanation, and Fragment Mono for inspectable facts.",
+      "Do recompose the hero, tabs, grids, and process flows at the documented breakpoints.",
+      "Do label measured biology, engineering choices, and metaphor in words as well as color.",
+      "Do preserve the Mayor raster's local provenance, caption, intrinsic size, and non-evidence framing.",
+      "Do preserve keyboard focus, tab semantics, reduced motion, and textual chart equivalents."
+    ],
+    "donts": [
+      "Don't turn the public findings surface into pale rounded cards, glass panels, or a generic research dashboard.",
+      "Don't use the Mayor, insect vocabulary, or network imagery as evidence for a biological claim.",
+      "Don't introduce decorative monospace, unlabelled semantic color, or product-blue accents.",
+      "Don't add shadows to ordinary sections or containers that are not physically lifted evidence.",
+      "Don't shrink the desktop hero mechanically; preserve the image-backed paper-sheet composition on narrow screens.",
+      "Don't round dossier components merely because small and medium radius primitives exist elsewhere.",
+      "Don't replace or redistribute the Mayor artwork without carrying forward its authorization and provenance record."
+    ]
+  }
+}

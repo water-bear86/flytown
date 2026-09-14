@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const serverSource = readFileSync(join(repoRoot, "src", "server.ts"), "utf8");
 const cliSource = readFileSync(join(repoRoot, "src", "cli.ts"), "utf8");
+const desktopSource = readFileSync(join(repoRoot, "src", "desktop.ts"), "utf8");
 const packageJson = readFileSync(join(repoRoot, "package.json"), "utf8");
 
 describe("app shell", () => {
@@ -46,5 +47,6 @@ describe("app shell", () => {
     assert.match(packageJson, /"@electron\/packager"/);
     assert.match(packageJson, /"AppImage"/);
     assert.match(packageJson, /"nsis"/);
+    assert.match(desktopSource, /new URL\("\/fly", serverHandle\.url\)/);
   });
 });

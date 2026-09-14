@@ -24,7 +24,7 @@ reports honest nulls, in the mock worker world and live. Design:
 npm install
 npm run build                                      # compiles to dist/; the flytown binary is dist/cli.js
 node dist/cli.js init --provider deepseek --model deepseek-v4-flash   # a terrarium here; asks for your key, input hidden
-node dist/cli.js serve                             # then open http://localhost:7777/
+node dist/cli.js serve                             # findings: http://localhost:7777/ · console: /fly
 node dist/cli.js fly plan "…" --planner fly:connectome=l1-larva-winding2023-1+plastic --dry-run   # no API calls
 node dist/cli.js fly fixtures fetch                # the evaluation repositories, at their pinned commits
 node dist/cli.js fly eval --planners rules,random,fly,fly:shuffled --seeds 3      # mock worker world, no API calls
@@ -123,9 +123,14 @@ Every biologically-flavoured component is tagged `MEASURED`,
 `INFERRED_FROM_LITERATURE`, `ENGINEERING_CHOICE` or `METAPHOR` in code and in
 traces. Nothing here is, or claims to be, a mind.
 
-## The web control surface
+## The public findings and web control surface
 
-`flytown serve` (default port 7777) serves FLYTOWN's only UI at `/`: choose a
+`flytown serve` (default port 7777) serves the public research findings at `/`
+and the operational console at `/fly`. The findings explain the hypothesis,
+matched controls, null results, failure diagnostics, limitations and the
+non-biological result that survived the evaluation.
+
+In the console, choose a
 planner backend, decide (no workers) or decide-and-execute with a live run
 stream, watch the decision trace with the regional/population activity map and
 its plain-text twin, replay any stored decision deterministically, inspect the

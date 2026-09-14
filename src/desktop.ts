@@ -40,7 +40,7 @@ async function createWindow(): Promise<void> {
     void shell.openExternal(url);
     return { action: "deny" };
   });
-  await mainWindow.loadURL(serverHandle.url);
+  await mainWindow.loadURL(new URL("/fly", serverHandle.url).href);
 }
 
 app.whenReady().then(() => {
