@@ -330,3 +330,31 @@ Reading:
 **What is warranted (proposals, not decisions):** (a) ship `rules` as Goblintown's default planner — the one demonstrated, replicable improvement; (b) if the biology is kept, move it out of the per-task *decision* seat, where task-invariance is fatal, into roles that tolerate or exploit it — an associative memory over task→outcome (the mushroom body's actual job), or pack composition / exploration diversity — and pre-register a new falsification test for that role; (c) more seeds on the rules-vs-llm comparison before making the product claim loudly.
 
 **Verdict for Milestone 3 as of 2026-09-11:** the larval substrate does not yet show a robust advantage over its own shuffled null model, in either the pre-registered or the post-hoc configuration. What it did show: (a) the pipeline now transmits biology end to end — sparse task-specific KC codes, DAN-gated depression at measured synapses, a valence circuit reproduced from the data — and each piece is ablatable; (b) two ablations behave as the biology predicts, at uncorrected p < 0.02; (c) the mock world is now the limiting factor. Next step is not more adapter tuning (each post-hoc round erodes evidential value) but a **live-model evaluation** on a fixed task suite with the same null models — the only way to learn whether any of this matters for real work.
+
+## 2026-09-14 — the male fly (MaleCNS v1.0), pre-registered (written before any male artifact was built or any male result seen)
+
+**Why now.** Public token projects claim a simulated *male* fly (Janelia FlyEM MaleCNS v1.0) launched and trades a token, and a fork claims the same of a *female* fly (FlyWire FAFB v783). Every adult result in this log already used the female brain: `fafb-v783-projectome-1` is FlyWire's adult female. This entry runs the same falsification tests on the male.
+
+**Substrate.** MaleCNS v1.0 (Janelia FlyEM, Google, Cambridge Connectomics Group; CC-BY 4.0), flat-connectome release, pinned by the bucket's MD5 checksums: `syn-partners-male-cns-v1.0-minconf-0.5-traced-only.feather` (synapse pairs between traced bodies, with the ROI of each postsynaptic site), `body-annotations-male-cns-v1.0-minconf-0.5.feather`, `body-neurotransmitters-male-cns-v1.0.feather`. Built by `connectome-etl/build_male.py`.
+
+**Two artifacts, built to match the female ones as closely as the data allow:**
+
+1. `malecns-v1.0-projectome-1` — brain neuropils only, named and split exactly as FlyWire's (male ROIs mapped onto FlyWire neuropil names; the mapping table ships in the manifest; any ROI with no FlyWire counterpart is listed, not guessed). Same method as the female build: each neuron's input region is the brain neuropil holding most of its postsynaptic sites; an edge A → B counts synapses located in B made by neurons whose input region is A. Nerve-cord synapses are dropped and nerve-cord sites are ignored when assigning input regions, so the male brain is seen the way FAFB sees the female one (a brain without its cord). Known deviations, stated now: input regions come from synapses between traced bodies only (FAFB counted all partners); synapse confidence ≥ 0.5 (FlyWire used its own cleft-score threshold); transmitter per edge is the presynaptic neuron's consensus prediction (FAFB used per-connection means).
+2. `malecns-v1.0-mb-1` — the adult olfactory → mushroom-body circuit at single-neuron resolution, both hemispheres: olfactory receptor neurons, projection neurons, Kenyon cells, APL, MBONs and dopaminergic neurons, with the synapses among them. Contingency stated in advance: if fewer than 200 olfactory receptor neurons are traced, the odour code drives projection neurons directly, and that is reported as a deviation.
+
+**Experiment M1 — region-level decisions (mock world, suite `public-v2`, seeds 1–3, training seeds 1001–1003).** Planners: `rules`, `random`; female `fly`, `fly:shuffled`, `fly:random_degree`; male `fly:connectome=malecns-v1.0-projectome-1` with `+shuffled` and `+random_degree`; and, after 8 training epochs, female and male `+learning` and `+shuffled+learning`. Every planner sees identical fixtures, seeds, budgets and compiler.
+
+- Primary comparison: untrained male real vs male shuffled, termination accuracy, paired permutation test (n = 60).
+- Decision rule: p ≥ 0.05 → "the male wiring is not shown to matter under this harness". p < 0.05 but the male planner is a constant policy (one distinct primary action) → disqualified. p < 0.05 and task-sensitive → a positive mock result that needs live replication before any claim.
+- Secondary, descriptive: male vs female real; the learning comparisons; task sensitivity for every variant.
+
+**Experiment M2 — is the adult Kenyon-cell code a better task hash than a random projection?** The larval test, unchanged in method: 80 authored tasks, feedforward receptor → projection neuron → Kenyon cell with k-winners-take-all, odour sparseness swept over 0.024, 0.05, 0.10 and 0.15; real graph vs label-shuffled and degree-preserving rewired copies, null seeds 1–3.
+
+- Primary metric: AUC of same-category vs cross-category code similarity.
+- Decision rule: the real male wiring "beats its null" only if its AUC exceeds **every** null seed's AUC, for **both** null models, at **every** sparseness setting. Anything less is reported as not shown.
+- Secondary: Spearman correlation with input similarity, collision-free fraction, and the same numbers for the larva.
+- Not run in this entry: the held-out valence-transfer test, because adult MBON valence would need a literature table that the neuroscience collaborator has not yet checked.
+
+**Experiment M3 — action-effect audit** (`flytown fly effects`) for the male real and shuffled projectome planners. Descriptive only.
+
+**Not run:** live-model runs (they cost money and no provider key is stored) and plasticity on the adult circuit.
