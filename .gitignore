@@ -5,8 +5,12 @@ release/
 .env.local
 *.log
 .superpowers/
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/tmp/
 
 .vercel
+vercel-dist/
 
 # connectome ETL: raw FlyWire downloads (~1.1 GB), Python venv, bytecode
 connectome-etl/raw/

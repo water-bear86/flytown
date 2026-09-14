@@ -1,0 +1,76 @@
+:root {
+  --color-civic-yellow: oklch(81.8% 0.164 83.4);
+  --color-civic-yellow-soft: oklch(86.3% 0.159 86.9);
+  --color-oxblood: oklch(38.1% 0.135 21.5);
+  --color-oxblood-deep: oklch(27.9% 0.094 20.2);
+  --color-ink: oklch(16.6% 0.012 48);
+  --color-ink-soft: oklch(25.5% 0.020 50);
+  --color-paper: oklch(91.5% 0.051 88.6);
+  --color-paper-bright: oklch(96.5% 0.044 89.9);
+  --color-paper-muted: oklch(80.8% 0.047 87.8);
+  --color-wood: oklch(40% 0.097 43.6);
+  --color-rule: oklch(26.2% 0.026 51);
+  --color-measured: oklch(41.5% 0.063 173.8);
+  --color-choice: oklch(48.7% 0.125 41.5);
+  --color-metaphor: oklch(42.8% 0.097 307.9);
+  --color-accent: var(--color-measured);
+  --color-accent-ink: var(--color-paper-bright);
+  --color-focus: var(--color-oxblood);
+  --color-focus-outer: var(--color-paper-bright);
+
+  --color-paper-18: oklch(96.5% 0.044 89.9 / 0.18);
+  --color-paper-20: oklch(96.5% 0.044 89.9 / 0.20);
+  --color-paper-24: oklch(96.5% 0.044 89.9 / 0.24);
+  --color-paper-26: oklch(96.5% 0.044 89.9 / 0.26);
+  --color-paper-28: oklch(96.5% 0.044 89.9 / 0.28);
+  --color-paper-35: oklch(96.5% 0.044 89.9 / 0.35);
+  --color-paper-38: oklch(96.5% 0.044 89.9 / 0.38);
+  --color-paper-40: oklch(96.5% 0.044 89.9 / 0.40);
+  --color-paper-55: oklch(96.5% 0.044 89.9 / 0.55);
+  --color-paper-overlay: oklch(91.5% 0.051 88.6 / 0.96);
+  --color-ink-12: oklch(16.6% 0.012 48 / 0.12);
+  --color-ink-25: oklch(16.6% 0.012 48 / 0.25);
+  --color-ink-30: oklch(16.6% 0.012 48 / 0.30);
+  --color-ink-35: oklch(16.6% 0.012 48 / 0.35);
+  --color-ink-40: oklch(16.6% 0.012 48 / 0.40);
+  --color-ink-42: oklch(16.6% 0.012 48 / 0.42);
+  --color-ink-90: oklch(16.6% 0.012 48 / 0.90);
+  --color-yellow-12: oklch(81.8% 0.164 83.4 / 0.12);
+  --color-shadow-soft: oklch(22% 0.030 44 / 0.20);
+  --color-shadow-small: oklch(22% 0.030 44 / 0.16);
+  --color-shadow-deep: oklch(8% 0.010 44 / 0.34);
+  --color-shadow-dark: oklch(8% 0.010 44 / 0.22);
+
+  --font-display: "Alfa Slab One", Rockwell, serif;
+  --font-body: "Atkinson Hyperlegible", "Helvetica Neue", sans-serif;
+  --font-data: "Fragment Mono", ui-monospace, monospace;
+
+  --text-xs: 0.72rem;
+  --text-sm: 0.86rem;
+  --text-base: 1rem;
+  --text-lg: clamp(1.1rem, 1.6vw, 1.32rem);
+  --text-xl: clamp(1.5rem, 2.5vw, 2.2rem);
+  --text-2xl: clamp(2.25rem, 4.6vw, 4.75rem);
+  --text-hero: clamp(3rem, 6.8vw, 6rem);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --space-9: 7rem;
+  --space-10: 8rem;
+  --space-gutter: 1.25rem;
+  --nav-scroll-offset: 5rem;
+
+  --content-wide: 86rem;
+  --content-reading: 72ch;
+  --radius-small: 0.35rem;
+  --radius-medium: 0.8rem;
+  --shadow-paper: 0 1rem 3rem var(--color-shadow-soft), 0 0.25rem 0.5rem var(--color-shadow-small);
+  --shadow-raised: 0 1.25rem 3rem var(--color-shadow-deep), 0 0.25rem 0.75rem var(--color-shadow-dark);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}

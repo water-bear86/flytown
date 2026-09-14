@@ -28,12 +28,16 @@
   "files": [
     "dist",
     "!dist/__tests__",
+    "assets",
+    "tokens.css",
+    "PRODUCT.md",
     "LICENSE",
     "README.md",
     "NOTICE.md"
   ],
   "scripts": {
     "build": "tsc",
+    "build:vercel": "npm run build && node scripts/build-vercel-site.mjs",
     "dev": "tsx src/cli.ts",
     "desktop": "npm run build && electron dist/desktop.js",
     "start": "node dist/cli.js",
@@ -76,6 +80,8 @@
     },
     "files": [
       "dist/**/*",
+      "assets/**/*",
+      "tokens.css",
       "package.json",
       "LICENSE",
       "README.md",

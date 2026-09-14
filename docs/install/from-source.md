@@ -28,7 +28,8 @@ as `node dist/cli.js …`, or run `npm link` once to put `flytown` on your PATH.
 cd /path/to/your/project
 flytown init                          # creates .flytown/terrarium.json
 flytown secret set DEEPSEEK_API_KEY   # optional: stores a key in .flytown/provider-secrets.json
-flytown serve                         # http://localhost:7777/
+flytown serve                         # findings: http://localhost:7777/
+                                      # console:  http://localhost:7777/fly
 ```
 
 Commands look for the nearest `.flytown/terrarium.json` above the current
@@ -37,7 +38,7 @@ is described in [Storage layout](../reference/storage-layout.md).
 
 ## Desktop shell (local builds only)
 
-`npm run desktop` builds and opens an Electron window around the same control
-surface. `npm run dist:mac`, `dist:win`, `dist:linux` and `dist:desktop`
+`npm run desktop` builds and opens an Electron window directly on the `/fly`
+control surface. `npm run dist:mac`, `dist:win`, `dist:linux` and `dist:desktop`
 package it locally into the gitignored `release/` folder. None of these
 packages are published.

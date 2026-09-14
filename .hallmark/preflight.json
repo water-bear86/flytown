@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "date": "2026-09-13",
+  "surface": "src/flytown/site.ts",
+  "architecture": "Express-served vanilla HTML, CSS, and JavaScript beside an existing operational console",
+  "existing_ui": "The current operational surface is an inline HTML document in src/flytown/web.ts and remains at /fly",
+  "tokens": "No reusable public-site token system existed before this change",
+  "typography": "The operational console uses system sans and monospace; the public identity requires self-hosted display, reading, and data faces",
+  "motion": "No motion library is present; the public site uses one CSS-authored hero reveal and respects prefers-reduced-motion",
+  "dependencies": "No frontend framework, component library, or icon dependency is introduced",
+  "route_risk": "Changing / affects CLI browser entry and Electron; /fly remains stable and Electron is redirected there",
+  "evidence_source": "docs/flytown/experiments/README.md",
+  "theme": "Custom State of the Experiment direction approved by the user"
+}

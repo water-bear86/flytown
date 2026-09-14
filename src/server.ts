@@ -57,7 +57,12 @@ import {
 } from "./provider-secrets.js";
 import { loadTerrarium, saveTerrariumManifest, type Terrarium } from "./terrarium.js";
 import { builtinTools } from "./tools.js";
-import { flyPageHtml, registerFlyRoutes } from "./flytown/web.js";
+import { registerFlyRoutes } from "./flytown/web.js";
+import {
+  researchSiteAssetsDir,
+  researchSiteHtml,
+  researchSiteTokensPath,
+} from "./flytown/site.js";
 import { LOOPBACK_HOSTNAMES, localGuard } from "./local-guard.js";
 
 export interface ServeOptions {
@@ -288,8 +293,15 @@ export async function serve(opts: ServeOptions): Promise<ServeHandle> {
     res.setHeader("Content-Security-Policy", cspHeaderForRequest());
     next();
   });
+  app.get("/site/tokens.css", (_req, res) => {
+    res.type("css").sendFile(researchSiteTokensPath);
+  });
+  app.use("/site", express.static(researchSiteAssetsDir, {
+    fallthrough: false,
+    maxAge: 0,
+  }));
   app.get("/", (_req, res) => {
-    res.type("html").send(flyPageHtml(terrarium.manifest.name));
+    res.type("html").send(researchSiteHtml());
   });
 
   app.post("/api/flight", async (req, res) =>
@@ -1120,4 +1132,3 @@ function providerPayload(terrarium: Terrarium): {
     },
   };
 }
-
