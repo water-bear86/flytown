@@ -1,8 +1,4 @@
 # FLYTOWN
-**To discourage more fakes
-Gzj71jijFzPhsDB3N7gV4CKpx69jaPsHS5cV4aSypump
-This is the correct CA to support this project. **
-
 
 A real, public, static wiring diagram of a fruit-fly brain — the adult
 FlyWire FAFB v783 connectome collapsed to brain regions, or the whole
@@ -208,3 +204,12 @@ with FLYTOWN's own vocabulary. [NOTICE.md](./NOTICE.md) records exactly what cha
 The code is MIT — see [LICENSE](./LICENSE). The connectome data under
 `connectome/` is not: it keeps its original licences and must be cited. See
 [NOTICE.md](./NOTICE.md#connectome-data).
+
+## Donate
+
+If you found this to be useful, consider donating by sending magic internet monies to:
+
+```text
+sol: 79TNuyFNZWhDeFF1RUNA5Xk9Pccvb7xPYqLukBxCeWbb
+evm: 0xa2c0abd1a1fcb5aee12f80651ae7f646371a66ed
+```
