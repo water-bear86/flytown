@@ -1239,6 +1239,8 @@ html:not(.js-ready) .site-nav__fund:is(:hover, :focus-within) .site-nav__fund-pa
 }
 
 .bar--38 { width: 38%; }
+.bar--45 { width: 45%; }
+.bar--50 { width: 50%; }
 .bar--52 { width: 52%; }
 .bar--68 { width: 68%; }
 .bar--72 { width: 72%; }

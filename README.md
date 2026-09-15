@@ -1,8 +1,9 @@
 # FLYTOWN
 
 A real, public, static wiring diagram of a fruit-fly brain — the adult
-FlyWire FAFB v783 connectome collapsed to brain regions, or the whole
-first-instar larval brain (Winding et al. 2023) at single-neuron resolution —
+FlyWire FAFB v783 female connectome or the Janelia MaleCNS v1.0 male brain,
+each collapsed to brain regions, or the whole first-instar larval brain
+(Winding et al. 2023) at single-neuron resolution —
 is the fixed topology of a small dynamical system. A task becomes a sensory
 pattern; activity propagates; a readout scores thirteen orchestration
 actions. The top-scoring actions go to the same compiler every planner uses,
@@ -100,6 +101,7 @@ task signals and emits the same `Plan`:
 | `rules+memory` | `rules`, nudged by a mushroom-body memory of how similar tasks went: the larval Kenyon-cell code, with outcomes stored at the KC→MBON synapses by the evaluation harness. `rules+memory:shuffled` is its null. The memory experiment found no retrieval signal on held-out tasks, so expect it to match `rules` until tested with real outcomes |
 | `fly` | activation propagated through a real FlyWire connectome artifact, read out to actions |
 | `fly:shuffled`, `fly:random_degree`, `fly:norecurrence`, `fly:signless`, `fly:ablate=MB_CA,EB`, `fly:learning` | null models and ablations of the same |
+| `fly:connectome=malecns-v1.0-projectome-1` | the adult male brain (MaleCNS v1.0), collapsed to regions the same way as the female; `+adapters=adapters-rerouted.json` re-points the inputs for regions the male release does not separate |
 | `fly:connectome=l1-larva-winding2023-1+plastic` | the whole larval brain at single-neuron resolution, with dopamine-gated depression at the real KC→MBON synapses (`+learning` adds adapter learning; `:ablate=flag:MBIN` lesions the dopaminergic neurons) |
 
 `rules` is the default because, on the full live suite, it matched the LLM

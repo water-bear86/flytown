@@ -25,6 +25,14 @@ and every preprocessing step.
   FLYTOWN collapses it to brain regions or re-encodes the neuron graph. Cite
   Dorkenwald et al. 2024, *Nature*, doi:10.1038/s41586-024-07558-y, and
   Schlegel et al. 2024, *Nature*, doi:10.1038/s41586-024-07686-5.
+- **Janelia FlyEM MaleCNS v1.0** (`malecns-v1.0-projectome-1`, `malecns-v1.0-mb-1`).
+  The adult male *Drosophila melanogaster* central nervous system connectome,
+  brain and ventral nerve cord, from the v1.0 flat-connectome release of HHMI
+  Janelia's FlyEM project and collaborators, licensed CC BY 4.0
+  (https://male-cns.janelia.org/download/). FLYTOWN collapses the brain to
+  regions and extracts the olfactory and mushroom-body circuit; that circuit's
+  full graph is rebuilt locally from the pinned release rather than
+  redistributed. Cite Berg et al. 2025, *bioRxiv*, doi:10.1101/2025.10.09.680999.
 - **First-instar larval brain** (`l1-larva-winding2023-1`). From Winding et al.
   2023, *Science* 379:eadd9330, doi:10.1126/science.add9330, Supplementary
   Data S1, reprocessed into FLYTOWN's graph format. The article is licensed

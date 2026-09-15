@@ -59,7 +59,10 @@ describe("app smoke", () => {
     assert.match(html, /cec385e7bf9fb8eca9898f48be5a327bcf6d9408/);
     assert.match(html, /rhprovider\.py#L178-L247/);
     assert.match(html, /Open full-resolution diagram/);
-    assert.match(html, /Four attempts\. Three jobs\. The same answer\./);
+    assert.match(html, /Six attempts\. Three brains\. The same answer\./);
+    assert.match(html, /The male brain did no better than its shuffled copy\./);
+    assert.match(html, /<code>p = 0\.504<\/code>/);
+    assert.match(html, /The adult code beat shuffling, but not rewiring\./);
     assert.match(html, /The wiring was real\. The advantage wasn’t\./);
     assert.match(html, /measured biological wiring/);
     assert.match(html, /tested computational advantage was null/);

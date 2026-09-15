@@ -6,7 +6,7 @@ FLYTOWN runtime artifacts from Janelia FlyEM MaleCNS v1.0 (flat connectome).
     .venv/bin/python build_male.py --projectome   # connectome/malecns-v1.0-projectome-1/
     .venv/bin/python build_male.py --mb           # connectome/malecns-v1.0-mb-1/
 
-Inputs live in raw/malecns/ and are fetched and MD5-verified by raw/malecns/fetch.sh:
+Inputs live in raw/malecns/ and are fetched and MD5-verified by fetch_male.sh:
 
     syn-partners-male-cns-v1.0-minconf-0.5-traced-only.feather   synapse pairs between traced bodies
     body-annotations-male-cns-v1.0-minconf-0.5.feather           cell types, classes, sides
@@ -103,7 +103,7 @@ def verify_inputs() -> list[dict]:
     for role, (name, md5_b64) in FILES.items():
         path = RAW / name
         if not path.exists():
-            raise SystemExit(f"missing input {path}; run raw/malecns/fetch.sh first")
+            raise SystemExit(f"missing input {path}; run connectome-etl/fetch_male.sh first")
         h_md5, h_sha = hashlib.md5(), hashlib.sha256()
         with open(path, "rb") as f:
             for chunk in iter(lambda: f.read(8 << 20), b""):

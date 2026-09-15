@@ -10,6 +10,8 @@ No TypeScript lives here; this directory only produces data.
 | `fafb-v783-projectome-1` | `connectome/fafb-v783-projectome-1/` | neuropil (region) graph, 79 nodes | yes (all three files) |
 | `fafb-v783-neuron-1` | `connectome/fafb-v783-neuron-1/` | neuron graph, ~139k nodes | `manifest.json`, `graph.header.json` only — `graph.bin` and `neurons.parquet` are gitignored and rebuilt locally |
 | `l1-larva-winding2023-1` | `connectome/l1-larva-winding2023-1/` | neuron graph of the L1 **larval** brain, 2,952 nodes, four synapse-type channels (`build_larva.py`, see the Larva section) | yes (all four files, 3.3 MB) |
+| `malecns-v1.0-projectome-1` | `connectome/malecns-v1.0-projectome-1/` | brain-only region graph of the adult **male** (MaleCNS v1.0), 73 nodes, built like the female one (`build_male.py`, see the Male section) | yes, plus `adapters-rerouted.json` |
+| `malecns-v1.0-mb-1` | `connectome/malecns-v1.0-mb-1/` | neuron graph of the adult male olfactory and mushroom-body circuit, 7,828 nodes | `manifest.json`, `nodes.json` only — `graph.json` (~33 MB) is gitignored and rebuilt locally |
 
 ## How to run
 
@@ -520,3 +522,31 @@ DAN-k1 alone is not rewarding, so the appetitive list is DAN-i1 only; MBON-e1's
 transmitter is not verifiable from text; the neurodata licence is MIT at the
 archived commit but noncommercial at HEAD; the d-a weak-edge fraction is 86 %
 against the paper's 91 %.
+
+## Male — Janelia FlyEM MaleCNS v1.0 → `malecns-v1.0-projectome-1`, `malecns-v1.0-mb-1`
+
+`build_male.py` builds two artifacts from the MaleCNS v1.0 flat-connectome release (CC BY 4.0). Every choice was pre-registered in `docs/flytown/experiments/README.md` before the first build.
+
+### How to run
+
+```bash
+./fetch_male.sh                           # ~3 GB from Janelia's public bucket into raw/malecns/, each file checked against the bucket's MD5
+.venv/bin/python build_male.py --all      # both artifacts, about 15 seconds
+node ../scripts/male-rerouted-adapters.mjs   # after `npm run build`: the rerouted adapter table
+```
+
+`fetch_male.sh` downloads these files from `https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/`:
+
+| File | Size | Bucket MD5 (base64) |
+| --- | --- | --- |
+| `syn-partners-male-cns-v1.0-minconf-0.5-traced-only.feather` | 2.97 GB | `9bwcXONKAbaJVkFLUw7dqA==` |
+| `body-annotations-male-cns-v1.0-minconf-0.5.feather` | 14.5 MB | `UKdxh3DFciDxYLpPQxq4ng==` |
+| `body-neurotransmitters-male-cns-v1.0.feather` | 43.3 MB | `PYQrEv5cSe763lKNfdJKHw==` |
+
+### Method
+
+- **Region graph.** Male ROIs are mapped onto FlyWire neuropil names, and nerve-cord ROIs are dropped. Each neuron's input region is the brain neuropil holding most of its postsynaptic sites. An edge counts synapses located in a region, made by neurons whose input region is the source. This is the female build's method, restricted to the brain.
+- **Missing regions.** The male release has no separate AMMC, gall or ocellar ganglion, and its IB is unsided. The manifest records the full ROI mapping, the ambiguous-ROI decisions and where the missing territories went.
+- **Mushroom-body circuit.** Traced olfactory receptor neurons, projection neurons, Kenyon cells, APL, MBONs and dopaminergic neurons, with every synapse among them.
+- **Transmitters.** Per neuron: the consensus prediction, else the neuron's own prediction, else its cell type's, else `UNKNOWN`. Histamine is its own class.
+

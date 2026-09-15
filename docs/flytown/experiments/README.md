@@ -436,4 +436,4 @@ Across the region-level decision test, its robustness variant and the adult mush
 
 One lead is specific enough to test: whether degree structure alone explains the adult hash result. A fair test would compare the real wiring against degree-preserving rewires only, with more seeds, pre-registered before it runs.
 
-Reproduce: `connectome-etl/raw/malecns/fetch.sh`, then `connectome-etl/build_male.py --all`, `node scripts/male-rerouted-adapters.mjs`, `flytown fly fixtures fetch`, then the `fly eval`, `fly effects` and `fly hash` commands recorded at the top of each report.
+Reproduce: `connectome-etl/fetch_male.sh`, then `connectome-etl/build_male.py --all`, `node scripts/male-rerouted-adapters.mjs`, `flytown fly fixtures fetch`, then the `fly eval`, `fly effects` and `fly hash` commands recorded at the top of each report.

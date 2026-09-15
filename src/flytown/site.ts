@@ -53,7 +53,7 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
   <meta name="description" content="Why the claim that $FLYBRAIN launched itself is false, what its public code actually shows, and what FLYTOWN learned by testing real connectome wiring against null controls." />
   <title>FLYTOWN — The token is real. The agency story isn’t.</title>
   <link rel="preload" href="/site/flytown-mayor.webp" as="image" type="image/webp" />
-  <link rel="stylesheet" href="/site/site.css?v=20260914a" />
+  <link rel="stylesheet" href="/site/site.css?v=20260914b" />
   <script src="/site/site.js?v=20260914a" defer></script>
 </head>
 <body>
@@ -170,7 +170,7 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
 
       <div class="evidence-boundary">
         <span>Evidence boundary</span>
-        <p>FLYTOWN did not reproduce their browser rig, so we do not claim their neuron telemetry is fake. We tested a separate, broader inference: whether measured fly wiring added useful task computation. It did not beat shuffled or rewired controls in our implemented planning and memory roles. That is a result about these roles, not a universal claim about biology. Real anatomy is not, by itself, evidence of agency or advantage.</p>
+        <p>FLYTOWN did not reproduce their browser rig, so we do not claim their neuron telemetry is fake. We tested a separate, broader inference: whether measured fly wiring added useful task computation. In none of our planning or memory tests did it beat both its shuffled and rewired controls. That is a result about these roles, not a universal claim about biology. Real anatomy is not, by itself, evidence of agency or advantage.</p>
       </div>
     </section>
 
@@ -300,14 +300,14 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
 
     <section class="section section--yellow" id="evidence" aria-labelledby="evidence-title">
       <div class="section-heading">
-        <h2 id="evidence-title">Four attempts. Three jobs. The same answer.</h2>
-        <p>The implementation improved between attempts. The evidential standard did not: measured wiring still had to beat a relevant scrambled control.</p>
+        <h2 id="evidence-title">Six attempts. Three brains. The same answer.</h2>
+        <p>The implementation improved between attempts. The evidential standard did not: measured wiring still had to beat a relevant scrambled control. The last two ran on the male brain that $FLYBRAIN uses.</p>
       </div>
 
       <div class="attempts">
         <div class="attempts__tabs" role="tablist" aria-label="Falsification attempts">
           <button type="button" role="tab" id="tab-region" aria-controls="attempt-region" aria-selected="true" data-attempt-target="attempt-region">
-            <span>Region routing</span>
+            <span>Female regions</span>
           </button>
           <button type="button" role="tab" id="tab-larva" aria-controls="attempt-larva" aria-selected="false" tabindex="-1" data-attempt-target="attempt-larva">
             <span>Larva prereg</span>
@@ -316,7 +316,13 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
             <span>Sparse repair</span>
           </button>
           <button type="button" role="tab" id="tab-memory" aria-controls="attempt-memory" aria-selected="false" tabindex="-1" data-attempt-target="attempt-memory">
-            <span>Memory role</span>
+            <span>Larva memory</span>
+          </button>
+          <button type="button" role="tab" id="tab-male-regions" aria-controls="attempt-male-regions" aria-selected="false" tabindex="-1" data-attempt-target="attempt-male-regions">
+            <span>Male regions</span>
+          </button>
+          <button type="button" role="tab" id="tab-male-memory" aria-controls="attempt-male-memory" aria-selected="false" tabindex="-1" data-attempt-target="attempt-male-memory">
+            <span>Male memory</span>
           </button>
         </div>
 
@@ -400,10 +406,51 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
             </div>
             <p>The real circuit separated categories worse at every setting and held-out valence stayed near chance. It did achieve 100% collision-free codes, pointing toward a narrower novelty-detection hypothesis—not evidence for similarity retrieval.</p>
           </article>
+
+          <article class="attempt-report" id="attempt-male-regions" role="tabpanel" aria-labelledby="tab-male-regions" hidden>
+            <div class="attempt-report__header">
+              <div>
+                <h3>The male brain did no better than its shuffled copy.</h3>
+                <p class="report-status">Preregistered null</p>
+              </div>
+              <dl class="artifact-facts">
+                <div><dt>Regions</dt><dd>73</dd></div>
+                <div><dt>Edges</dt><dd>2,988</dd></div>
+                <div><dt>Synapses</dt><dd>100.0M</dd></div>
+              </dl>
+            </div>
+            <div class="score-pair" aria-label="Termination accuracy: real male brain 50 percent, shuffled labels 45 percent, permutation p equals 0.504">
+              <div><span>Measured</span><strong>50%</strong><i class="bar bar--50"></i></div>
+              <div><span>Shuffled</span><strong>45%</strong><i class="bar bar--45"></i></div>
+            </div>
+            <p class="stat-line"><code>p = 0.504</code> — not distinguishable under the declared <code>p &lt; 0.05</code> threshold.</p>
+            <p>Rerouting inputs for regions the male release does not separate gave the same answer, <code>p = 0.461</code>. After training, both copies collapsed to one action for nearly every task, so the gap between them is not evidence.</p>
+          </article>
+
+          <article class="attempt-report" id="attempt-male-memory" role="tabpanel" aria-labelledby="tab-male-memory" hidden>
+            <div class="attempt-report__header">
+              <div>
+                <h3>The adult code beat shuffling, but not rewiring.</h3>
+                <p class="report-status">Preregistered null</p>
+              </div>
+              <dl class="artifact-facts">
+                <div><dt>Kenyon cells</dt><dd>4,064</dd></div>
+                <div><dt>Tasks</dt><dd>80</dd></div>
+                <div><dt>Model calls</dt><dd>0</dd></div>
+              </dl>
+            </div>
+            <div class="range-table" aria-label="AUC range for same category versus cross category code similarity in the male mushroom body">
+              <span>AUC range</span>
+              <div><strong>Measured</strong><code>0.656–0.709</code></div>
+              <div><strong>Shuffled</strong><code>0.600–0.642</code></div>
+              <div><strong>Rewired</strong><code>0.627–0.692</code></div>
+            </div>
+            <p>The real male circuit beat every shuffled copy at every setting, the reverse of the larva. Copies rewired to keep each neuron’s number of connections did about as well, so the edge looks like connection counts, not specific wiring.</p>
+          </article>
         </div>
       </div>
 
-      <p class="evidence-footnote">The early runs used fixture suite v1, including private repositories. The public, pinned v2 suite exists, but the log records no v2 result yet. This limits reproducibility of those numbers and is part of the finding, not a footnote to hide.</p>
+      <p class="evidence-footnote">The early runs used fixture suite v1, including private repositories, which limits how reproducible those numbers are. The male region runs are the first recorded on the public, pinned v2 suite, and the memory tests use no repositories at all.</p>
     </section>
 
     <section class="section section--paper" aria-labelledby="washout-title">
@@ -468,7 +515,7 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
         <article>
           <h3>The next biological questions</h3>
           <span>Narrowed</span>
-          <p>Novelty detection and a larger adult mushroom body are specific, preregisterable ideas—not another vague promise to “use a connectome.”</p>
+          <p>The adult mushroom body is now tested on the male brain. Connection counts and novelty detection are the specific, preregisterable questions left—not another vague promise to “use a connectome.”</p>
         </article>
       </div>
     </section>
@@ -504,12 +551,12 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
         <div>
           <h3>Safeguards that carry weight</h3>
           <ul class="check-list">
-            <li>Primary larval comparisons declared before the artifact existed</li>
+            <li>Primary larval and male-brain comparisons declared before their artifacts existed</li>
             <li>Identical fixtures, seeds, budgets, workers, and plan compiler</li>
             <li>Label-shuffled, degree-preserving, lesion, and ablation controls</li>
             <li>Task-sensitivity checks that disqualify constant policies</li>
             <li>Paired permutation tests and multiple-comparison caution</li>
-            <li>Invalid provider run voided; preflight added before the rerun</li>
+            <li>Void runs discarded, with a guard added before each rerun</li>
           </ul>
         </div>
         <div>
@@ -517,7 +564,8 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
           <ul class="limit-list">
             <li>The mock worker world tests consequence, not real-world quality</li>
             <li>Early v1 fixtures included private repositories</li>
-            <li>No evaluation on the new public-v2 suite is recorded yet</li>
+            <li>Public-v2 results are mock-world only; the live runs used v1</li>
+            <li>The male release lacks some regions the female map has, so the two brains do not align one-to-one</li>
             <li>Post-hoc repairs are diagnostic, not confirmatory evidence</li>
             <li>Some live fly traces cannot replay because trained state was not persisted</li>
             <li>The adapters and action mappings remain human engineering choices</li>
@@ -533,14 +581,14 @@ export function researchSiteHtml(options: ResearchSiteOptions = {}): string {
       </div>
       <div class="next-work__proposals">
         <article>
-          <h3>Novelty detection</h3>
+          <h3>Connection counts</h3>
           <span class="proposal-label">Proposed test</span>
-          <p>The real larval code was collision-free at every tested setting while shuffled codes collided on 11–49% of tasks. Test “have I seen this exact thing?” instead of similarity retrieval.</p>
+          <p>The adult male code beat every label-shuffled copy but only matched copies rewired to keep each neuron’s number of connections. Test whether connection counts alone explain it, against rewired copies with more seeds.</p>
         </article>
         <article>
-          <h3>Adult mushroom body</h3>
-          <span class="proposal-label">Proposed substrate</span>
-          <p>The adult has roughly 2,000 Kenyon cells versus 144 in the larval artifact. The artifact exists, but the runtime cannot yet load its binary graph.</p>
+          <h3>Novelty detection</h3>
+          <span class="proposal-label">Proposed test</span>
+          <p>The larval code was collision-free where shuffled copies collided, but in the adult male every code was distinct for real and scrambled graphs alike. A novelty test must first beat an ordinary hash.</p>
         </article>
       </div>
     </section>
