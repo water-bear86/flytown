@@ -28,6 +28,10 @@ describe("harness statistics", () => {
 });
 
 describe("runHarness (mock world)", () => {
+  it("refuses an empty evaluation instead of reporting a zero-run null", async () => {
+    await assert.rejects(runHarness({ planners: ["rules"], seeds: [], allowMissingRepos: true }), /nothing to evaluate/);
+    await assert.rejects(runHarness({ planners: ["rules"], seeds: [Number.NaN], allowMissingRepos: true }), /nothing to evaluate/);
+  });
   it("runs matched trials for several planners, writes a report, and is deterministic", async () => {
     const root = await mkdtemp(join(tmpdir(), "flytown-harness-"));
     const fixtures = FIXTURES.filter((f) => ["q-engine-layout", "flaky-contract-tests", "misleading-stale-balances", "blocked-prod-secrets", "stop-already-done"].includes(f.id));

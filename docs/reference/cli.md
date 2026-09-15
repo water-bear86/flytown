@@ -94,6 +94,8 @@ flytown fly traces
 flytown fly replay <runId>                    # deterministic replay, diffed against the stored plan
 flytown fly sensitivity --planners "fly,fly:shuffled"
 flytown fly effects [--planners a,b] [--seed N]   # shaped / default / inert actions per planner, decide only
+flytown fly hash [--connectome id] [--odor 0.024,0.05,0.1,0.15] [--seeds 1,2,3] [--out report.md]
+                                              # is the Kenyon-cell code a better task hash than shuffled / rewired copies? no model calls
 flytown fly fixtures                          # the task suite's repositories, pinned commits and local state
 flytown fly fixtures fetch [--force]          # download the pinned commits (--force resets local edits)
 flytown fly eval --planners "rules,random,fly,fly:shuffled" --seeds 3 \
@@ -107,6 +109,11 @@ clean checkout of its pinned commit. Mock evaluations without them still run,
 with a warning that the report does not reproduce the suite; live evaluations
 refuse to start unless `--allow-missing-repos` is passed. Every report records
 the suite and the commits it ran against.
+
+A fly planner spec can start from a different adapter table with
+`adapters=<file>`: a relative name is read from the connectome artifact's own
+folder, for example `fly:connectome=malecns-v1.0-projectome-1+adapters=adapters-rerouted.json`.
+A named table that cannot be read stops the run instead of falling back to the defaults.
 
 `fly eval` runs the deterministic mock worker world by default and writes its
 report under `.flytown/eval/`. `fly eval --live` (or `--terrarium <path>` to

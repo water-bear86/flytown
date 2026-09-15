@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import { strict as assert } from "node:assert";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { executePlan } from "../plan-executor.js";
@@ -13,6 +13,7 @@ import { learnedPlannerBackend, trainLinearRouter, linearScores, uniformWeights 
 import { FlyPlannerBackend, flyPlannerSpec } from "../flytown/fly-planner.js";
 import { makeGraph } from "../flytown/connectome/artifact.js";
 import { DEFAULT_ENGINE_PARAMS } from "../flytown/connectome/engine.js";
+import { defaultProjectomeAdapters } from "../flytown/connectome/adapters.js";
 import { resolvePlannerBackend, resolveFlyOptions, parsePlannerSpec } from "../flytown/registry.js";
 import { hashSeed } from "../flytown/rng.js";
 import { makeMockFlightRunner } from "../flytown/eval/mock-flight.js";
@@ -201,12 +202,14 @@ describe("registry", () => {
     const essentials = (o: ReturnType<typeof resolveFlyOptions>) => ({
       connectomeId: o.connectomeId, variant: o.variant, ablateRegions: o.ablateRegions, engine: o.engine, excludeSelfEdges: !!o.excludeSelfEdges,
       sparseGroups: o.sparseGroups, channelWeights: o.channelWeights, learning: o.learning, learningRate: o.learningRate, plastic: !!o.plastic, plasticParams: o.plasticParams,
+      adaptersFile: o.adaptersFile,
     });
     for (const spec of [
       "fly",
       "fly:connectome=l1-larva-winding2023-1+plastic",
       "fly:connectome=l1-larva-winding2023-1+shuffled+learning+plastic",
       "fly:connectome=l1-larva-winding2023-1+random_degree+plastic+plr=0.2",
+      "fly:connectome=malecns-v1.0-projectome-1+adapters=adapters-rerouted.json",
       "fly:shuffled+norecurrence",
       "fly:ablate=MB_CA,EB+signless",
       "fly:sparse=flag:KC@0.05,class:LHN@0.2+channels=aa:0.5,dd:0.25+lr=0.1",
@@ -218,6 +221,20 @@ describe("registry", () => {
       assert.deepEqual(essentials(resolveFlyOptions(id, { root })), essentials(opts), `${spec} → ${id}`);
     }
     assert.deepEqual(resolveFlyOptions("fly:sparse=flag:KC@0.05,class:LHN@0.2", { root }).sparseGroups, [{ group: "flag:KC", fraction: 0.05 }, { group: "class:LHN", fraction: 0.2 }]);
+  });
+  it("an adapters file replaces the default table, and a missing one is an error, not a silent fallback", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "flytown-adapters-"));
+    const req = { task: "Fix the flaky retry test", cwd: "/nope", runId: "adapters-1" };
+    const table = defaultProjectomeAdapters();
+    for (const feature of Object.keys(table.encoder) as (keyof typeof table.encoder)[]) table.encoder[feature] = [{ group: "EB", weight: 1, tag: "METAPHOR" }];
+    delete table.keywordOdor;
+    const file = join(dir, "only-eb.json");
+    await writeFile(file, JSON.stringify(table), "utf8");
+    const withFile = await new FlyPlannerBackend({ connectomeId: "m", graph: miniBrain(), adaptersFile: file }).plan(req);
+    assert.ok((withFile.trace!.brain!.input.EB ?? 0) > 0, "the file's encoder drives EB");
+    assert.equal(withFile.trace!.brain!.input.AL_L ?? 0, 0, "the default olfactory route is gone");
+    const missing = new FlyPlannerBackend({ connectomeId: "m", graph: miniBrain(), adaptersFile: join(dir, "absent.json") });
+    await assert.rejects(missing.plan(req), /cannot read adapters file/);
   });
   it("the planner seed keeps the pre-2026-09-12 id format so recorded experiments reproduce", async () => {
     const graph = miniBrain();

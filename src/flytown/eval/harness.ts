@@ -243,6 +243,11 @@ export async function preflightProvider(terrariumRoot: string): Promise<Prefligh
 export async function runHarness(opts: HarnessOptions): Promise<HarnessReport> {
   const fixtures = opts.fixtures ?? FIXTURES;
   const seeds = opts.seeds ?? [1, 2, 3];
+  // An empty evaluation must fail loudly: it once rendered a zero-run report
+  // whose comparison section read like a null result.
+  if (!opts.planners.length || !fixtures.length || !seeds.length || seeds.some((s) => !Number.isFinite(s))) {
+    throw new Error(`nothing to evaluate: ${opts.planners.length} planners, ${fixtures.length} fixtures, seeds [${seeds.join(",")}]`);
+  }
   const root = opts.root ?? (await mkdtemp(join(tmpdir(), "flytown-eval-")));
   const outDir = join(root, ".flytown", "eval", new Date().toISOString().replace(/[:.]/g, "-"));
   await mkdir(outDir, { recursive: true });
@@ -636,7 +641,9 @@ export function renderReport(r: HarnessReport): string {
     L.push(`- token difference: ${c.tokensDiff.toFixed(0)}, permutation p = ${c.tokensP.toFixed(3)}`);
     if (c.qualityDiff !== undefined) L.push(`- judge-quality difference: ${c.qualityDiff.toFixed(3)} (n=${c.qualityPairs}), permutation p = ${c.qualityP!.toFixed(3)}`);
     L.push(`- primary-action JS divergence: ${c.primaryJsDivergence.toFixed(3)} bits  ·  identical decisions: ${pct(c.identicalDecisions)}`);
-    const verdict = c.completionP < 0.05 || c.tokensP < 0.05 || (c.qualityP !== undefined && c.qualityP < 0.05)
+    const verdict = c.pairs === 0
+      ? `**No paired runs.** There is no data behind this comparison, so it supports no conclusion either way.`
+      : c.completionP < 0.05 || c.tokensP < 0.05 || (c.qualityP !== undefined && c.qualityP < 0.05)
       ? `**Distinguishable** on at least one primary metric at p<0.05.`
       : `**Not distinguishable** at p<0.05 on termination accuracy or tokens. Under this harness the real wiring is not shown to matter versus ${c.b}. Report this as the result; do not dress it up.`;
     L.push(``, verdict, ``);

@@ -20,14 +20,14 @@
  */
 import { randomUUID } from "node:crypto";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { compilePlan, decide, type OrchAction } from "./actions.js";
 import { signalsFor, type PlannerBackend, type PlanRequest, type PlanResponse } from "./planner-backend.js";
 import { FEATURE_NAMES, featurize } from "./signals.js";
 import { hashSeed, makeRng } from "./rng.js";
 import { makeTrace, type BrainActivityTrace, type DecisionTrace, type ProvenanceTag } from "./trace.js";
 import {
-  ablate, DEFAULT_CONNECTOME_ID, groupIndex, loadConnectome, randomDegreePreserving, shuffleLabels, signless,
+  ablate, DEFAULT_CONNECTOME_ID, defaultConnectomeRoot, groupIndex, loadConnectome, randomDegreePreserving, shuffleLabels, signless,
   type ConnectomeGraph, type ConnectomeVariant,
 } from "./connectome/artifact.js";
 import { buildSignedGraph, DEFAULT_ENGINE_PARAMS, DEFAULT_SIGN_POLICY, propagate, type EngineParams, type SignedGraph, type SignPolicy } from "./connectome/engine.js";
@@ -57,6 +57,13 @@ export interface FlyPlannerOptions {
    */
   sparseGroups?: { group: string; fraction: number }[];
   adapters?: AdapterWeights;
+  /**
+   * Starting adapter table (JSON) instead of the built-in defaults. A relative
+   * path is resolved inside the connectome artifact's directory. Unlike stored
+   * learned weights, a named file that cannot be read is an error, never a
+   * silent fall-back to the defaults.
+   */
+  adaptersFile?: string;
   /** Directory for learned state (<root>/.flytown/weights). */
   weightsDir?: string;
   /** Adapter learning (encoder/readout weights). */
@@ -97,6 +104,7 @@ export function flyPlannerSpec(opts: FlyPlannerOptions): string {
   if (opts.engine?.inputSteps !== undefined) flags.push(`insteps=${opts.engine.inputSteps}`);
   if (opts.sparseGroups && opts.sparseGroups.length === 0) flags.push("nosparse");
   else if (opts.sparseGroups?.length) flags.push(`sparse=${opts.sparseGroups.map((s) => `${s.group}@${s.fraction}`).join(",")}`);
+  if (opts.adaptersFile) flags.push(`adapters=${opts.adaptersFile}`);
   if (opts.channelWeights && Object.keys(opts.channelWeights).length) flags.push(`channels=${Object.entries(opts.channelWeights).map(([k, v]) => `${k}:${v}`).join(",")}`);
   if (opts.learning) flags.push("learning");
   if (opts.learningRate !== undefined) flags.push(`lr=${opts.learningRate}`);
@@ -179,10 +187,26 @@ export class FlyPlannerBackend implements PlannerBackend {
 
   private async getAdapters(graph: ConnectomeGraph): Promise<AdapterWeights> {
     if (!this.adapters) {
-      const fallback = defaultAdaptersFor(graph);
+      const fallback = await this.startingAdapters(graph);
       this.adapters = this.opts.adapters ?? (this.opts.learning && this.weightsFile ? await loadAdapters(this.weightsFile, fallback) : fallback);
     }
     return this.adapters;
+  }
+
+  /** The built-in defaults, or the table named by `adaptersFile`. */
+  private async startingAdapters(graph: ConnectomeGraph): Promise<AdapterWeights> {
+    const defaults = defaultAdaptersFor(graph);
+    const name = this.opts.adaptersFile;
+    if (!name) return defaults;
+    const file = isAbsolute(name) ? name : join(this.opts.connectomeRoot ?? defaultConnectomeRoot(), this.opts.connectomeId, name);
+    let raw: Partial<AdapterWeights>;
+    try {
+      raw = JSON.parse(await readFile(file, "utf8")) as Partial<AdapterWeights>;
+    } catch (err) {
+      throw new Error(`fly planner: cannot read adapters file ${file}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    if (!raw.encoder || !raw.readout) throw new Error(`fly planner: adapters file ${file} has no encoder and readout tables`);
+    return loadAdapters(file, defaults);
   }
 
   async plan(req: PlanRequest): Promise<PlanResponse> {

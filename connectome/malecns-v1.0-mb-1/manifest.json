@@ -1,0 +1,136 @@
+{
+  "artifactVersion": 1,
+  "id": "malecns-v1.0-mb-1",
+  "level": "neuron",
+  "createdAt": "2026-09-14T23:55:04Z",
+  "source": {
+    "dataset": "Janelia FlyEM MaleCNS v1.0 connectome (adult male Drosophila melanogaster), olfactory and mushroom-body circuit",
+    "files": [
+      {
+        "role": "synPartners",
+        "name": "syn-partners-male-cns-v1.0-minconf-0.5-traced-only.feather",
+        "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/syn-partners-male-cns-v1.0-minconf-0.5-traced-only.feather",
+        "bytes": 2965367002,
+        "md5Base64": "9bwcXONKAbaJVkFLUw7dqA==",
+        "sha256": "3db100d3b4c7cfdc9b34506b3eb8b5ead2d9760b38952e5656285bb362327efc"
+      },
+      {
+        "role": "annotations",
+        "name": "body-annotations-male-cns-v1.0-minconf-0.5.feather",
+        "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-annotations-male-cns-v1.0-minconf-0.5.feather",
+        "bytes": 14483314,
+        "md5Base64": "UKdxh3DFciDxYLpPQxq4ng==",
+        "sha256": "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2"
+      },
+      {
+        "role": "neurotransmitters",
+        "name": "body-neurotransmitters-male-cns-v1.0.feather",
+        "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-neurotransmitters-male-cns-v1.0.feather",
+        "bytes": 43282834,
+        "md5Base64": "PYQrEv5cSe763lKNfdJKHw==",
+        "sha256": "95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621"
+      }
+    ],
+    "license": "CC-BY-4.0",
+    "citations": [
+      "Berg S, et al. (2025). Sexual dimorphism in the complete connectome of the Drosophila male central nervous system. bioRxiv, doi:10.1101/2025.10.09.680999",
+      "MaleCNS v1.0 data release, Janelia FlyEM, https://male-cns.janelia.org/download/ (CC-BY 4.0)"
+    ],
+    "preRegistration": "docs/flytown/experiments/README.md — 'the male fly (MaleCNS v1.0), pre-registered' and its addendum"
+  },
+  "preprocessing": {
+    "tool": "connectome-etl/build_male.py",
+    "steps": [
+      "Traced bodies of class olfactory (ORN), ALPN (uniglomerular = type not starting 'M_' and naming a single glomerulus, i.e. no '+'; the rest multiglomerular), Kenyon_Cell, MBON, DAN, and type APL. Both hemispheres.",
+      "Edges = synapse counts between those neurons, summed over every ROI, from the synapse-partner table.",
+      "Transmitter per edge = presynaptic neuron's class (consensus, else own prediction, else cell type's, else UNKNOWN; histamine = HIST)."
+    ],
+    "counts": {
+      "ORN": 2639,
+      "uPN": 334,
+      "mPN": 352,
+      "KC": 4064,
+      "APL": 2,
+      "MBON": 97,
+      "DAN": 340
+    },
+    "assumptions": [
+      {
+        "id": "circuit_subgraph",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Only the olfactory and mushroom-body circuit is included, so label shuffling and rewiring nulls act within this circuit (the larval nulls acted on the whole larval brain)."
+      },
+      {
+        "id": "uPN_rule",
+        "category": "INFERRED_FROM_LITERATURE",
+        "text": "Uniglomerular vs multiglomerular projection neurons from the FlyWire/hemibrain naming convention: multiglomerular types start with 'M_'; types naming two glomeruli with '+' are excluded from the uniglomerular layer."
+      }
+    ]
+  },
+  "graph": {
+    "nodeCount": 7828,
+    "edgeCount": 1171820,
+    "totalSynapses": 3898079,
+    "weightSemantics": "synapse_count",
+    "ntClasses": [
+      "ACH",
+      "GABA",
+      "GLUT",
+      "DA",
+      "OCT",
+      "SER",
+      "HIST",
+      "UNKNOWN"
+    ]
+  },
+  "nodeFields": {
+    "id": "MaleCNS bodyId",
+    "cellType": "annotation type",
+    "class": "ORN|uPN|mPN|KC|APL|MBON|DAN",
+    "hemisphere": "somaSide"
+  },
+  "groups": {
+    "sens:olfactory": 2639,
+    "class2:ORN": 2639,
+    "type:ORN": 2639,
+    "class:uPN": 334,
+    "class:PN": 686,
+    "type:PN": 686,
+    "side:R": 2608,
+    "side:L": 2581,
+    "class:mPN": 352,
+    "flag:KC": 4064,
+    "class:KC": 4064,
+    "type:KC": 4064,
+    "class:APL": 2,
+    "type:APL": 2,
+    "flag:MBON": 97,
+    "class:MBON": 97,
+    "type:MBON": 97,
+    "flag:MBIN": 340,
+    "class:MBIN": 340,
+    "class2:DAN": 340,
+    "type:MBIN": 340
+  },
+  "build": {
+    "python": "3.14.6",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "packages": {
+      "pandas": "3.0.5",
+      "pyarrow": "25.0.1",
+      "numpy": "2.5.3",
+      "requests": "2.34.2"
+    },
+    "timingsSec": {
+      "verify inputs": 5.41,
+      "load bodies": 0.47,
+      "stream synapse partners": 6.64,
+      "assign input regions": 0.09,
+      "aggregate projectome edges": 0.07
+    }
+  },
+  "checksums": {
+    "nodes.json": "sha256:59f954e2842317b5d613eb44b01aff9d84e38857db74dd9259e866901107cb3c",
+    "graph.json": "sha256:7e699633aa8903c5530d7639ddc05ddb376d072f562e1c5fa1246a706b37c674"
+  }
+}

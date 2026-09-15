@@ -1,0 +1,1023 @@
+{
+  "artifactVersion": 1,
+  "id": "malecns-v1.0-projectome-1",
+  "level": "projectome",
+  "createdAt": "2026-09-14T23:55:03Z",
+  "source": {
+    "dataset": "Janelia FlyEM MaleCNS v1.0 connectome (adult male Drosophila melanogaster, brain and ventral nerve cord), flat-connectome release",
+    "files": [
+      {
+        "role": "synPartners",
+        "name": "syn-partners-male-cns-v1.0-minconf-0.5-traced-only.feather",
+        "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/syn-partners-male-cns-v1.0-minconf-0.5-traced-only.feather",
+        "bytes": 2965367002,
+        "md5Base64": "9bwcXONKAbaJVkFLUw7dqA==",
+        "sha256": "3db100d3b4c7cfdc9b34506b3eb8b5ead2d9760b38952e5656285bb362327efc"
+      },
+      {
+        "role": "annotations",
+        "name": "body-annotations-male-cns-v1.0-minconf-0.5.feather",
+        "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-annotations-male-cns-v1.0-minconf-0.5.feather",
+        "bytes": 14483314,
+        "md5Base64": "UKdxh3DFciDxYLpPQxq4ng==",
+        "sha256": "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2"
+      },
+      {
+        "role": "neurotransmitters",
+        "name": "body-neurotransmitters-male-cns-v1.0.feather",
+        "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-neurotransmitters-male-cns-v1.0.feather",
+        "bytes": 43282834,
+        "md5Base64": "PYQrEv5cSe763lKNfdJKHw==",
+        "sha256": "95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621"
+      }
+    ],
+    "license": "CC-BY-4.0",
+    "citations": [
+      "Berg S, et al. (2025). Sexual dimorphism in the complete connectome of the Drosophila male central nervous system. bioRxiv, doi:10.1101/2025.10.09.680999",
+      "MaleCNS v1.0 data release, Janelia FlyEM, https://male-cns.janelia.org/download/ (CC-BY 4.0)"
+    ],
+    "preRegistration": "docs/flytown/experiments/README.md — 'the male fly (MaleCNS v1.0), pre-registered' and its addendum"
+  },
+  "preprocessing": {
+    "tool": "connectome-etl/build_male.py",
+    "steps": [
+      "Verify every input against the bucket's MD5.",
+      "Neuron universe = bodies with status 'Traced' in the annotation table.",
+      "Stream the synapse-partner table (both partners traced, synapse confidence >= 0.5). Each row is one synapse; its region is the ROI of the postsynaptic site (`primary_post`).",
+      "Map male ROIs onto FlyWire neuropil names (see roiMapping); nerve-cord and neck ROIs are dropped; CentralBrain-unspecified and Optic-unspecified become UNASGD; '<unspecified>' and 'CRN' are resolved by presynaptic superclass (see ambiguousRois).",
+      "input_region(neuron) = brain neuropil (not UNASGD) holding most of its postsynaptic sites; ties -> alphabetically first; no brain postsynaptic sites -> brain neuropil holding most of its presynaptic sites; only UNASGD synapses -> UNASGD; no brain synapses at all -> not part of the brain projectome.",
+      "Edge input_region(pre) -> region of the synapse, weight = synapse count; nt[class of pre] += count.",
+      "Transmitter per neuron: consensus prediction, else the neuron's prediction, else its cell type's, else UNKNOWN; histamine is its own class HIST."
+    ],
+    "regionAssignment": {
+      "inputFromPostArgmax": 144067,
+      "inputTiesPost": 192,
+      "inputFallbackToPreArgmax": 83,
+      "inputAssignedUnassigned": 110,
+      "neuronsWithoutBrainSynapses": 20862
+    },
+    "synapseRows": {
+      "rows": 124025046,
+      "rowsPreNotTraced": 0,
+      "rowsPostNotTraced": 0,
+      "nullRoi": 0
+    },
+    "rawRoiSynapseTotals": {
+      "ME(R)": 15287251,
+      "ME(L)": 12783606,
+      "LO(R)": 7270456,
+      "LO(L)": 5864252,
+      "GNG": 4707099,
+      "LOP(R)": 3660720,
+      "ANm": 3529880,
+      "AVLP(R)": 3323154,
+      "LOP(L)": 2874300,
+      "LegNp(T3)(R)": 2775862,
+      "AVLP(L)": 2722488,
+      "LegNp(T3)(L)": 2679719,
+      "LegNp(T2)(L)": 2559324,
+      "LegNp(T2)(R)": 2252697,
+      "PVLP(R)": 2074446,
+      "AL(R)": 1911201,
+      "PVLP(L)": 1888333,
+      "LegNp(T1)(L)": 1864019,
+      "CentralBrain-unspecified": 1699334,
+      "AL(L)": 1604932,
+      "FB": 1600688,
+      "SAD": 1471422,
+      "SLP(R)": 1445884,
+      "PLP(R)": 1391964,
+      "LegNp(T1)(R)": 1353666,
+      "SMP(L)": 1331731,
+      "SMP(R)": 1304785,
+      "SLP(L)": 1294718,
+      "PLP(L)": 1136298,
+      "LTct": 1052742,
+      "LAL(L)": 867125,
+      "LH(R)": 862575,
+      "IntTct": 856889,
+      "WTct(UTct-T2)(L)": 834028,
+      "WED(R)": 822683,
+      "Ov(L)": 797477,
+      "SPS(L)": 795967,
+      "SPS(R)": 790726,
+      "WTct(UTct-T2)(R)": 778461,
+      "LAL(R)": 771670,
+      "WED(L)": 735296,
+      "EB": 712975,
+      "LH(L)": 701175,
+      "VES(L)": 663499,
+      "ICL(L)": 654177,
+      "VNC-unspecified": 649970,
+      "Ov(R)": 646017,
+      "VES(R)": 640976,
+      "SIP(R)": 610745,
+      "SIP(L)": 609346,
+      "gL(L)": 606958,
+      "ICL(R)": 589823,
+      "IB": 577500,
+      "SCL(R)": 564200,
+      "gL(R)": 561060,
+      "AOTU(R)": 560349,
+      "CRE(L)": 529994,
+      "SCL(L)": 517837,
+      "AOTU(L)": 505000,
+      "CRE(R)": 482621,
+      "IPS(R)": 457492,
+      "Optic-unspecified(L)": 456570,
+      "IPS(L)": 435922,
+      "PRW": 399868,
+      "HTct(UTct-T3)(L)": 297320,
+      "CA(R)": 290842,
+      "HTct(UTct-T3)(R)": 280806,
+      "CA(L)": 240018,
+      "b'L(L)": 211847,
+      "aL(R)": 207381,
+      "FLA(L)": 204687,
+      "FLA(R)": 201266,
+      "NO": 195957,
+      "aL(L)": 183351,
+      "bL(L)": 181897,
+      "PB": 174765,
+      "Optic-unspecified(R)": 172928,
+      "b'L(R)": 154612,
+      "LA(R)": 154077,
+      "bL(R)": 150411,
+      "NTct(UTct-T1)(L)": 128818,
+      "mVAC(T2)(L)": 119705,
+      "mVAC(T2)(R)": 113071,
+      "GOR(R)": 111287,
+      "NTct(UTct-T1)(R)": 110453,
+      "GOR(L)": 106608,
+      "EPA(L)": 105806,
+      "LA(L)": 100183,
+      "a'L(R)": 96860,
+      "PED(R)": 92415,
+      "mVAC(T3)(R)": 87071,
+      "PED(L)": 84655,
+      "a'L(L)": 83896,
+      "EPA(R)": 81972,
+      "mVAC(T1)(L)": 74292,
+      "mVAC(T3)(L)": 67994,
+      "ATL(L)": 53249,
+      "mVAC(T1)(R)": 51226,
+      "CAN(L)": 42300,
+      "ATL(R)": 41189,
+      "CAN(R)": 39578,
+      "AME(R)": 26410,
+      "BU(R)": 20126,
+      "BU(L)": 19836,
+      "DMetaN(L)": 13851,
+      "DMetaN(R)": 11850,
+      "MesoLN(R)": 10170,
+      "AB(R)": 9892,
+      "AME(L)": 6999,
+      "CV-unspecified": 6811,
+      "AbNT(L)": 5096,
+      "ADMN(L)": 4970,
+      "ADMN(R)": 4324,
+      "AbNT(R)": 4299,
+      "MetaLN(R)": 4243,
+      "AbN4(R)": 3981,
+      "PDMN(R)": 3425,
+      "PDMN(L)": 3090,
+      "AB(L)": 2388,
+      "MesoAN(R)": 878,
+      "MetaLN(L)": 828,
+      "AbN4(L)": 758,
+      "ProLN(L)": 680,
+      "MesoLN(L)": 314,
+      "<unspecified>": 251,
+      "MesoAN(L)": 172,
+      "AbN3(L)": 148,
+      "AbN3(R)": 120,
+      "ProLN(R)": 94,
+      "VProN(L)": 87,
+      "CRN": 62,
+      "AbN2(L)": 59,
+      "AbN2(R)": 23,
+      "DProN(R)": 18,
+      "CvN(R)": 11,
+      "DProN(L)": 11,
+      "ProAN(R)": 9,
+      "CvN(L)": 6,
+      "PrN(L)": 6,
+      "VProN(R)": 5,
+      "AbN1(R)": 5,
+      "ProCN(L)": 3,
+      "ProAN(L)": 2
+    },
+    "ambiguousRois": {
+      "<unspecified>": {
+        "synapsesFromBrainSuperclass": 206,
+        "synapsesFromOther": 45,
+        "decision": "UNASGD"
+      },
+      "CRN": {
+        "synapsesFromBrainSuperclass": 62,
+        "synapsesFromOther": 0,
+        "decision": "UNASGD"
+      }
+    },
+    "roiMapping": {
+      "ME(R)": "ME_R",
+      "ME(L)": "ME_L",
+      "LO(R)": "LO_R",
+      "LO(L)": "LO_L",
+      "GNG": "GNG",
+      "LOP(R)": "LOP_R",
+      "ANm": "dropped (nerve cord)",
+      "AVLP(R)": "AVLP_R",
+      "LOP(L)": "LOP_L",
+      "LegNp(T3)(R)": "dropped (nerve cord)",
+      "AVLP(L)": "AVLP_L",
+      "LegNp(T3)(L)": "dropped (nerve cord)",
+      "LegNp(T2)(L)": "dropped (nerve cord)",
+      "LegNp(T2)(R)": "dropped (nerve cord)",
+      "PVLP(R)": "PVLP_R",
+      "AL(R)": "AL_R",
+      "PVLP(L)": "PVLP_L",
+      "LegNp(T1)(L)": "dropped (nerve cord)",
+      "CentralBrain-unspecified": "UNASGD",
+      "AL(L)": "AL_L",
+      "FB": "FB",
+      "SAD": "SAD",
+      "SLP(R)": "SLP_R",
+      "PLP(R)": "PLP_R",
+      "LegNp(T1)(R)": "dropped (nerve cord)",
+      "SMP(L)": "SMP_L",
+      "SMP(R)": "SMP_R",
+      "SLP(L)": "SLP_L",
+      "PLP(L)": "PLP_L",
+      "LTct": "dropped (nerve cord)",
+      "LAL(L)": "LAL_L",
+      "LH(R)": "LH_R",
+      "IntTct": "dropped (nerve cord)",
+      "WTct(UTct-T2)(L)": "dropped (nerve cord)",
+      "WED(R)": "WED_R",
+      "Ov(L)": "dropped (nerve cord)",
+      "SPS(L)": "SPS_L",
+      "SPS(R)": "SPS_R",
+      "WTct(UTct-T2)(R)": "dropped (nerve cord)",
+      "LAL(R)": "LAL_R",
+      "WED(L)": "WED_L",
+      "EB": "EB",
+      "LH(L)": "LH_L",
+      "VES(L)": "VES_L",
+      "ICL(L)": "ICL_L",
+      "VNC-unspecified": "dropped (nerve cord)",
+      "Ov(R)": "dropped (nerve cord)",
+      "VES(R)": "VES_R",
+      "SIP(R)": "SIP_R",
+      "SIP(L)": "SIP_L",
+      "gL(L)": "MB_ML_L",
+      "ICL(R)": "ICL_R",
+      "IB": "IB",
+      "SCL(R)": "SCL_R",
+      "gL(R)": "MB_ML_R",
+      "AOTU(R)": "AOTU_R",
+      "CRE(L)": "CRE_L",
+      "SCL(L)": "SCL_L",
+      "AOTU(L)": "AOTU_L",
+      "CRE(R)": "CRE_R",
+      "IPS(R)": "IPS_R",
+      "Optic-unspecified(L)": "UNASGD",
+      "IPS(L)": "IPS_L",
+      "PRW": "PRW",
+      "HTct(UTct-T3)(L)": "dropped (nerve cord)",
+      "CA(R)": "MB_CA_R",
+      "HTct(UTct-T3)(R)": "dropped (nerve cord)",
+      "CA(L)": "MB_CA_L",
+      "b'L(L)": "MB_ML_L",
+      "aL(R)": "MB_VL_R",
+      "FLA(L)": "FLA_L",
+      "FLA(R)": "FLA_R",
+      "NO": "NO",
+      "aL(L)": "MB_VL_L",
+      "bL(L)": "MB_ML_L",
+      "PB": "PB",
+      "Optic-unspecified(R)": "UNASGD",
+      "b'L(R)": "MB_ML_R",
+      "LA(R)": "LA_R",
+      "bL(R)": "MB_ML_R",
+      "NTct(UTct-T1)(L)": "dropped (nerve cord)",
+      "mVAC(T2)(L)": "dropped (nerve cord)",
+      "mVAC(T2)(R)": "dropped (nerve cord)",
+      "GOR(R)": "GOR_R",
+      "NTct(UTct-T1)(R)": "dropped (nerve cord)",
+      "GOR(L)": "GOR_L",
+      "EPA(L)": "EPA_L",
+      "LA(L)": "LA_L",
+      "a'L(R)": "MB_VL_R",
+      "PED(R)": "MB_PED_R",
+      "mVAC(T3)(R)": "dropped (nerve cord)",
+      "PED(L)": "MB_PED_L",
+      "a'L(L)": "MB_VL_L",
+      "EPA(R)": "EPA_R",
+      "mVAC(T1)(L)": "dropped (nerve cord)",
+      "mVAC(T3)(L)": "dropped (nerve cord)",
+      "ATL(L)": "ATL_L",
+      "mVAC(T1)(R)": "dropped (nerve cord)",
+      "CAN(L)": "CAN_L",
+      "ATL(R)": "ATL_R",
+      "CAN(R)": "CAN_R",
+      "AME(R)": "AME_R",
+      "BU(R)": "BU_R",
+      "BU(L)": "BU_L",
+      "DMetaN(L)": "dropped (nerve cord)",
+      "DMetaN(R)": "dropped (nerve cord)",
+      "MesoLN(R)": "dropped (nerve cord)",
+      "AB(R)": "FB",
+      "AME(L)": "AME_L",
+      "CV-unspecified": "dropped (nerve cord)",
+      "AbNT(L)": "dropped (nerve cord)",
+      "ADMN(L)": "dropped (nerve cord)",
+      "ADMN(R)": "dropped (nerve cord)",
+      "AbNT(R)": "dropped (nerve cord)",
+      "MetaLN(R)": "dropped (nerve cord)",
+      "AbN4(R)": "dropped (nerve cord)",
+      "PDMN(R)": "dropped (nerve cord)",
+      "PDMN(L)": "dropped (nerve cord)",
+      "AB(L)": "FB",
+      "MesoAN(R)": "dropped (nerve cord)",
+      "MetaLN(L)": "dropped (nerve cord)",
+      "AbN4(L)": "dropped (nerve cord)",
+      "ProLN(L)": "dropped (nerve cord)",
+      "MesoLN(L)": "dropped (nerve cord)",
+      "<unspecified>": "see ambiguousRois",
+      "MesoAN(L)": "dropped (nerve cord)",
+      "AbN3(L)": "dropped (nerve cord)",
+      "AbN3(R)": "dropped (nerve cord)",
+      "ProLN(R)": "dropped (nerve cord)",
+      "VProN(L)": "dropped (nerve cord)",
+      "CRN": "see ambiguousRois",
+      "AbN2(L)": "dropped (nerve cord)",
+      "AbN2(R)": "dropped (nerve cord)",
+      "DProN(R)": "dropped (nerve cord)",
+      "CvN(R)": "dropped (nerve cord)",
+      "DProN(L)": "dropped (nerve cord)",
+      "ProAN(R)": "dropped (nerve cord)",
+      "CvN(L)": "dropped (nerve cord)",
+      "PrN(L)": "dropped (nerve cord)",
+      "VProN(R)": "dropped (nerve cord)",
+      "AbN1(R)": "dropped (nerve cord)",
+      "ProCN(L)": "dropped (nerve cord)",
+      "ProAN(L)": "dropped (nerve cord)"
+    },
+    "fafbNodesAbsent": [
+      "AMMC_L",
+      "AMMC_R",
+      "GA_L",
+      "GA_R",
+      "IB_L",
+      "IB_R",
+      "OCG"
+    ],
+    "maleNodesNotInFafb": [
+      "IB"
+    ],
+    "ntSourceCounts": {
+      "consensus_nt": 161520,
+      "predicted_nt": 1078,
+      "celltype_predicted_nt": 30,
+      "none": 2494
+    },
+    "assumptions": [
+      {
+        "id": "syn_count_as_weight",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Edge weight = number of synapses. A structural proxy for strength, not a physiological weight; the male release has no gap junctions."
+      },
+      {
+        "id": "input_region_argmax_brain_only",
+        "category": "ENGINEERING_CHOICE",
+        "text": "As in the female build, each neuron is collapsed to one input region, but only brain neuropils count, so the male brain is seen as FAFB sees the female one: a brain without its cord."
+      },
+      {
+        "id": "traced_partners_only",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Input regions come from synapses between traced bodies only; the female build counted all partners. Stated in the pre-registration."
+      },
+      {
+        "id": "edge_dst_is_synapse_location",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Edge destination = ROI of the postsynaptic site, matching the female build's use of the synapse's neuropil."
+      },
+      {
+        "id": "nt_per_neuron",
+        "category": "ENGINEERING_CHOICE",
+        "text": "Transmitter class per edge = presynaptic neuron's class (female build: per-connection means). Predictions are statistical, not measurements."
+      },
+      {
+        "id": "roi_merges",
+        "category": "INFERRED_FROM_LITERATURE",
+        "text": "CA/PED -> MB_CA/MB_PED; alpha and alpha' lobes -> MB_VL; beta, beta' and gamma lobes -> MB_ML; the asymmetrical body -> FB (it is a fan-shaped body subunit). The male release has no separate AMMC, gall or ocellar ganglion, and an unsided IB."
+      }
+    ],
+    "territories": {
+      "AMMC": {
+        "markerTypes": "JO-*",
+        "presynapticSitesByRoi": [
+          {
+            "roi": "SAD",
+            "synapses": 233898,
+            "fraction": 0.8826
+          },
+          {
+            "roi": "GNG",
+            "synapses": 14758,
+            "fraction": 0.0557
+          },
+          {
+            "roi": "CentralBrain-unspecified",
+            "synapses": 8632,
+            "fraction": 0.0326
+          },
+          {
+            "roi": "WED(L)",
+            "synapses": 6061,
+            "fraction": 0.0229
+          },
+          {
+            "roi": "WED(R)",
+            "synapses": 777,
+            "fraction": 0.0029
+          },
+          {
+            "roi": "AVLP(L)",
+            "synapses": 546,
+            "fraction": 0.0021
+          },
+          {
+            "roi": "CAN(L)",
+            "synapses": 117,
+            "fraction": 0.0004
+          },
+          {
+            "roi": "CAN(R)",
+            "synapses": 95,
+            "fraction": 0.0004
+          },
+          {
+            "roi": "VES(L)",
+            "synapses": 86,
+            "fraction": 0.0003
+          },
+          {
+            "roi": "AVLP(R)",
+            "synapses": 28,
+            "fraction": 0.0001
+          }
+        ],
+        "brainBaseTotals": {
+          "SAD": 233898,
+          "GNG": 14758,
+          "WED": 6838,
+          "AVLP": 574,
+          "CAN": 212,
+          "VES": 86
+        },
+        "reroutedTo": "SAD"
+      },
+      "GA": {
+        "markerTypes": "GLNO, LNO*, LCNO*",
+        "presynapticSitesByRoi": [
+          {
+            "roi": "NO",
+            "synapses": 72390,
+            "fraction": 0.9894
+          },
+          {
+            "roi": "LAL(L)",
+            "synapses": 324,
+            "fraction": 0.0044
+          },
+          {
+            "roi": "CentralBrain-unspecified",
+            "synapses": 208,
+            "fraction": 0.0028
+          },
+          {
+            "roi": "LAL(R)",
+            "synapses": 148,
+            "fraction": 0.002
+          },
+          {
+            "roi": "CRE(L)",
+            "synapses": 36,
+            "fraction": 0.0005
+          },
+          {
+            "roi": "CRE(R)",
+            "synapses": 24,
+            "fraction": 0.0003
+          },
+          {
+            "roi": "VES(L)",
+            "synapses": 15,
+            "fraction": 0.0002
+          },
+          {
+            "roi": "WED(L)",
+            "synapses": 10,
+            "fraction": 0.0001
+          },
+          {
+            "roi": "EB",
+            "synapses": 4,
+            "fraction": 0.0001
+          },
+          {
+            "roi": "FB",
+            "synapses": 3,
+            "fraction": 0.0
+          }
+        ],
+        "brainBaseTotals": {
+          "NO": 72390,
+          "LAL": 472,
+          "CRE": 60,
+          "VES": 15,
+          "WED": 10,
+          "EB": 4,
+          "FB": 3
+        },
+        "reroutedTo": "NO"
+      }
+    }
+  },
+  "graph": {
+    "nodeCount": 73,
+    "edgeCount": 2988,
+    "totalSynapses": 99983192,
+    "weightSemantics": "synapse_count",
+    "ntClasses": [
+      "ACH",
+      "GABA",
+      "GLUT",
+      "DA",
+      "OCT",
+      "SER",
+      "HIST",
+      "UNKNOWN"
+    ],
+    "unassignedNodeId": "UNASGD",
+    "selfEdges": 70
+  },
+  "stats": {
+    "selfEdgeSynapses": 56004041,
+    "selfEdgeFraction": 0.5601,
+    "ntSynapseTotals": {
+      "ACH": 60076143,
+      "GABA": 18442209,
+      "GLUT": 18458548,
+      "DA": 590338,
+      "OCT": 565163,
+      "SER": 544586,
+      "HIST": 552073,
+      "UNKNOWN": 754132
+    },
+    "topEdges": [
+      {
+        "src": "ME_R",
+        "dst": "ME_R",
+        "weight": 14211324,
+        "self": true
+      },
+      {
+        "src": "ME_L",
+        "dst": "ME_L",
+        "weight": 11937348,
+        "self": true
+      },
+      {
+        "src": "ME_R",
+        "dst": "LO_R",
+        "weight": 4050285,
+        "self": false
+      },
+      {
+        "src": "GNG",
+        "dst": "GNG",
+        "weight": 3830087,
+        "self": true
+      },
+      {
+        "src": "ME_L",
+        "dst": "LO_L",
+        "weight": 3199178,
+        "self": false
+      },
+      {
+        "src": "LO_R",
+        "dst": "LO_R",
+        "weight": 2581828,
+        "self": true
+      },
+      {
+        "src": "AVLP_R",
+        "dst": "AVLP_R",
+        "weight": 2198711,
+        "self": true
+      },
+      {
+        "src": "LO_L",
+        "dst": "LO_L",
+        "weight": 2147991,
+        "self": true
+      },
+      {
+        "src": "AVLP_L",
+        "dst": "AVLP_L",
+        "weight": 1758137,
+        "self": true
+      },
+      {
+        "src": "AL_R",
+        "dst": "AL_R",
+        "weight": 1658152,
+        "self": true
+      },
+      {
+        "src": "FB",
+        "dst": "FB",
+        "weight": 1398805,
+        "self": true
+      },
+      {
+        "src": "ME_R",
+        "dst": "LOP_R",
+        "weight": 1233046,
+        "self": false
+      },
+      {
+        "src": "AL_L",
+        "dst": "AL_L",
+        "weight": 1208125,
+        "self": true
+      },
+      {
+        "src": "LOP_R",
+        "dst": "LOP_R",
+        "weight": 1192312,
+        "self": true
+      },
+      {
+        "src": "LO_R",
+        "dst": "LOP_R",
+        "weight": 1107659,
+        "self": false
+      },
+      {
+        "src": "LO_R",
+        "dst": "PVLP_R",
+        "weight": 993108,
+        "self": false
+      },
+      {
+        "src": "LOP_L",
+        "dst": "LOP_L",
+        "weight": 944839,
+        "self": true
+      },
+      {
+        "src": "ME_L",
+        "dst": "LOP_L",
+        "weight": 939490,
+        "self": false
+      },
+      {
+        "src": "LO_L",
+        "dst": "LOP_L",
+        "weight": 878469,
+        "self": false
+      },
+      {
+        "src": "MB_ML_L",
+        "dst": "MB_ML_L",
+        "weight": 841246,
+        "self": true
+      },
+      {
+        "src": "LO_L",
+        "dst": "PVLP_L",
+        "weight": 836610,
+        "self": false
+      },
+      {
+        "src": "SAD",
+        "dst": "SAD",
+        "weight": 766585,
+        "self": true
+      },
+      {
+        "src": "MB_ML_R",
+        "dst": "MB_ML_R",
+        "weight": 672736,
+        "self": true
+      },
+      {
+        "src": "EB",
+        "dst": "EB",
+        "weight": 661593,
+        "self": true
+      },
+      {
+        "src": "SLP_R",
+        "dst": "SLP_R",
+        "weight": 605372,
+        "self": true
+      }
+    ],
+    "topEdgesExcludingSelf": [
+      {
+        "src": "ME_R",
+        "dst": "LO_R",
+        "weight": 4050285
+      },
+      {
+        "src": "ME_L",
+        "dst": "LO_L",
+        "weight": 3199178
+      },
+      {
+        "src": "ME_R",
+        "dst": "LOP_R",
+        "weight": 1233046
+      },
+      {
+        "src": "LO_R",
+        "dst": "LOP_R",
+        "weight": 1107659
+      },
+      {
+        "src": "LO_R",
+        "dst": "PVLP_R",
+        "weight": 993108
+      },
+      {
+        "src": "ME_L",
+        "dst": "LOP_L",
+        "weight": 939490
+      },
+      {
+        "src": "LO_L",
+        "dst": "LOP_L",
+        "weight": 878469
+      },
+      {
+        "src": "LO_L",
+        "dst": "PVLP_L",
+        "weight": 836610
+      },
+      {
+        "src": "GNG",
+        "dst": "UNASGD",
+        "weight": 480071
+      },
+      {
+        "src": "LO_R",
+        "dst": "ME_R",
+        "weight": 388474
+      },
+      {
+        "src": "PVLP_R",
+        "dst": "AVLP_R",
+        "weight": 375153
+      },
+      {
+        "src": "AL_R",
+        "dst": "AL_L",
+        "weight": 359301
+      },
+      {
+        "src": "LO_L",
+        "dst": "ME_L",
+        "weight": 339102
+      },
+      {
+        "src": "AL_R",
+        "dst": "LH_R",
+        "weight": 318612
+      },
+      {
+        "src": "ME_L",
+        "dst": "UNASGD",
+        "weight": 317045
+      },
+      {
+        "src": "PVLP_L",
+        "dst": "AVLP_L",
+        "weight": 314191
+      },
+      {
+        "src": "LO_R",
+        "dst": "AOTU_R",
+        "weight": 307946
+      },
+      {
+        "src": "GNG",
+        "dst": "SAD",
+        "weight": 307387
+      },
+      {
+        "src": "LH_R",
+        "dst": "SLP_R",
+        "weight": 302998
+      },
+      {
+        "src": "LOP_R",
+        "dst": "LO_R",
+        "weight": 296386
+      },
+      {
+        "src": "LO_R",
+        "dst": "PLP_R",
+        "weight": 289926
+      },
+      {
+        "src": "LH_L",
+        "dst": "SLP_L",
+        "weight": 267375
+      },
+      {
+        "src": "AL_L",
+        "dst": "LH_L",
+        "weight": 247614
+      },
+      {
+        "src": "LOP_L",
+        "dst": "LO_L",
+        "weight": 241664
+      },
+      {
+        "src": "LO_L",
+        "dst": "AOTU_L",
+        "weight": 238570
+      }
+    ],
+    "sanityChecks": [
+      {
+        "src": "AL_L",
+        "dst": "MB_CA_L",
+        "weight": 157738,
+        "rankAmongSrcOutEdgesExclSelf": 3,
+        "fractionOfSrcOutExclSelf": 0.2006
+      },
+      {
+        "src": "AL_L",
+        "dst": "LH_L",
+        "weight": 247614,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.3149
+      },
+      {
+        "src": "AL_R",
+        "dst": "MB_CA_R",
+        "weight": 193276,
+        "rankAmongSrcOutEdgesExclSelf": 3,
+        "fractionOfSrcOutExclSelf": 0.1816
+      },
+      {
+        "src": "AL_R",
+        "dst": "LH_R",
+        "weight": 318612,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.2994
+      },
+      {
+        "src": "MB_CA_L",
+        "dst": "MB_PED_L",
+        "weight": 6080,
+        "rankAmongSrcOutEdgesExclSelf": 3,
+        "fractionOfSrcOutExclSelf": 0.1094
+      },
+      {
+        "src": "MB_CA_L",
+        "dst": "MB_VL_L",
+        "weight": 21333,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.3838
+      },
+      {
+        "src": "MB_CA_L",
+        "dst": "MB_ML_L",
+        "weight": 19010,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.342
+      },
+      {
+        "src": "MB_CA_R",
+        "dst": "MB_PED_R",
+        "weight": 8243,
+        "rankAmongSrcOutEdgesExclSelf": 3,
+        "fractionOfSrcOutExclSelf": 0.1212
+      },
+      {
+        "src": "MB_CA_R",
+        "dst": "MB_VL_R",
+        "weight": 29191,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.4291
+      },
+      {
+        "src": "MB_CA_R",
+        "dst": "MB_ML_R",
+        "weight": 23750,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.3491
+      },
+      {
+        "src": "ME_L",
+        "dst": "LO_L",
+        "weight": 3199178,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.6521
+      },
+      {
+        "src": "LO_L",
+        "dst": "LOP_L",
+        "weight": 878469,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.2907
+      },
+      {
+        "src": "ME_R",
+        "dst": "LO_R",
+        "weight": 4050285,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.6834
+      },
+      {
+        "src": "LO_R",
+        "dst": "LOP_R",
+        "weight": 1107659,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.3115
+      },
+      {
+        "src": "LA_L",
+        "dst": "ME_L",
+        "weight": 114642,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.916
+      },
+      {
+        "src": "LA_R",
+        "dst": "ME_R",
+        "weight": 190470,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.9915
+      },
+      {
+        "src": "PB",
+        "dst": "EB",
+        "weight": 10199,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.4947
+      },
+      {
+        "src": "EB",
+        "dst": "PB",
+        "weight": 36455,
+        "rankAmongSrcOutEdgesExclSelf": 1,
+        "fractionOfSrcOutExclSelf": 0.2892
+      },
+      {
+        "src": "FB",
+        "dst": "EB",
+        "weight": 9662,
+        "rankAmongSrcOutEdgesExclSelf": 10,
+        "fractionOfSrcOutExclSelf": 0.0368
+      },
+      {
+        "src": "GNG",
+        "dst": "SAD",
+        "weight": 307387,
+        "rankAmongSrcOutEdgesExclSelf": 2,
+        "fractionOfSrcOutExclSelf": 0.1217
+      }
+    ]
+  },
+  "build": {
+    "python": "3.14.6",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "packages": {
+      "pandas": "3.0.5",
+      "pyarrow": "25.0.1",
+      "numpy": "2.5.3",
+      "requests": "2.34.2"
+    },
+    "timingsSec": {
+      "verify inputs": 5.41,
+      "load bodies": 0.47,
+      "stream synapse partners": 6.64,
+      "assign input regions": 0.09,
+      "aggregate projectome edges": 0.07
+    }
+  },
+  "checksums": {
+    "nodes.json": "sha256:d187f5ca6ca94271989ff8f1c85153d16cccf4b5367bd1fe563d6aced75c011d",
+    "graph.json": "sha256:7e2b48fbf7f877e0fefa4905fb41f74596f53d401be2bf67aaba22b882fc3f3a"
+  }
+}

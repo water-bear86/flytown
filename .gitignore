@@ -19,6 +19,8 @@ connectome-etl/__pycache__/
 # neuron-level connectome artifact: large binary payloads (manifest + header stay tracked)
 connectome/fafb-v783-neuron-1/graph.bin
 connectome/fafb-v783-neuron-1/neurons.parquet
+# male mushroom-body circuit graph (~33 MB JSON); rebuild with connectome-etl/build_male.py --mb
+connectome/malecns-v1.0-mb-1/graph.json
 
 # per-project FLYTOWN state: terrarium manifest, compost, runs, provider secrets,
 # decision traces, eval outputs, learned weights

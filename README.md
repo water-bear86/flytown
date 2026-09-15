@@ -146,6 +146,7 @@ flytown fly replay <runId>                # deterministic replay, diffs against 
 flytown fly groups <connectomeId>         # node groups (regions / cell classes / sensory modalities) the adapters can address
 flytown fly sensitivity --planners "fly,fly:shuffled"   # where task information survives: features → input → activity → scores
 flytown fly effects                       # what each planner's chosen actions actually change in the plan
+flytown fly hash --connectome malecns-v1.0-mb-1   # Kenyon-cell code as a task hash, real wiring vs shuffled and rewired copies
 flytown fly eval --planners "rules,fly,fly:shuffled" --seeds 3 --epochs 8   # matched trials, mock worker world
 ```
 

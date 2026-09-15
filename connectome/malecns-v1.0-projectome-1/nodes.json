@@ -1,0 +1,1316 @@
+[
+  {
+    "id": "AL_L",
+    "index": 0,
+    "provenance": "MEASURED",
+    "neuronCount": 1473,
+    "inSynapses": 1604932,
+    "outSynapses": 1994437,
+    "outNt": {
+      "ACH": 1570534,
+      "GABA": 262335,
+      "GLUT": 36618,
+      "DA": 0,
+      "OCT": 13901,
+      "SER": 6834,
+      "HIST": 0,
+      "UNKNOWN": 104215
+    }
+  },
+  {
+    "id": "AL_R",
+    "index": 1,
+    "provenance": "MEASURED",
+    "neuronCount": 2362,
+    "inSynapses": 1911201,
+    "outSynapses": 2722240,
+    "outNt": {
+      "ACH": 2230753,
+      "GABA": 349938,
+      "GLUT": 51456,
+      "DA": 0,
+      "OCT": 16212,
+      "SER": 7903,
+      "HIST": 0,
+      "UNKNOWN": 65978
+    }
+  },
+  {
+    "id": "AME_L",
+    "index": 2,
+    "provenance": "MEASURED",
+    "neuronCount": 14,
+    "inSynapses": 6999,
+    "outSynapses": 11385,
+    "outNt": {
+      "ACH": 2810,
+      "GABA": 0,
+      "GLUT": 2640,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 3664,
+      "HIST": 2271,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "AME_R",
+    "index": 3,
+    "provenance": "MEASURED",
+    "neuronCount": 27,
+    "inSynapses": 26410,
+    "outSynapses": 22107,
+    "outNt": {
+      "ACH": 7222,
+      "GABA": 2551,
+      "GLUT": 6520,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 3896,
+      "HIST": 1873,
+      "UNKNOWN": 45
+    }
+  },
+  {
+    "id": "AOTU_L",
+    "index": 4,
+    "provenance": "MEASURED",
+    "neuronCount": 315,
+    "inSynapses": 505000,
+    "outSynapses": 283886,
+    "outNt": {
+      "ACH": 164509,
+      "GABA": 46385,
+      "GLUT": 68991,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 4001
+    }
+  },
+  {
+    "id": "AOTU_R",
+    "index": 5,
+    "provenance": "MEASURED",
+    "neuronCount": 279,
+    "inSynapses": 560349,
+    "outSynapses": 260771,
+    "outNt": {
+      "ACH": 142327,
+      "GABA": 48594,
+      "GLUT": 65190,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 4660
+    }
+  },
+  {
+    "id": "ATL_L",
+    "index": 6,
+    "provenance": "MEASURED",
+    "neuronCount": 15,
+    "inSynapses": 53249,
+    "outSynapses": 16729,
+    "outNt": {
+      "ACH": 4123,
+      "GABA": 973,
+      "GLUT": 8889,
+      "DA": 964,
+      "OCT": 0,
+      "SER": 1780,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "ATL_R",
+    "index": 7,
+    "provenance": "MEASURED",
+    "neuronCount": 11,
+    "inSynapses": 41189,
+    "outSynapses": 10393,
+    "outNt": {
+      "ACH": 1105,
+      "GABA": 1187,
+      "GLUT": 8101,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "AVLP_L",
+    "index": 8,
+    "provenance": "MEASURED",
+    "neuronCount": 1723,
+    "inSynapses": 2722488,
+    "outSynapses": 3131529,
+    "outNt": {
+      "ACH": 2121773,
+      "GABA": 589416,
+      "GLUT": 336297,
+      "DA": 19328,
+      "OCT": 17113,
+      "SER": 20103,
+      "HIST": 0,
+      "UNKNOWN": 27499
+    }
+  },
+  {
+    "id": "AVLP_R",
+    "index": 9,
+    "provenance": "MEASURED",
+    "neuronCount": 1799,
+    "inSynapses": 3323154,
+    "outSynapses": 3715698,
+    "outNt": {
+      "ACH": 2471226,
+      "GABA": 724515,
+      "GLUT": 404014,
+      "DA": 23333,
+      "OCT": 51034,
+      "SER": 21119,
+      "HIST": 0,
+      "UNKNOWN": 20457
+    }
+  },
+  {
+    "id": "BU_L",
+    "index": 10,
+    "provenance": "MEASURED",
+    "neuronCount": 0,
+    "inSynapses": 19836,
+    "outSynapses": 0,
+    "outNt": {
+      "ACH": 0,
+      "GABA": 0,
+      "GLUT": 0,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "BU_R",
+    "index": 11,
+    "provenance": "MEASURED",
+    "neuronCount": 0,
+    "inSynapses": 20126,
+    "outSynapses": 0,
+    "outNt": {
+      "ACH": 0,
+      "GABA": 0,
+      "GLUT": 0,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "CAN_L",
+    "index": 12,
+    "provenance": "MEASURED",
+    "neuronCount": 2,
+    "inSynapses": 42300,
+    "outSynapses": 1224,
+    "outNt": {
+      "ACH": 1091,
+      "GABA": 0,
+      "GLUT": 133,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "CAN_R",
+    "index": 13,
+    "provenance": "MEASURED",
+    "neuronCount": 1,
+    "inSynapses": 39578,
+    "outSynapses": 718,
+    "outNt": {
+      "ACH": 0,
+      "GABA": 0,
+      "GLUT": 0,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 718,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "CRE_L",
+    "index": 14,
+    "provenance": "MEASURED",
+    "neuronCount": 359,
+    "inSynapses": 529994,
+    "outSynapses": 432118,
+    "outNt": {
+      "ACH": 216137,
+      "GABA": 67722,
+      "GLUT": 123121,
+      "DA": 13690,
+      "OCT": 0,
+      "SER": 9504,
+      "HIST": 0,
+      "UNKNOWN": 1944
+    }
+  },
+  {
+    "id": "CRE_R",
+    "index": 15,
+    "provenance": "MEASURED",
+    "neuronCount": 298,
+    "inSynapses": 482621,
+    "outSynapses": 336745,
+    "outNt": {
+      "ACH": 182227,
+      "GABA": 60610,
+      "GLUT": 83564,
+      "DA": 6806,
+      "OCT": 0,
+      "SER": 3538,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "EB",
+    "index": 16,
+    "provenance": "MEASURED",
+    "neuronCount": 392,
+    "inSynapses": 712975,
+    "outSynapses": 787645,
+    "outNt": {
+      "ACH": 231041,
+      "GABA": 465057,
+      "GLUT": 53038,
+      "DA": 7403,
+      "OCT": 31106,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "EPA_L",
+    "index": 17,
+    "provenance": "MEASURED",
+    "neuronCount": 7,
+    "inSynapses": 105806,
+    "outSynapses": 10314,
+    "outNt": {
+      "ACH": 7574,
+      "GABA": 0,
+      "GLUT": 2740,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "EPA_R",
+    "index": 18,
+    "provenance": "MEASURED",
+    "neuronCount": 2,
+    "inSynapses": 81972,
+    "outSynapses": 2560,
+    "outNt": {
+      "ACH": 1339,
+      "GABA": 0,
+      "GLUT": 1221,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "FB",
+    "index": 19,
+    "provenance": "MEASURED",
+    "neuronCount": 1869,
+    "inSynapses": 1612968,
+    "outSynapses": 1661227,
+    "outNt": {
+      "ACH": 725356,
+      "GABA": 38573,
+      "GLUT": 728526,
+      "DA": 49249,
+      "OCT": 34231,
+      "SER": 65961,
+      "HIST": 0,
+      "UNKNOWN": 19331
+    }
+  },
+  {
+    "id": "FLA_L",
+    "index": 20,
+    "provenance": "MEASURED",
+    "neuronCount": 76,
+    "inSynapses": 204687,
+    "outSynapses": 71165,
+    "outNt": {
+      "ACH": 46058,
+      "GABA": 12116,
+      "GLUT": 10116,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 1971,
+      "HIST": 0,
+      "UNKNOWN": 904
+    }
+  },
+  {
+    "id": "FLA_R",
+    "index": 21,
+    "provenance": "MEASURED",
+    "neuronCount": 69,
+    "inSynapses": 201266,
+    "outSynapses": 56805,
+    "outNt": {
+      "ACH": 29396,
+      "GABA": 11275,
+      "GLUT": 12083,
+      "DA": 0,
+      "OCT": 152,
+      "SER": 789,
+      "HIST": 0,
+      "UNKNOWN": 3110
+    }
+  },
+  {
+    "id": "GNG",
+    "index": 22,
+    "provenance": "MEASURED",
+    "neuronCount": 5862,
+    "inSynapses": 4707099,
+    "outSynapses": 6355866,
+    "outNt": {
+      "ACH": 3520971,
+      "GABA": 1901911,
+      "GLUT": 714764,
+      "DA": 0,
+      "OCT": 22424,
+      "SER": 76100,
+      "HIST": 12910,
+      "UNKNOWN": 106786
+    }
+  },
+  {
+    "id": "GOR_L",
+    "index": 23,
+    "provenance": "MEASURED",
+    "neuronCount": 2,
+    "inSynapses": 106608,
+    "outSynapses": 1643,
+    "outNt": {
+      "ACH": 1643,
+      "GABA": 0,
+      "GLUT": 0,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "GOR_R",
+    "index": 24,
+    "provenance": "MEASURED",
+    "neuronCount": 2,
+    "inSynapses": 111287,
+    "outSynapses": 1184,
+    "outNt": {
+      "ACH": 1184,
+      "GABA": 0,
+      "GLUT": 0,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "IB",
+    "index": 25,
+    "provenance": "MEASURED",
+    "neuronCount": 303,
+    "inSynapses": 577500,
+    "outSynapses": 391794,
+    "outNt": {
+      "ACH": 160864,
+      "GABA": 100166,
+      "GLUT": 106052,
+      "DA": 1777,
+      "OCT": 0,
+      "SER": 20140,
+      "HIST": 0,
+      "UNKNOWN": 2795
+    }
+  },
+  {
+    "id": "ICL_L",
+    "index": 26,
+    "provenance": "MEASURED",
+    "neuronCount": 362,
+    "inSynapses": 654177,
+    "outSynapses": 414093,
+    "outNt": {
+      "ACH": 249476,
+      "GABA": 46139,
+      "GLUT": 112103,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 6375
+    }
+  },
+  {
+    "id": "ICL_R",
+    "index": 27,
+    "provenance": "MEASURED",
+    "neuronCount": 316,
+    "inSynapses": 589823,
+    "outSynapses": 321835,
+    "outNt": {
+      "ACH": 194951,
+      "GABA": 26778,
+      "GLUT": 100106,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "IPS_L",
+    "index": 28,
+    "provenance": "MEASURED",
+    "neuronCount": 259,
+    "inSynapses": 435922,
+    "outSynapses": 333866,
+    "outNt": {
+      "ACH": 203223,
+      "GABA": 54190,
+      "GLUT": 75907,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 546
+    }
+  },
+  {
+    "id": "IPS_R",
+    "index": 29,
+    "provenance": "MEASURED",
+    "neuronCount": 257,
+    "inSynapses": 457492,
+    "outSynapses": 329035,
+    "outNt": {
+      "ACH": 201788,
+      "GABA": 58351,
+      "GLUT": 68520,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 376
+    }
+  },
+  {
+    "id": "LAL_L",
+    "index": 30,
+    "provenance": "MEASURED",
+    "neuronCount": 471,
+    "inSynapses": 867125,
+    "outSynapses": 872927,
+    "outNt": {
+      "ACH": 415620,
+      "GABA": 220553,
+      "GLUT": 169709,
+      "DA": 8116,
+      "OCT": 40467,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 18462
+    }
+  },
+  {
+    "id": "LAL_R",
+    "index": 31,
+    "provenance": "MEASURED",
+    "neuronCount": 404,
+    "inSynapses": 771670,
+    "outSynapses": 741551,
+    "outNt": {
+      "ACH": 356162,
+      "GABA": 196422,
+      "GLUT": 165834,
+      "DA": 5483,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 17650
+    }
+  },
+  {
+    "id": "LA_L",
+    "index": 32,
+    "provenance": "MEASURED",
+    "neuronCount": 1053,
+    "inSynapses": 100183,
+    "outSynapses": 190465,
+    "outNt": {
+      "ACH": 103552,
+      "GABA": 0,
+      "GLUT": 35806,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 50630,
+      "UNKNOWN": 477
+    }
+  },
+  {
+    "id": "LA_R",
+    "index": 33,
+    "provenance": "MEASURED",
+    "neuronCount": 1606,
+    "inSynapses": 154077,
+    "outSynapses": 293615,
+    "outNt": {
+      "ACH": 157779,
+      "GABA": 0,
+      "GLUT": 57377,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 77620,
+      "UNKNOWN": 839
+    }
+  },
+  {
+    "id": "LH_L",
+    "index": 34,
+    "provenance": "MEASURED",
+    "neuronCount": 1217,
+    "inSynapses": 701175,
+    "outSynapses": 810741,
+    "outNt": {
+      "ACH": 444660,
+      "GABA": 176458,
+      "GLUT": 176071,
+      "DA": 3710,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 9842
+    }
+  },
+  {
+    "id": "LH_R",
+    "index": 35,
+    "provenance": "MEASURED",
+    "neuronCount": 1246,
+    "inSynapses": 862575,
+    "outSynapses": 931963,
+    "outNt": {
+      "ACH": 517810,
+      "GABA": 186325,
+      "GLUT": 208051,
+      "DA": 4850,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 14927
+    }
+  },
+  {
+    "id": "LOP_L",
+    "index": 36,
+    "provenance": "MEASURED",
+    "neuronCount": 2189,
+    "inSynapses": 2874300,
+    "outSynapses": 1633320,
+    "outNt": {
+      "ACH": 630205,
+      "GABA": 253897,
+      "GLUT": 745250,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 3968
+    }
+  },
+  {
+    "id": "LOP_R",
+    "index": 37,
+    "provenance": "MEASURED",
+    "neuronCount": 2227,
+    "inSynapses": 3660720,
+    "outSynapses": 1949630,
+    "outNt": {
+      "ACH": 762790,
+      "GABA": 321445,
+      "GLUT": 855916,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 9479
+    }
+  },
+  {
+    "id": "LO_L",
+    "index": 38,
+    "provenance": "MEASURED",
+    "neuronCount": 7892,
+    "inSynapses": 5864252,
+    "outSynapses": 5169945,
+    "outNt": {
+      "ACH": 3316028,
+      "GABA": 1081978,
+      "GLUT": 692543,
+      "DA": 24413,
+      "OCT": 53493,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 1490
+    }
+  },
+  {
+    "id": "LO_R",
+    "index": 39,
+    "provenance": "MEASURED",
+    "neuronCount": 7884,
+    "inSynapses": 7270456,
+    "outSynapses": 6137882,
+    "outNt": {
+      "ACH": 4006378,
+      "GABA": 1237382,
+      "GLUT": 801447,
+      "DA": 32369,
+      "OCT": 40713,
+      "SER": 17022,
+      "HIST": 0,
+      "UNKNOWN": 2571
+    }
+  },
+  {
+    "id": "MB_CA_L",
+    "index": 40,
+    "provenance": "MEASURED",
+    "neuronCount": 135,
+    "inSynapses": 240018,
+    "outSynapses": 68586,
+    "outNt": {
+      "ACH": 56404,
+      "GABA": 9888,
+      "GLUT": 2294,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "MB_CA_R",
+    "index": 41,
+    "provenance": "MEASURED",
+    "neuronCount": 169,
+    "inSynapses": 290842,
+    "outSynapses": 86635,
+    "outNt": {
+      "ACH": 72079,
+      "GABA": 14542,
+      "GLUT": 0,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 14
+    }
+  },
+  {
+    "id": "MB_ML_L",
+    "index": 42,
+    "provenance": "MEASURED",
+    "neuronCount": 1665,
+    "inSynapses": 1000702,
+    "outSynapses": 1273836,
+    "outNt": {
+      "ACH": 921406,
+      "GABA": 135196,
+      "GLUT": 42274,
+      "DA": 174960,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "MB_ML_R",
+    "index": 43,
+    "provenance": "MEASURED",
+    "neuronCount": 1455,
+    "inSynapses": 866083,
+    "outSynapses": 1121503,
+    "outNt": {
+      "ACH": 836766,
+      "GABA": 126305,
+      "GLUT": 39428,
+      "DA": 118962,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 42
+    }
+  },
+  {
+    "id": "MB_PED_L",
+    "index": 44,
+    "provenance": "MEASURED",
+    "neuronCount": 0,
+    "inSynapses": 84655,
+    "outSynapses": 0,
+    "outNt": {
+      "ACH": 0,
+      "GABA": 0,
+      "GLUT": 0,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "MB_PED_R",
+    "index": 45,
+    "provenance": "MEASURED",
+    "neuronCount": 3,
+    "inSynapses": 92415,
+    "outSynapses": 2703,
+    "outNt": {
+      "ACH": 0,
+      "GABA": 0,
+      "GLUT": 0,
+      "DA": 2703,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "MB_VL_L",
+    "index": 46,
+    "provenance": "MEASURED",
+    "neuronCount": 451,
+    "inSynapses": 267247,
+    "outSynapses": 207295,
+    "outNt": {
+      "ACH": 190689,
+      "GABA": 0,
+      "GLUT": 2179,
+      "DA": 14427,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "MB_VL_R",
+    "index": 47,
+    "provenance": "MEASURED",
+    "neuronCount": 604,
+    "inSynapses": 304241,
+    "outSynapses": 290115,
+    "outNt": {
+      "ACH": 263611,
+      "GABA": 3322,
+      "GLUT": 2548,
+      "DA": 20634,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "ME_L",
+    "index": 48,
+    "provenance": "MEASURED",
+    "neuronCount": 39626,
+    "inSynapses": 12783606,
+    "outSynapses": 16843208,
+    "outNt": {
+      "ACH": 10542795,
+      "GABA": 2641880,
+      "GLUT": 3383447,
+      "DA": 0,
+      "OCT": 59782,
+      "SER": 186,
+      "HIST": 194032,
+      "UNKNOWN": 21086
+    }
+  },
+  {
+    "id": "ME_R",
+    "index": 49,
+    "provenance": "MEASURED",
+    "neuronCount": 39990,
+    "inSynapses": 15287251,
+    "outSynapses": 20137755,
+    "outNt": {
+      "ACH": 12761990,
+      "GABA": 3147415,
+      "GLUT": 3900957,
+      "DA": 0,
+      "OCT": 87974,
+      "SER": 0,
+      "HIST": 211308,
+      "UNKNOWN": 28111
+    }
+  },
+  {
+    "id": "NO",
+    "index": 50,
+    "provenance": "MEASURED",
+    "neuronCount": 459,
+    "inSynapses": 195957,
+    "outSynapses": 244001,
+    "outNt": {
+      "ACH": 222519,
+      "GABA": 12638,
+      "GLUT": 8844,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "PB",
+    "index": 51,
+    "provenance": "MEASURED",
+    "neuronCount": 100,
+    "inSynapses": 174765,
+    "outSynapses": 150360,
+    "outNt": {
+      "ACH": 52754,
+      "GABA": 0,
+      "GLUT": 97606,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "PLP_L",
+    "index": 52,
+    "provenance": "MEASURED",
+    "neuronCount": 900,
+    "inSynapses": 1136298,
+    "outSynapses": 1146433,
+    "outNt": {
+      "ACH": 517173,
+      "GABA": 314714,
+      "GLUT": 241135,
+      "DA": 0,
+      "OCT": 17322,
+      "SER": 31639,
+      "HIST": 0,
+      "UNKNOWN": 24450
+    }
+  },
+  {
+    "id": "PLP_R",
+    "index": 53,
+    "provenance": "MEASURED",
+    "neuronCount": 1011,
+    "inSynapses": 1391964,
+    "outSynapses": 1369782,
+    "outNt": {
+      "ACH": 639684,
+      "GABA": 364457,
+      "GLUT": 269621,
+      "DA": 0,
+      "OCT": 10925,
+      "SER": 46633,
+      "HIST": 0,
+      "UNKNOWN": 38462
+    }
+  },
+  {
+    "id": "PRW",
+    "index": 54,
+    "provenance": "MEASURED",
+    "neuronCount": 441,
+    "inSynapses": 399868,
+    "outSynapses": 466317,
+    "outNt": {
+      "ACH": 234309,
+      "GABA": 58065,
+      "GLUT": 109087,
+      "DA": 0,
+      "OCT": 353,
+      "SER": 41704,
+      "HIST": 0,
+      "UNKNOWN": 22799
+    }
+  },
+  {
+    "id": "PVLP_L",
+    "index": 55,
+    "provenance": "MEASURED",
+    "neuronCount": 743,
+    "inSynapses": 1888333,
+    "outSynapses": 1238365,
+    "outNt": {
+      "ACH": 756253,
+      "GABA": 289181,
+      "GLUT": 169458,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 986,
+      "HIST": 0,
+      "UNKNOWN": 22487
+    }
+  },
+  {
+    "id": "PVLP_R",
+    "index": 56,
+    "provenance": "MEASURED",
+    "neuronCount": 654,
+    "inSynapses": 2074446,
+    "outSynapses": 1248603,
+    "outNt": {
+      "ACH": 743737,
+      "GABA": 293930,
+      "GLUT": 183200,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 796,
+      "HIST": 0,
+      "UNKNOWN": 26940
+    }
+  },
+  {
+    "id": "SAD",
+    "index": 57,
+    "provenance": "MEASURED",
+    "neuronCount": 1605,
+    "inSynapses": 1471422,
+    "outSynapses": 1692027,
+    "outNt": {
+      "ACH": 979853,
+      "GABA": 549068,
+      "GLUT": 150740,
+      "DA": 0,
+      "OCT": 7723,
+      "SER": 0,
+      "HIST": 1215,
+      "UNKNOWN": 3428
+    }
+  },
+  {
+    "id": "SCL_L",
+    "index": 58,
+    "provenance": "MEASURED",
+    "neuronCount": 130,
+    "inSynapses": 517837,
+    "outSynapses": 115953,
+    "outNt": {
+      "ACH": 44014,
+      "GABA": 2564,
+      "GLUT": 59485,
+      "DA": 785,
+      "OCT": 0,
+      "SER": 9105,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "SCL_R",
+    "index": 59,
+    "provenance": "MEASURED",
+    "neuronCount": 130,
+    "inSynapses": 564200,
+    "outSynapses": 123999,
+    "outNt": {
+      "ACH": 53280,
+      "GABA": 4303,
+      "GLUT": 62247,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 4169,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "SIP_L",
+    "index": 60,
+    "provenance": "MEASURED",
+    "neuronCount": 425,
+    "inSynapses": 609346,
+    "outSynapses": 486372,
+    "outNt": {
+      "ACH": 236577,
+      "GABA": 55604,
+      "GLUT": 179927,
+      "DA": 5036,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 9228
+    }
+  },
+  {
+    "id": "SIP_R",
+    "index": 61,
+    "provenance": "MEASURED",
+    "neuronCount": 400,
+    "inSynapses": 610745,
+    "outSynapses": 480211,
+    "outNt": {
+      "ACH": 228724,
+      "GABA": 76188,
+      "GLUT": 159887,
+      "DA": 5284,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 10128
+    }
+  },
+  {
+    "id": "SLP_L",
+    "index": 62,
+    "provenance": "MEASURED",
+    "neuronCount": 1566,
+    "inSynapses": 1294718,
+    "outSynapses": 1125327,
+    "outNt": {
+      "ACH": 534023,
+      "GABA": 136233,
+      "GLUT": 390731,
+      "DA": 5691,
+      "OCT": 10000,
+      "SER": 33450,
+      "HIST": 0,
+      "UNKNOWN": 15199
+    }
+  },
+  {
+    "id": "SLP_R",
+    "index": 63,
+    "provenance": "MEASURED",
+    "neuronCount": 1541,
+    "inSynapses": 1445884,
+    "outSynapses": 1187896,
+    "outNt": {
+      "ACH": 561008,
+      "GABA": 137072,
+      "GLUT": 423738,
+      "DA": 8035,
+      "OCT": 0,
+      "SER": 44441,
+      "HIST": 0,
+      "UNKNOWN": 13602
+    }
+  },
+  {
+    "id": "SMP_L",
+    "index": 64,
+    "provenance": "MEASURED",
+    "neuronCount": 1143,
+    "inSynapses": 1331731,
+    "outSynapses": 1266321,
+    "outNt": {
+      "ACH": 599599,
+      "GABA": 125001,
+      "GLUT": 460957,
+      "DA": 2308,
+      "OCT": 16381,
+      "SER": 33538,
+      "HIST": 0,
+      "UNKNOWN": 28537
+    }
+  },
+  {
+    "id": "SMP_R",
+    "index": 65,
+    "provenance": "MEASURED",
+    "neuronCount": 1209,
+    "inSynapses": 1304785,
+    "outSynapses": 1299737,
+    "outNt": {
+      "ACH": 625497,
+      "GABA": 141941,
+      "GLUT": 456031,
+      "DA": 7561,
+      "OCT": 0,
+      "SER": 34005,
+      "HIST": 0,
+      "UNKNOWN": 34702
+    }
+  },
+  {
+    "id": "SPS_L",
+    "index": 66,
+    "provenance": "MEASURED",
+    "neuronCount": 487,
+    "inSynapses": 795967,
+    "outSynapses": 644596,
+    "outNt": {
+      "ACH": 333067,
+      "GABA": 131741,
+      "GLUT": 162233,
+      "DA": 0,
+      "OCT": 15157,
+      "SER": 1381,
+      "HIST": 0,
+      "UNKNOWN": 1017
+    }
+  },
+  {
+    "id": "SPS_R",
+    "index": 67,
+    "provenance": "MEASURED",
+    "neuronCount": 458,
+    "inSynapses": 790726,
+    "outSynapses": 623430,
+    "outNt": {
+      "ACH": 327872,
+      "GABA": 123403,
+      "GLUT": 157891,
+      "DA": 0,
+      "OCT": 12791,
+      "SER": 1457,
+      "HIST": 0,
+      "UNKNOWN": 16
+    }
+  },
+  {
+    "id": "UNASGD",
+    "index": 68,
+    "provenance": "MEASURED",
+    "neuronCount": 110,
+    "inSynapses": 2329145,
+    "outSynapses": 1628,
+    "outNt": {
+      "ACH": 888,
+      "GABA": 1,
+      "GLUT": 146,
+      "DA": 0,
+      "OCT": 0,
+      "SER": 54,
+      "HIST": 214,
+      "UNKNOWN": 325
+    }
+  },
+  {
+    "id": "VES_L",
+    "index": 69,
+    "provenance": "MEASURED",
+    "neuronCount": 283,
+    "inSynapses": 663499,
+    "outSynapses": 577699,
+    "outNt": {
+      "ACH": 251829,
+      "GABA": 238838,
+      "GLUT": 75025,
+      "DA": 6098,
+      "OCT": 5909,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 0
+    }
+  },
+  {
+    "id": "VES_R",
+    "index": 70,
+    "provenance": "MEASURED",
+    "neuronCount": 285,
+    "inSynapses": 640976,
+    "outSynapses": 584956,
+    "outNt": {
+      "ACH": 283720,
+      "GABA": 227206,
+      "GLUT": 65384,
+      "DA": 8572,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 74
+    }
+  },
+  {
+    "id": "WED_L",
+    "index": 71,
+    "provenance": "MEASURED",
+    "neuronCount": 686,
+    "inSynapses": 735296,
+    "outSynapses": 683543,
+    "outNt": {
+      "ACH": 384588,
+      "GABA": 240995,
+      "GLUT": 50359,
+      "DA": 5267,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 2334
+    }
+  },
+  {
+    "id": "WED_R",
+    "index": 72,
+    "provenance": "MEASURED",
+    "neuronCount": 751,
+    "inSynapses": 822683,
+    "outSynapses": 782949,
+    "outNt": {
+      "ACH": 417750,
+      "GABA": 297276,
+      "GLUT": 62975,
+      "DA": 2524,
+      "OCT": 0,
+      "SER": 0,
+      "HIST": 0,
+      "UNKNOWN": 2424
+    }
+  }
+]

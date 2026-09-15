@@ -1,0 +1,512 @@
+{
+  "version": "projectome-default-2",
+  "family": "projectome",
+  "inputGain": 1,
+  "quiescenceWeight": 0,
+  "encoder": {
+    "complexity": [
+      {
+        "group": "AL",
+        "weight": 0.9,
+        "tag": "METAPHOR",
+        "note": "task as odour stimulus"
+      }
+    ],
+    "deliv_code_change": [
+      {
+        "group": "AL",
+        "weight": 0.5,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "LH",
+        "weight": 0.2,
+        "tag": "METAPHOR"
+      }
+    ],
+    "deliv_investigation": [
+      {
+        "group": "AL",
+        "weight": 0.6,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "MB_CA",
+        "weight": 0.3,
+        "tag": "METAPHOR",
+        "note": "investigation leans on memory"
+      }
+    ],
+    "deliv_research": [
+      {
+        "group": "AL",
+        "weight": 0.5,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "MB_CA",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "deliv_verification": [
+      {
+        "group": "AL",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "GNG",
+        "weight": 0.4,
+        "tag": "METAPHOR",
+        "note": "tasting the result"
+      }
+    ],
+    "deliv_answer": [
+      {
+        "group": "AL",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "LH",
+        "weight": 0.3,
+        "tag": "METAPHOR",
+        "note": "innate / fast response"
+      }
+    ],
+    "deliv_unknown": [
+      {
+        "group": "AL",
+        "weight": 0.3,
+        "tag": "METAPHOR"
+      }
+    ],
+    "repo_size": [
+      {
+        "group": "ME",
+        "weight": 0.8,
+        "tag": "METAPHOR",
+        "note": "medulla: scene richness"
+      },
+      {
+        "group": "LA",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "repo_has_tests": [
+      {
+        "group": "LO",
+        "weight": 0.7,
+        "tag": "METAPHOR",
+        "note": "lobula: structured features present"
+      }
+    ],
+    "repo_has_manifest": [
+      {
+        "group": "LOP",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "test_failures": [
+      {
+        "group": "SAD",
+        "weight": 0.9,
+        "tag": "METAPHOR",
+        "note": "mechanosensory alarm; rerouted from AMMC (M1b)"
+      },
+      {
+        "group": "SAD",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "runtime_errors": [
+      {
+        "group": "SAD",
+        "weight": 0.8,
+        "tag": "METAPHOR",
+        "note": "rerouted from AMMC (M1b)"
+      },
+      {
+        "group": "WED",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "compile_errors": [
+      {
+        "group": "SAD",
+        "weight": 0.7,
+        "tag": "METAPHOR",
+        "note": "rerouted from AMMC (M1b)"
+      }
+    ],
+    "prior_success": [
+      {
+        "group": "GNG",
+        "weight": 0.8,
+        "tag": "METAPHOR",
+        "note": "sugar"
+      }
+    ],
+    "prior_failure": [
+      {
+        "group": "PRW",
+        "weight": 0.9,
+        "tag": "METAPHOR",
+        "note": "bitter"
+      },
+      {
+        "group": "FLA",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "attempts": [
+      {
+        "group": "PRW",
+        "weight": 0.6,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "MB_ML",
+        "weight": 0.3,
+        "tag": "METAPHOR",
+        "note": "avoidance memory"
+      }
+    ],
+    "pressure": [
+      {
+        "group": "SAD",
+        "weight": 0.9,
+        "tag": "METAPHOR",
+        "note": "urgency"
+      },
+      {
+        "group": "SAD",
+        "weight": 0.3,
+        "tag": "METAPHOR",
+        "note": "rerouted from AMMC (M1b)"
+      }
+    ],
+    "approvals_pending": [
+      {
+        "group": "SMP",
+        "weight": 0.8,
+        "tag": "METAPHOR",
+        "note": "higher-order gate"
+      }
+    ],
+    "cue_approval": [
+      {
+        "group": "SMP",
+        "weight": 0.9,
+        "tag": "METAPHOR"
+      }
+    ],
+    "cue_blocked": [
+      {
+        "group": "PRW",
+        "weight": 0.7,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "SAD",
+        "weight": 0.5,
+        "tag": "METAPHOR"
+      }
+    ],
+    "cue_stop": [
+      {
+        "group": "GNG",
+        "weight": 0.5,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "NO",
+        "weight": 0.4,
+        "tag": "METAPHOR",
+        "note": "rerouted from GA (M1b)"
+      }
+    ],
+    "cue_misleading": [
+      {
+        "group": "EB",
+        "weight": 0.6,
+        "tag": "METAPHOR",
+        "note": "heading uncertainty"
+      },
+      {
+        "group": "LH",
+        "weight": 0.3,
+        "tag": "METAPHOR"
+      }
+    ],
+    "uncertainty": [
+      {
+        "group": "EB",
+        "weight": 0.9,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "PB",
+        "weight": 0.3,
+        "tag": "METAPHOR"
+      }
+    ],
+    "conflicting": [
+      {
+        "group": "EB",
+        "weight": 0.6,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "FB",
+        "weight": 0.5,
+        "tag": "METAPHOR",
+        "note": "competing drives"
+      }
+    ],
+    "security_sensitive": [
+      {
+        "group": "LH",
+        "weight": 0.8,
+        "tag": "METAPHOR",
+        "note": "innate aversion"
+      },
+      {
+        "group": "SMP",
+        "weight": 0.3,
+        "tag": "METAPHOR"
+      }
+    ],
+    "prior_artifacts": [
+      {
+        "group": "MB_CA",
+        "weight": 0.9,
+        "tag": "METAPHOR",
+        "note": "calyx: memory input"
+      }
+    ],
+    "constraints": [
+      {
+        "group": "FB",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ]
+  },
+  "readout": {
+    "spawn_flight": [
+      {
+        "group": "LAL",
+        "weight": 1,
+        "tag": "METAPHOR",
+        "note": "premotor"
+      },
+      {
+        "group": "SPS",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "IPS",
+        "weight": 0.3,
+        "tag": "METAPHOR"
+      }
+    ],
+    "increase_swarm_size": [
+      {
+        "group": "FB",
+        "weight": 0.9,
+        "tag": "METAPHOR",
+        "note": "arousal / exploration"
+      },
+      {
+        "group": "CRE",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "request_artifact_investigation": [
+      {
+        "group": "LH",
+        "weight": 0.8,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "PLP",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "MB_CA",
+        "weight": 0.3,
+        "tag": "METAPHOR"
+      }
+    ],
+    "invoke_reviewer": [
+      {
+        "group": "SLP",
+        "weight": 0.8,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "SIP",
+        "weight": 0.5,
+        "tag": "METAPHOR"
+      }
+    ],
+    "merge_results": [
+      {
+        "group": "PB",
+        "weight": 0.8,
+        "tag": "METAPHOR",
+        "note": "integration"
+      },
+      {
+        "group": "EB",
+        "weight": 0.3,
+        "tag": "METAPHOR"
+      }
+    ],
+    "run_tool": [
+      {
+        "group": "GNG",
+        "weight": 0.7,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "SAD",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "run_tests": [
+      {
+        "group": "WED",
+        "weight": 0.6,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "AVLP",
+        "weight": 0.5,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "PVLP",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "retry_new_approach": [
+      {
+        "group": "MB_ML",
+        "weight": 0.8,
+        "tag": "METAPHOR",
+        "note": "learned avoidance"
+      },
+      {
+        "group": "MB_VL",
+        "weight": 0.7,
+        "tag": "METAPHOR"
+      }
+    ],
+    "search_memory": [
+      {
+        "group": "MB_CA",
+        "weight": 0.8,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "MB_PED",
+        "weight": 0.6,
+        "tag": "METAPHOR"
+      }
+    ],
+    "surface_uncertainty": [
+      {
+        "group": "EB",
+        "weight": 0.9,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "NO",
+        "weight": 0.4,
+        "tag": "METAPHOR"
+      }
+    ],
+    "request_human_approval": [
+      {
+        "group": "SMP",
+        "weight": 0.9,
+        "tag": "METAPHOR"
+      },
+      {
+        "group": "ATL",
+        "weight": 0.3,
+        "tag": "METAPHOR"
+      }
+    ],
+    "terminate_success": [
+      {
+        "group": "NO",
+        "weight": 0.5,
+        "tag": "METAPHOR",
+        "note": "rerouted from GA (M1b)"
+      },
+      {
+        "group": "BU",
+        "weight": 0.3,
+        "tag": "METAPHOR"
+      }
+    ],
+    "terminate_blocked": [
+      {
+        "group": "PRW",
+        "weight": 0.8,
+        "tag": "METAPHOR",
+        "note": "bitter"
+      },
+      {
+        "group": "FLA",
+        "weight": 0.5,
+        "tag": "METAPHOR"
+      }
+    ]
+  },
+  "readoutBias": {
+    "spawn_flight": 0.15,
+    "increase_swarm_size": 0.02,
+    "request_artifact_investigation": 0.02,
+    "invoke_reviewer": 0.02,
+    "merge_results": 0.02,
+    "run_tool": 0.02,
+    "run_tests": 0.02,
+    "retry_new_approach": 0.02,
+    "search_memory": 0.02,
+    "surface_uncertainty": 0.02,
+    "request_human_approval": 0.02,
+    "terminate_success": 0.02,
+    "terminate_blocked": 0.02
+  },
+  "rerouting": {
+    "variant": "M1b",
+    "rule": "AMMC -> ROI holding most presynaptic sites of JO-* neurons; GA -> ROI holding most presynaptic sites of GLNO, LNO*, LCNO* neurons (pre-registered addendum, 2026-09-14)",
+    "reroute": {
+      "AMMC": "SAD",
+      "GA": "NO"
+    },
+    "changed": [
+      "encoder.test_failures: AMMC -> SAD (weight 0.9)",
+      "encoder.runtime_errors: AMMC -> SAD (weight 0.8)",
+      "encoder.compile_errors: AMMC -> SAD (weight 0.7)",
+      "encoder.pressure: AMMC -> SAD (weight 0.3)",
+      "encoder.cue_stop: GA -> NO (weight 0.4)",
+      "readout.terminate_success: GA -> NO (weight 0.5)"
+    ]
+  }
+}

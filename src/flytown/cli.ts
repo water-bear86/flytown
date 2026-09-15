@@ -34,13 +34,14 @@ export async function runFlyCli(argv: string[]): Promise<void> {
     case "groups": return cmdGroups(args);
     case "sensitivity": return cmdSensitivity(args);
     case "effects": return cmdEffects(args);
+    case "hash": return cmdHash(args);
     case "fixtures": return cmdFixtures(args);
     case "planners": {
       process.stdout.write(KNOWN_PLANNER_SPECS.join("\n") + "\n  (flags combine with '+', e.g. fly:shuffled+norecurrence, fly:ablate=MB_CA,MB_ML)\n");
       return;
     }
     default:
-      process.stderr.write(`usage: fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|effects|fixtures|planners> ...\n`);
+      process.stderr.write(`usage: fly <plan|eval|trace|traces|replay|connectome|regions|groups|sensitivity|effects|hash|fixtures|planners> ...\n`);
       process.exitCode = 1;
   }
 }
@@ -141,6 +142,31 @@ async function cmdEffects(args: string[]): Promise<void> {
   for (const r of rows) process.stdout.write(`  ${r.planner}: ${Object.entries(r.primaries).sort((a, b) => b[1] - a[1]).map(([a, c]) => `${a}×${c}`).join(" ")}\n`);
 }
 
+/**
+ * The model-free mushroom-body hash test: is the Kenyon-cell code of the real
+ * wiring a better task hash than label-shuffled and degree-preserving rewired
+ * copies of the same graph? Deterministic; no model calls.
+ */
+async function cmdHash(args: string[]): Promise<void> {
+  const f = flags(args);
+  const id = f.connectome ?? "l1-larva-winding2023-1";
+  const list = (v: string | undefined, d: number[]) => (v ? v.split(",").map((x) => Number(x.trim())).filter((x) => Number.isFinite(x)) : d);
+  const odorFractions = list(f.odor, [0.024, 0.05, 0.1, 0.15]);
+  const seeds = list(f.seeds, [1, 2, 3]);
+  const { hashExperiment, renderHashReport } = await import("./eval/hash-experiment.js");
+  const graph = await loadConnectome(id, { root: f["connectome-root"] ?? defaultConnectomeRoot() });
+  process.stderr.write(`hash test on ${id}: ${graph.n} neurons, ${graph.src.length} edges, odour sparseness ${odorFractions.join(",")}, null seeds ${seeds.join(",")}\n`);
+  const h = await hashExperiment(graph, { seeds, odorFractions, sparseness: f.sparseness ? Number(f.sparseness) : undefined });
+  const report = renderHashReport(h, [], id).replace(/\n## 2\. Does a stored association generalise[\s\S]*$/, "\n");
+  if (f.out) {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(f.out, report + "\n", "utf8");
+    process.stdout.write(`report: ${f.out}\n`);
+  } else {
+    process.stdout.write(report + "\n");
+  }
+}
+
 function flags(args: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (let i = 0; i < args.length; i++) {
@@ -197,6 +223,11 @@ async function cmdEval(args: string[]): Promise<void> {
   const f = flags(args);
   const planners = (f.planners ?? "rules,random,fly,fly:shuffled").split(",").map((s) => s.trim()).filter(Boolean);
   const nSeeds = f.seeds ? Number(f.seeds) : 3;
+  if (!Number.isInteger(nSeeds) || nSeeds < 1) {
+    process.stderr.write(`--seeds takes a count of seeds (e.g. --seeds 3 runs seeds 1..3), got "${f.seeds}"\n`);
+    process.exitCode = 1;
+    return;
+  }
   const seeds = Array.from({ length: nSeeds }, (_, i) => i + 1);
   const ids = f.fixtures ? new Set(f.fixtures.split(",")) : null;
   const fixtures = ids ? FIXTURES.filter((x) => ids.has(x.id)) : FIXTURES;

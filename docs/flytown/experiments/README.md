@@ -367,3 +367,73 @@ Inspecting the downloaded tables settled the choices the protocol left open. Eac
 - **Transmitters.** Per neuron: consensus prediction; if `unclear`, the neuron's own prediction; if still `unclear`, its cell type's; if still `unclear`, `UNKNOWN`. Histamine gets its own class, `HIST`. The engine gives any class without a sign in its policy a sign of 0, so `HIST` and `UNKNOWN` synapses are silent, as `UNKNOWN` already is for the female.
 - **M1b, a robustness variant of M1 (secondary).** The default region adapters send test failures, runtime and compile errors and pressure into `AMMC`, and two signals into `GA`. The male brain lacks both, so under identical adapters it silently loses those inputs. Male real and shuffled lose them equally, so the primary test stays fair, but a male-versus-female difference could come from that alone. M1b re-points only those entries to the male ROI where those territories went. For `AMMC`, that is the ROI holding most presynaptic sites of Johnston's-organ neurons (`JO-*` types). For `GA`, it is the ROI holding most presynaptic sites of gall-innervating neurons (`GLNO`, `LNO*`, `LCNO*` types). Both are computed by the build and recorded in the manifest before any planner runs. M1b runs male real, shuffled and random-degree untrained. If M1 and M1b disagree on the primary comparison, the result is reported as adapter-sensitive, not as a finding.
 - **M2 null scope.** The mushroom-body artifact holds only the olfactory and mushroom-body circuit, so label shuffling and rewiring happen within that circuit. The larval null shuffled across the whole larval brain. The adult null is the stricter of the two, and this difference is reported alongside the numbers.
+
+## 2026-09-14 — the male fly: results (M1, M1b, M2, M3)
+
+Everything below ran as pre-registered above. These are also the first results on suite `public-v2`, at its pinned commits.
+
+**The male artifacts.** `malecns-v1.0-projectome-1` has 73 brain regions, 2,988 edges and 99,983,192 synapses between traced neurons. 20,862 traced neurons have synapses only in the nerve cord and are not in it. Same-region synapses are 56% of the total (the female's are 57%). Both ambiguous ROIs counted as brain under the rule, and both are tiny (251 and 62 synapses). `malecns-v1.0-mb-1` has 7,828 neurons: 2,639 olfactory receptor neurons, 334 uniglomerular and 352 other projection neurons, 4,064 Kenyon cells, 2 APL, 97 MBONs and 340 dopaminergic neurons, with 1,171,820 edges and 3.9 million synapses.
+
+**Three procedural notes, recorded before the numbers.**
+
+- **A void first M1 run.** It passed `--seeds 1,2,3`, which the CLI reads as a count, so it ran no seeds. The harness still rendered a zero-run report whose comparison section read like a null result. It is discarded. The harness now refuses an empty evaluation, and the CLI rejects a malformed seed count.
+- **A flaw in the pre-registered gall rule.** It used the *presynaptic* sites of gall-innervating neurons. GLNO and LNO neurons receive input in the gall and send output to the noduli, where 99% of their presynaptic sites lie. So the rule re-pointed the gall's adapter entries at the noduli, not at the gall's own territory. M1b ran exactly as written, and this flaw is one more reason M1b is only a robustness check. The AMMC rule behaved as intended: 88% of Johnston's-organ output lies in the male SAD region.
+- **A faster feedforward hop.** The memory code's hop now scans only the edges ending in each layer; a full scan would have taken hours on 1.2 million edges. Edge order and sums are unchanged: `flytown fly hash` reproduces all 28 rows of the published larval table exactly.
+
+### M1 — region-level decisions, untrained (`2026-09-14-male-m1-regions-untrained.md`)
+
+n = 60 per planner (20 fixtures × 3 seeds).
+
+| planner | termination acc | task sensitivity (distinct / JS bits) |
+|---|---|---|
+| rules | 85% | 8 / 0.565 |
+| random | 52% | 10 / 0.170 |
+| female real (`fly`) | 50% | 4 / 0.046 |
+| female shuffled | 48% | 4 / 0.104 |
+| female rewired | 48% | 7 / 0.058 |
+| male real | 50% | 4 / 0.058 |
+| male shuffled | 45% | 6 / 0.088 |
+| male rewired | 57% | 5 / 0.055 |
+
+**Primary comparison: male real vs male shuffled, termination +5.0 pts, p = 0.504. By the pre-registered rule, the male wiring is not shown to matter under this harness.** The harness also flags a token difference: the real male brain builds slightly bigger plans, 1,770 more tokens each (p < 0.001). That is a cost difference, not an advantage, and it was not the pre-registered metric.
+
+### M1b — rerouted adapters (`2026-09-14-male-m1b-rerouted-adapters.md`)
+
+Male real 50% vs shuffled 45%, termination +5.0 pts, p = 0.461. M1 and M1b agree, so the result is not adapter-sensitive.
+
+### M1 with 8 training epochs — secondary (`2026-09-14-male-m1-regions-learning.md`)
+
+Male `+learning` scored 77% against 65% for male `+shuffled+learning` (+11.7 pts, p = 0.016). Female `+learning` scored 62% and was a constant policy; female `+shuffled+learning` scored 63%. **This is not evidence that the male wiring matters.**
+
+- The trained male chose `increase_swarm_size` on 19 of 20 fixtures, and its shuffled copy chose `search_memory` on 19 of 20. That compares two near-constant policies that settled on different single actions, which is the pattern larva run 1 disqualified.
+- The male's training curve was noisy until a final-epoch jump, from 58% at epoch 7 to 77% at epoch 8.
+- It is one of several secondary comparisons. It is reported, not claimed.
+
+### M2 — the adult Kenyon-cell code as a task hash (`2026-09-14-male-m2-mushroom-body-hash.md`)
+
+| odour sparseness | real AUC | shuffled seeds | rewired seeds |
+|---|---|---|---|
+| 0.024 | 0.656 | 0.610–0.625 | 0.645–0.661 |
+| 0.05 | 0.709 | 0.600–0.633 | 0.627–0.688 |
+| 0.10 | 0.672 | 0.609–0.642 | 0.654–0.692 |
+| 0.15 | 0.665 | 0.613–0.629 | 0.658–0.683 |
+
+**The real male wiring beats every label-shuffled seed at every setting. It does not beat every degree-preserving rewired seed at 0.024, 0.10 and 0.15. By the pre-registered rule, this is not shown.**
+
+What the numbers do show, stated as differences rather than claims:
+
+- **The larval pattern reverses against label shuffling.** In the larva, real wiring scored below every shuffled seed at every setting. In the adult male it scores above every one.
+- **Degree structure may explain it.** A rewired copy that keeps each neuron's number of connections does about as well as the real wiring. So the male's edge over label shuffling may come from how many inputs each neuron has, not from which projection neurons reach which Kenyon cells. That fits published work finding this wiring close to random given its degrees (Caron et al. 2013; INFERRED_FROM_LITERATURE, for the neuroscience collaborator to check).
+- **The larval collision difference disappears.** Every code was distinct for the real graph and all nulls, so the larva's collision-free advantage vanishes at adult scale.
+
+### M3 — action-effect audit (`2026-09-14-male-m3-effects.md`)
+
+The male real planner's primary action shaped the plan on 5 fixtures, was a default on 15 and was inert on none (5/15/0); its shuffled copy scored 11/9/0. The female real scored 18/2/0 and female shuffled 19/1/0. For all four, the top two action scores differ by only 0.025–0.080, so the fly planners still decide by near-ties.
+
+### Verdict
+
+Across the region-level decision test, its robustness variant and the adult mushroom-body hash test, the male fly's wiring is not shown to beat its null models under the pre-registered rules. That is the same verdict as the female adult brain and the larva.
+
+One lead is specific enough to test: whether degree structure alone explains the adult hash result. A fair test would compare the real wiring against degree-preserving rewires only, with more seeds, pre-registered before it runs.
+
+Reproduce: `connectome-etl/raw/malecns/fetch.sh`, then `connectome-etl/build_male.py --all`, `node scripts/male-rerouted-adapters.mjs`, `flytown fly fixtures fetch`, then the `fly eval`, `fly effects` and `fly hash` commands recorded at the top of each report.

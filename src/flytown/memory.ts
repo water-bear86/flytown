@@ -119,6 +119,9 @@ export class FlyMemory {
   private readonly plasticParams: PlasticityParams;
   private readonly pathway: "feedforward" | "recurrent";
   private readonly layerIdx: Uint32Array[];
+  /** per pathway layer: membership mask, and the indices (ascending) of edges ending in that layer */
+  private readonly layerMasks: Uint8Array[];
+  private readonly layerEdges: Uint32Array[];
   state: PlasticState;
   episodes = 0;
 
@@ -159,6 +162,18 @@ export class FlyMemory {
       if (!hit) throw new Error(`FlyMemory: pathway layer "${spec}" not present in ${opts.graph.id}`);
       return Uint32Array.from(hit.idx);
     });
+    // Precomputed once per graph: a hop only needs the edges that end in its
+    // layer. Kept in ascending edge order so sums are bit-identical to a full scan.
+    this.layerMasks = this.layerIdx.map((layer) => {
+      const mask = new Uint8Array(this.graph.n);
+      for (const i of layer) mask[i] = 1;
+      return mask;
+    });
+    this.layerEdges = this.layerMasks.map((mask) => {
+      const edges: number[] = [];
+      for (let e = 0; e < this.naive.src.length; e++) if (mask[this.naive.dst[e]]) edges.push(e);
+      return Uint32Array.from(edges);
+    });
     this.sparseK = Math.max(1, Math.round(this.kcIdx.length * (opts.sparseness ?? 0.1)));
   }
 
@@ -194,13 +209,13 @@ export class FlyMemory {
    * One feedforward hop: sum signed input from `from` into every node of `to`.
    * Only measured edges are used; nothing recurrent, nothing skipped.
    */
-  private hop(activity: Float64Array, from: Uint32Array, to: Uint32Array): Float64Array {
-    const fromSet = new Set(Array.from(from));
-    const toSet = new Set(Array.from(to));
+  private hop(activity: Float64Array, fromMask: Uint8Array, layer: number): Float64Array {
     const next = new Float64Array(this.graph.n);
     const g = this.naive;
-    for (let e = 0; e < g.src.length; e++) {
-      if (!fromSet.has(g.src[e]) || !toSet.has(g.dst[e])) continue;
+    const edges = this.layerEdges[layer];
+    for (let k = 0; k < edges.length; k++) {
+      const e = edges[k];
+      if (!fromMask[g.src[e]]) continue;
       next[g.dst[e]] += g.w[e] * activity[g.src[e]];
     }
     return next;
@@ -231,10 +246,11 @@ export class FlyMemory {
     }
     // Feedforward: sensory drive, then one measured hop per layer, k-WTA at the end.
     let activity = this.input(signals);
-    let from: Uint32Array = Uint32Array.from(Array.from({ length: this.graph.n }, (_, i) => i).filter((i) => activity[i] > 0));
-    for (const layer of this.layerIdx) {
-      activity = this.hop(activity, from, layer);
-      from = layer;
+    let fromMask: Uint8Array = new Uint8Array(this.graph.n);
+    for (let i = 0; i < activity.length; i++) if (activity[i] > 0) fromMask[i] = 1;
+    for (let l = 0; l < this.layerIdx.length; l++) {
+      activity = this.hop(activity, fromMask, l);
+      fromMask = this.layerMasks[l];
     }
     return Uint32Array.from(this.winners(activity, this.layerIdx[this.layerIdx.length - 1] ?? this.kcIdx, this.sparseK));
   }

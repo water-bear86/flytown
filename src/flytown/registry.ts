@@ -94,6 +94,7 @@ export function resolveFlyOptions(spec: string, opts: ResolveOptions): FlyPlanne
   if (typeof flags.div === "string") fly.engine = { ...(fly.engine ?? {}), divisive: Number(flags.div) };
   if (typeof flags.insteps === "string") fly.engine = { ...(fly.engine ?? {}), inputSteps: Number(flags.insteps) };
   if (typeof flags.lr === "string") fly.learningRate = Number(flags.lr);
+  if (typeof flags.adapters === "string") fly.adaptersFile = flags.adapters;
   if (flags.noself) fly.excludeSelfEdges = true;
   if (flags.plastic) fly.plastic = true;
   if (flags.nosparse) fly.sparseGroups = [];
